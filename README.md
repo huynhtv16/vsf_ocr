@@ -7,10 +7,6 @@ cấu trúc. Kết quả có thể được sử dụng để xây dựng hệ t
 liệu, trích xuất thông tin và các quy trình Intelligent Document Processing
 (IDP).
 
-Đây là một bản fork được tùy chỉnh từ dự án mã nguồn mở
-[MinerU](https://github.com/opendatalab/MinerU). Thông tin giấy phép và ghi nhận
-tác giả gốc được giữ ở phần [Giấy phép và ghi nhận](#giấy-phép-và-ghi-nhận).
-
 ## Mục tiêu
 
 Dự án tập trung vào lớp đọc và chuẩn hóa tài liệu:

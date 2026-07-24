@@ -7,7 +7,6 @@ from mineru.backend.office.office_magic_model import MagicModel
 from mineru.utils.enum_class import BlockType
 from mineru.version import __version__
 
-
 def blocks_to_page_info(page_blocks, image_writer, page_index) -> dict:
     """将blocks转换为页面信息"""
 
@@ -80,7 +79,6 @@ def _extract_section_parts_from_content(content: str, level: int):
         if len(parts) == level:
             return parts
     return None
-
 
 def _collect_index_text_blocks(index_block: dict, result: list[dict]) -> None:
     """Depth-first collect TOC leaf text blocks."""
