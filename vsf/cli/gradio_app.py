@@ -5,7 +5,10 @@ import html as html_lib
 import httpx
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import threading
 import time
 import uuid
@@ -1413,9 +1416,61 @@ def to_pdf_preview(file_path):
     if file_path is None:
         return None
     file_suffix = Path(file_path).suffix.lower().lstrip('.')
+    if file_suffix == "pptx":
+        return convert_pptx_to_pdf_preview(file_path)
     if file_suffix in office_suffixes:
         return None
     return to_pdf(file_path)
+
+
+def convert_pptx_to_pdf_preview(file_path):
+    """Convert a PPTX upload to a locally served PDF preview."""
+    source_path = Path(file_path).resolve()
+    libreoffice_path = shutil.which("libreoffice") or shutil.which("soffice")
+    if libreoffice_path is None:
+        raise RuntimeError("Máy chưa cài LibreOffice để xem trước PPTX.")
+
+    output_dir = source_path.parent / "vsf_pptx_preview"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    preview_path = output_dir / f"{source_path.stem}.pdf"
+    if (
+        preview_path.is_file()
+        and preview_path.stat().st_mtime >= source_path.stat().st_mtime
+    ):
+        return str(preview_path)
+
+    profile_dir = Path(tempfile.mkdtemp(prefix="vsf_libreoffice_profile_"))
+    try:
+        completed = subprocess.run(
+            [
+                libreoffice_path,
+                f"-env:UserInstallation={profile_dir.as_uri()}",
+                "--headless",
+                "--convert-to",
+                "pdf",
+                "--outdir",
+                str(output_dir),
+                str(source_path),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except Exception:
+        preview_path.unlink(missing_ok=True)
+        raise
+    finally:
+        shutil.rmtree(profile_dir, ignore_errors=True)
+
+    if completed.returncode != 0 or not preview_path.is_file():
+        error_text = (completed.stderr or completed.stdout or "").strip()
+        preview_path.unlink(missing_ok=True)
+        raise RuntimeError(
+            "Không thể chuyển PPTX sang PDF"
+            + (f": {error_text}" if error_text else ".")
+        )
+    return str(preview_path)
 
 
 def build_gradio_file_public_url(file_path, request: gr.Request):
@@ -1526,12 +1581,39 @@ def request_uses_local_host(request: gr.Request) -> bool:
 
 def build_local_office_notice_html(file_path):
     file_type = Path(file_path).suffix.lstrip(".").upper() or "Office"
+    if file_type == "PPTX":
+        title = "Đang chuẩn bị bản xem trước PPTX"
+        detail = (
+            "Slide được chuyển sang PDF ngay trên máy, không gửi tới Microsoft. "
+            "Nếu không chuyển đổi được, tệp vẫn có thể xử lý bình thường."
+        )
+    else:
+        title = f"Không hỗ trợ xem trước {file_type} cục bộ"
+        detail = (
+            'Tệp vẫn có thể được xử lý bình thường. Nhấn "Bắt đầu xử lý" '
+            "để xem nội dung và kết quả."
+        )
     return (
         '<div class="office-preview-shell office-local-preview">'
         '<div class="office-local-header">'
-        f"<strong>Không hỗ trợ xem trước {html_lib.escape(file_type)} cục bộ</strong>"
-        "<span>Tệp vẫn có thể được xử lý bình thường. "
-        'Nhấn "Bắt đầu xử lý" để xem nội dung và kết quả.</span>'
+        f"<strong>{html_lib.escape(title)}</strong>"
+        f"<span>{html_lib.escape(detail)}</span>"
+        "</div>"
+        "</div>"
+    )
+
+
+def build_pptx_loading_html():
+    """Show immediate feedback while LibreOffice creates the PDF preview."""
+    return (
+        '<div class="office-preview-shell office-local-preview pptx-loading-shell">'
+        '<div class="pptx-preview-loading" role="status" aria-live="polite">'
+        '<span class="pptx-preview-spinner" aria-hidden="true"></span>'
+        '<div class="pptx-preview-loading-copy">'
+        "<strong>Đang tạo bản xem trước PPTX…</strong>"
+        "<span>Hệ thống đang chuyển slide sang PDF ngay trên máy. "
+        "Tệp lớn có thể cần thêm vài giây.</span>"
+        "</div>"
         "</div>"
         "</div>"
     )
@@ -1590,44 +1672,75 @@ def update_file_options_html(file_path, request: gr.Request, i18n=None):
     """
     if file_path is None:
         return (
-            gr.update(visible=True),             # Implementation detail.
-            gr.update(value="", visible=False),  # Implementation detail.
+            gr.update(visible=True),
+            gr.update(value="", visible=False),
+            gr.update(value=None, visible=True),
         )
 
     file_suffix = Path(file_path).suffix.lower().lstrip('.')
     is_office = file_suffix in office_suffixes
 
+    if file_suffix == "pptx":
+        return (
+            gr.update(visible=True),
+            gr.update(value=build_pptx_loading_html(), visible=True),
+            gr.update(value=None, visible=False),
+        )
     if is_office:
         html_content = build_office_preview_html(file_path, request, i18n)
         return (
-            gr.update(visible=True),                     # Keep IDP/options available.
-            gr.update(value=html_content, visible=True), # Implementation detail.
+            gr.update(visible=True),
+            gr.update(value=html_content, visible=True),
+            gr.update(value=None, visible=False),
         )
     else:
         return (
-            gr.update(visible=True),             # Implementation detail.
-            gr.update(value="", visible=False),  # Implementation detail.
+            gr.update(visible=True),
+            gr.update(value="", visible=False),
+            gr.update(visible=True),
         )
 
 
-def update_doc_show(file_path):
+def update_doc_show(file_path, request: gr.Request | None = None, i18n=None):
     """Process the file path.
     Process the file path.
     Implementation detail.
     """
     if file_path is None:
         # Process the file path.
-        return gr.update(value=None, visible=True)
+        return (
+            gr.update(value=None, visible=True),
+            gr.update(value="", visible=False),
+        )
 
     file_suffix = Path(file_path).suffix.lower().lstrip('.')
-    is_office = file_suffix in office_suffixes
 
-    if is_office:
-        # Implementation detail.
-        return gr.update(visible=False)
+    if file_suffix == "pptx":
+        try:
+            pdf_path = to_pdf_preview(file_path)
+        except Exception as exc:
+            logger.warning(f"Không thể tạo bản xem trước PPTX cục bộ: {exc}")
+            fallback_html = (
+                build_office_preview_html(file_path, request, i18n)
+                if request is not None
+                else build_local_office_notice_html(file_path)
+            )
+            return (
+                gr.update(value=None, visible=False),
+                gr.update(value=fallback_html, visible=True),
+            )
+        return (
+            gr.update(value=pdf_path, visible=True),
+            gr.update(value="", visible=False),
+        )
+    if file_suffix in office_suffixes:
+        return gr.update(value=None, visible=False), gr.update()
     else:
         pdf_path = to_pdf_preview(file_path)
-        return gr.update(value=pdf_path, visible=True)
+        return (
+            gr.update(value=pdf_path, visible=True),
+            gr.update(value="", visible=False),
+        )
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
@@ -2223,18 +2336,22 @@ def main(ctx,
             """Process the file path."""
             return update_file_options_html(file_path, request, i18n)
 
+        def update_doc_show_for_ui(file_path, request: gr.Request):
+            """Build one mutually exclusive local or remote preview."""
+            return update_doc_show(file_path, request, i18n)
+
         # Implementation detail.
         # Implementation detail.
         # Implementation detail.
         input_file.change(
             fn=update_file_options_html_for_ui,
             inputs=input_file,
-            outputs=[options_group, office_html],
+            outputs=[options_group, office_html, doc_show],
             **_private_api_kwargs
         ).then(
-            fn=update_doc_show,
+            fn=update_doc_show_for_ui,
             inputs=input_file,
-            outputs=[doc_show],
+            outputs=[doc_show, office_html],
             **_private_api_kwargs
         )
         _to_md_api_kwargs = (

@@ -519,6 +519,51 @@ body.vsf-hide-hybrid-effort .gradio-container .contain .vsf-hybrid-effort-option
     place-items: center;
     color: var(--body-text-color-subdued);
 }
+.pptx-loading-shell {
+    align-items: center;
+    justify-content: center;
+}
+.pptx-preview-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 180px;
+    padding: 24px;
+}
+.pptx-preview-spinner {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    box-sizing: border-box;
+    border: 3px solid rgba(148, 163, 184, 0.28);
+    border-top-color: #f97316;
+    border-radius: 50%;
+    animation: vsf-pptx-preview-spin 0.75s linear infinite;
+}
+.pptx-preview-loading-copy {
+    max-width: 440px;
+}
+.pptx-preview-loading-copy strong,
+.pptx-preview-loading-copy span {
+    display: block;
+}
+.pptx-preview-loading-copy span {
+    margin-top: 5px;
+    color: var(--body-text-color-subdued);
+    font-size: 12px;
+    line-height: 1.5;
+}
+@keyframes vsf-pptx-preview-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .pptx-preview-spinner {
+        animation-duration: 1.5s;
+    }
+}
 @media (max-width: 900px) {
     .vsf-control-column {
         position: static;
