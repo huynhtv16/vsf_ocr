@@ -20,13 +20,13 @@ class Im2Seq(nn.Module):
 
     # def forward(self, x):
     #     B, C, H, W = x.shape
-    #     # 处理四维张量，将空间维度展平为序列
+    # Process the current item.
     #     if H == 1:
-    #         # 原来的处理逻辑，适用于H=1的情况
+    # Process the current item.
     #         x = x.squeeze(dim=2)
     #         x = x.permute(0, 2, 1)  # (B, W, C)
     #     else:
-    #         # 处理H不为1的情况
+    # Process the current item.
     #         x = x.permute(0, 2, 3, 1)  # (B, H, W, C)
     #         x = x.reshape(B, H * W, C)  # (B, H*W, C)
     #
@@ -201,7 +201,7 @@ class EncoderWithSVTR(nn.Module):
 
 
 class LightSVTRConvLayer(nn.Module):
-    """PP-OCRv6 LightSVTR 使用的 Conv-BN-SiLU 基础层。"""
+    """Implementation detail."""
 
     def __init__(
         self,
@@ -211,7 +211,7 @@ class LightSVTRConvLayer(nn.Module):
         activation="silu",
         groups=1,
     ):
-        """初始化与 safetensors key 对齐的卷积、归一化和激活层。"""
+        """Initialize the component."""
         super().__init__()
         if isinstance(kernel_size, int):
             kernel_size = (kernel_size, kernel_size)
@@ -228,7 +228,7 @@ class LightSVTRConvLayer(nn.Module):
         self.activation = nn.SiLU() if activation in {"silu", "swish"} else nn.Identity()
 
     def forward(self, hidden_states):
-        """执行卷积、BN 和激活。"""
+        """Implementation detail."""
         hidden_states = self.convolution(hidden_states)
         hidden_states = self.normalization(hidden_states)
         hidden_states = self.activation(hidden_states)
@@ -236,10 +236,10 @@ class LightSVTRConvLayer(nn.Module):
 
 
 class LightSVTRAttention(nn.Module):
-    """LightSVTR 的多头自注意力，属性名对齐 `self_attn.*` 权重。"""
+    """Implementation detail."""
 
     def __init__(self, hidden_size, num_heads=8, qkv_bias=True, attention_dropout=0.1):
-        """初始化 qkv 投影和输出投影。"""
+        """Prepare the output value."""
         super().__init__()
         if hidden_size % num_heads != 0:
             raise ValueError(f"hidden_size {hidden_size} must be divisible by num_heads {num_heads}.")
@@ -252,7 +252,7 @@ class LightSVTRAttention(nn.Module):
         self.projection = nn.Linear(hidden_size, hidden_size)
 
     def forward(self, hidden_states):
-        """计算全局自注意力并返回投影后的序列特征。"""
+        """Calculate the result."""
         batch_size, seq_len, embed_dim = hidden_states.shape
         mixed_qkv = self.qkv(hidden_states)
         mixed_qkv = mixed_qkv.reshape(batch_size, seq_len, 3, self.num_heads, embed_dim // self.num_heads)
@@ -267,10 +267,10 @@ class LightSVTRAttention(nn.Module):
 
 
 class LightSVTRMLP(nn.Module):
-    """LightSVTR block 内的前馈网络，属性名对齐 `mlp.fc*` 权重。"""
+    """Implementation detail."""
 
     def __init__(self, hidden_size, mlp_ratio=4.0, drop_rate=0.1):
-        """初始化两层线性层、SiLU 激活和 dropout。"""
+        """Initialize the component."""
         super().__init__()
         self.fc1 = nn.Linear(hidden_size, int(hidden_size * mlp_ratio))
         self.activation = nn.SiLU()
@@ -278,7 +278,7 @@ class LightSVTRMLP(nn.Module):
         self.drop = nn.Dropout(drop_rate)
 
     def forward(self, hidden_states):
-        """执行 MLP 前向计算。"""
+        """Calculate the result."""
         hidden_states = self.fc1(hidden_states)
         hidden_states = self.activation(hidden_states)
         hidden_states = self.drop(hidden_states)
@@ -288,7 +288,7 @@ class LightSVTRMLP(nn.Module):
 
 
 class LightSVTRBlock(nn.Module):
-    """LightSVTR 的 Transformer block，属性名对齐 v6 safetensors。"""
+    """Implementation detail."""
 
     def __init__(
         self,
@@ -300,7 +300,7 @@ class LightSVTRBlock(nn.Module):
         attn_drop_rate=0.1,
         layer_norm_eps=1e-6,
     ):
-        """初始化注意力、MLP 和两层 LayerNorm。"""
+        """Initialize the component."""
         super().__init__()
         self.self_attn = LightSVTRAttention(hidden_size, num_heads, qkv_bias, attn_drop_rate)
         self.layer_norm1 = nn.LayerNorm(hidden_size, eps=layer_norm_eps)
@@ -308,7 +308,7 @@ class LightSVTRBlock(nn.Module):
         self.layer_norm2 = nn.LayerNorm(hidden_size, eps=layer_norm_eps)
 
     def forward(self, hidden_states):
-        """执行 pre-norm attention 和 pre-norm MLP 残差结构。"""
+        """Implementation detail."""
         residual = hidden_states
         hidden_states = self.layer_norm1(hidden_states)
         hidden_states = residual + self.self_attn(hidden_states)
@@ -319,7 +319,7 @@ class LightSVTRBlock(nn.Module):
 
 
 class EncoderWithLightSVTR(nn.Module):
-    """PP-OCRv6 使用的 LightSVTR neck，输出仍保持 4D 特征。"""
+    """Prepare the output value."""
 
     def __init__(
         self,
@@ -337,7 +337,7 @@ class EncoderWithLightSVTR(nn.Module):
         use_guide=False,
         **kwargs,
     ):
-        """初始化 skip/reduce/local conv、LightSVTR block 和归一化层。"""
+        """Initialize the component."""
         super().__init__()
         self.use_guide = use_guide
         self.conv_block = nn.ModuleList(
@@ -364,7 +364,7 @@ class EncoderWithLightSVTR(nn.Module):
         self.out_channels = dims
 
     def forward(self, x):
-        """执行轻量局部卷积增强、全局注意力和 skip 残差融合。"""
+        """Implementation detail."""
         if self.use_guide:
             x = x.detach()
         residual = self.conv_block[0](x)

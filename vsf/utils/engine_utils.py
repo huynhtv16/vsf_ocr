@@ -9,17 +9,17 @@ from mineru.utils.check_sys_env import is_mac_os_version_supported, is_windows_e
 
 def get_vlm_engine(inference_engine: str, is_async: bool = False) -> str:
     """
-    自动选择或验证 VLM 推理引擎
+    Validate the current value.
 
     Args:
-        inference_engine: 指定的引擎名称或 'auto' 进行自动选择
-        is_async: 是否使用异步引擎(仅对 vllm 有效)
+        Implementation detail.
+        Implementation detail.
 
     Returns:
-        最终选择的引擎名称
+        Implementation detail.
     """
     if inference_engine == 'auto':
-        # 根据操作系统自动选择引擎
+        # Implementation detail.
         if is_windows_environment():
             inference_engine = _select_windows_engine()
         elif is_linux_environment():
@@ -36,7 +36,7 @@ def get_vlm_engine(inference_engine: str, is_async: bool = False) -> str:
 
 
 def _select_windows_engine() -> str:
-    """Windows 平台引擎选择"""
+    """Implementation detail."""
     try:
         import lmdeploy
         return 'lmdeploy'
@@ -45,7 +45,7 @@ def _select_windows_engine() -> str:
 
 
 def _select_linux_engine(is_async: bool) -> str:
-    """Linux 平台引擎选择"""
+    """Implementation detail."""
     try:
         import vllm
         return 'vllm-async' if is_async else 'vllm'
@@ -58,7 +58,7 @@ def _select_linux_engine(is_async: bool) -> str:
 
 
 def _select_mac_engine() -> str:
-    """macOS 平台引擎选择"""
+    """Implementation detail."""
     try:
         from mlx_vlm import load as mlx_load
         if is_mac_os_version_supported():
@@ -70,7 +70,7 @@ def _select_mac_engine() -> str:
 
 
 def _format_engine_name(engine: str) -> str:
-    """统一格式化引擎名称"""
+    """Implementation detail."""
     if engine != 'transformers':
         return f"{engine}-engine"
     return engine

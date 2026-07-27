@@ -101,7 +101,7 @@ _DEVANAGARI_LANG_ALIASES = {
 
 
 def format_public_ocr_lang_description() -> str:
-    """生成公开 API 使用的 OCR 语言说明，避免入口文案各自维护。"""
+    """Build the required output."""
     option_lines = [
         f"- {lang}: {_PUBLIC_OCR_LANGUAGE_DESCRIPTIONS[lang]}."
         for lang in PUBLIC_OCR_LANGUAGES
@@ -114,7 +114,7 @@ def format_public_ocr_lang_description() -> str:
 
 
 def validate_public_ocr_lang(lang: str) -> str:
-    """校验公开入口允许的 OCR 语言，并将兼容入口规范到实际模型 key。"""
+    """Validate the current value."""
     if lang in _CH_LANG_ALIASES:
         return "ch"
     if lang not in PUBLIC_OCR_LANGUAGES:
@@ -126,7 +126,7 @@ def validate_public_ocr_lang(lang: str) -> str:
 
 
 def validate_public_ocr_lang_list(lang_list: list[str]) -> list[str]:
-    """校验公开 API 的语言列表，返回可安全传入下游的副本。"""
+    """Validate the current value."""
     effective_lang_list = lang_list or ["ch"]
     return [validate_public_ocr_lang(lang) for lang in effective_lang_list]
 
@@ -137,7 +137,7 @@ def normalize_ocr_model_lang(
     device: str | None = None,
     supported_langs=None,
 ) -> str:
-    """将 OCR 语言参数归一为模型配置 key，保留内部 seal 与语系短码能力。"""
+    """Configure the model."""
     normalized_lang = lang or "ch"
     if device == "cpu" and normalized_lang == "seal":
         normalized_lang = "seal_lite"

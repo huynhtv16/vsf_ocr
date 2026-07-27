@@ -73,7 +73,7 @@ class ModelSingleton:
                 server_headers = kwargs.get("server_headers", None)  # for http-client backend only
                 max_retries = kwargs.get("max_retries", 3)  # for http-client backend only
                 retry_backoff_factor = kwargs.get("retry_backoff_factor", 0.5)  # for http-client backend only
-                # 从kwargs中移除这些参数，避免传递给不相关的初始化函数
+                # Remove invalid or unnecessary data.
                 for param in ["batch_size", "max_concurrency", "http_timeout", "server_headers", "max_retries", "retry_backoff_factor"]:
                     if param in kwargs:
                         del kwargs[param]
@@ -138,7 +138,7 @@ class ModelSingleton:
                         if enable_custom_logits_processors() and ("logits_processors" not in kwargs):
                             from mineru_vl_utils import MinerULogitsProcessor
                             kwargs["logits_processors"] = [MinerULogitsProcessor]
-                        # 使用kwargs为 vllm初始化参数
+                        # Initialize the component.
                         vllm_llm = vllm.LLM(**kwargs)
                     elif backend == "vllm-async-engine":
                         try:
@@ -152,10 +152,10 @@ class ModelSingleton:
 
                         if "compilation_config" in kwargs:
                             if isinstance(kwargs["compilation_config"], dict):
-                                # 如果是字典，转换为 CompilationConfig 对象
+                                # Convert the value to the required format.
                                 kwargs["compilation_config"] = CompilationConfig(**kwargs["compilation_config"])
                             elif isinstance(kwargs["compilation_config"], str):
-                                # 如果是 JSON 字符串，先解析再转换
+                                # Convert the value to the required format.
                                 try:
                                     config_dict = json.loads(kwargs["compilation_config"])
                                     kwargs["compilation_config"] = CompilationConfig(**config_dict)
@@ -170,7 +170,7 @@ class ModelSingleton:
                         if enable_custom_logits_processors() and ("logits_processors" not in kwargs):
                             from mineru_vl_utils import MinerULogitsProcessor
                             kwargs["logits_processors"] = [MinerULogitsProcessor]
-                        # 使用kwargs为 vllm初始化参数
+                        # Initialize the component.
                         vllm_async_llm = AsyncLLM.from_engine_args(AsyncEngineArgs(**kwargs))
                     elif backend == "lmdeploy-engine":
                         try:

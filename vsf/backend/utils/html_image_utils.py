@@ -23,7 +23,7 @@ def _save_inline_vector_image(
     fmt: str,
     page_index: int,
 ):
-    """将 HTML 表格内联的 WMF/EMF 矢量图转换为可渲染占位图后落盘。"""
+    """Convert the value to the required format."""
     content_type = f"image/{fmt.lower()}"
     rendered_data_uri = serialize_office_image(
         img_bytes,
@@ -53,7 +53,7 @@ def _save_inline_vector_image(
 
 
 def _write_image_once(image_writer, img_path: str, img_bytes: bytes) -> None:
-    """同一 writer 生命周期内同一路径只写一次，便于复用标准占位图。"""
+    """Process the file path."""
     written_paths = getattr(image_writer, "_mineru_written_image_paths", None)
     if written_paths is None:
         written_paths = set()

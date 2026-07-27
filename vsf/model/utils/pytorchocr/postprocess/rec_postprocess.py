@@ -17,6 +17,19 @@ import numpy as np
 import torch
 
 
+_UNICODE_ESCAPE_PATTERN = re.compile(r"\\(?:u([0-9a-fA-F]{4})|U([0-9a-fA-F]{8}))")
+
+
+def _decode_dictionary_escapes(value: str) -> str:
+    """Decode escaped dictionary characters while leaving other text unchanged."""
+
+    def replace(match: re.Match[str]) -> str:
+        codepoint = match.group(1) or match.group(2)
+        return chr(int(codepoint, 16))
+
+    return _UNICODE_ESCAPE_PATTERN.sub(replace, value)
+
+
 class BaseRecLabelDecode(object):
     """ Convert between text-label and text-index """
 
@@ -37,6 +50,7 @@ class BaseRecLabelDecode(object):
                 lines = fin.readlines()
                 for line in lines:
                     line = line.decode('utf-8').strip("\n").strip("\r\n")
+                    line = _decode_dictionary_escapes(line)
                     self.character_str.append(line)
             if use_space_char:
                 self.character_str.append(" ")
@@ -80,7 +94,7 @@ class BaseRecLabelDecode(object):
             word_list: list of the grouped words
             word_col_list: list of decoding positions corresponding to each character in the grouped word
             state_list: list of marker to identify the type of grouping words, including two types of grouping words:
-                        - 'cn': continuous chinese characters (e.g., 你好啊)
+                        Implementation detail.
                         - 'en&num': continuous english characters (e.g., hello), number (e.g., 123, 1.123), or mixed of them connected by '-' (e.g., VGG-16)
                         The remaining characters in text are treated as separators between groups (e.g., space, '(', ')', etc.).
         """
@@ -162,7 +176,7 @@ class BaseRecLabelDecode(object):
             if text_prob is not None and probs is not None and len(probs) > 0:
                 mean_conf = np.mean(probs)
             else:
-                # 如果没有提供概率或最终结果为空，则默认置信度为1.0
+                # Prepare the output value.
                 mean_conf = 1.0
             result_list.append((text, mean_conf))
         return result_list
@@ -182,7 +196,7 @@ class CTCLabelDecode(BaseRecLabelDecode):
                                              use_space_char)
 
     def _decode_raw_logits(self, preds):
-        """从 raw logits 直接计算 CTC argmax 和 max softmax 概率，避免完整 softmax。"""
+        """Calculate the result."""
         logits = preds["ctc_logits"]
         if torch.is_tensor(logits):
             preds_idx = logits.argmax(dim=2)
@@ -598,9 +612,11 @@ class TableLabelDecode(object):
             elem_num = int(substr[1])
             for cno in range(1, 1 + character_num):
                 character = lines[cno].decode('utf-8').strip("\n").strip("\r\n")
+                character = _decode_dictionary_escapes(character)
                 list_character.append(character)
             for eno in range(1 + character_num, 1 + character_num + elem_num):
                 elem = lines[eno].decode('utf-8').strip("\n").strip("\r\n")
+                elem = _decode_dictionary_escapes(elem)
                 list_elem.append(elem)
         return list_character, list_elem
 

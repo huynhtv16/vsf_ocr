@@ -39,7 +39,7 @@ def __replace_unicode(text: str):
     return re.sub('|'.join(map(re.escape, ligatures.keys())), lambda m: ligatures[m.group()], text)
 
 
-"""pdf_text dict方案 char级别"""
+"""pdf_text dict\u65b9\u6848 char\u7ea7\u522b"""
 def txt_spans_extract(pdf_page, spans, pil_img, scale, all_bboxes, all_discarded_blocks):
     page_char_count = None
     textpage = None
@@ -68,7 +68,7 @@ def txt_spans_extract(pdf_page, spans, pil_img, scale, all_bboxes, all_discarded
         )
         page_all_chars = _get_chars_for_span_fill(page_chars)
 
-        # 计算所有sapn的高度的中位数
+        # Calculate the result.
         span_height_list = []
         for span in spans:
             if span['type'] in [ContentType.TEXT]:
@@ -83,7 +83,7 @@ def txt_spans_extract(pdf_page, spans, pil_img, scale, all_bboxes, all_discarded
 
         useful_spans = []
         unuseful_spans = []
-        # 纵向span的两个特征：1. 高度超过多个line 2. 高宽比超过某个值
+        # Implementation detail.
         vertical_spans = []
         for span in spans:
             if span['type'] in [ContentType.TEXT]:
@@ -99,7 +99,7 @@ def txt_spans_extract(pdf_page, spans, pil_img, scale, all_bboxes, all_discarded
                             unuseful_spans.append(span)
                         break
 
-        """垂直的span框直接用line进行填充"""
+        """\u5782\u76f4\u7684span\u6846\u76f4\u63a5\u7528line\u8fdb\u884c\u586b\u5145"""
         if len(vertical_spans) > 0:
             page_all_lines = [
                 line for line in get_lines_from_chars(page_chars['chars'])
@@ -116,7 +116,7 @@ def txt_spans_extract(pdf_page, spans, pil_img, scale, all_bboxes, all_discarded
                 if len(span['content']) == 0:
                     spans.remove(span)
 
-        """水平的span框先用char填充，再用ocr填充空的span框"""
+        """\u6c34\u5e73\u7684span\u6846\u5148\u7528char\u586b\u5145\uff0c\u518d\u7528ocr\u586b\u5145\u7a7a\u7684span\u6846"""
         new_spans = []
 
         for span in useful_spans + unuseful_spans:
@@ -132,13 +132,13 @@ def txt_spans_extract(pdf_page, spans, pil_img, scale, all_bboxes, all_discarded
 
 
 def _is_supported_rotation(rotation) -> bool:
-    """判断 pdftext 旋转角是否属于当前可回填的四个标准方向。"""
+    """Validate the current value."""
     rotation_degrees = math.degrees(rotation)
     return any(abs(rotation_degrees - angle) < 0.1 for angle in [0, 90, 180, 270])
 
 
 def _get_char_fill_key(char):
-    """生成字符回填判定 key，优先使用 pdftext 提供的页内 char_idx。"""
+    """Build the required output."""
     char_idx = char.get('char_idx')
     if char_idx is not None:
         return ('char_idx', char_idx)
@@ -146,14 +146,14 @@ def _get_char_fill_key(char):
 
 
 def _iter_line_chars(line):
-    """按 pdftext line/span 结构展开字符，兼容缺少 chars 字段的异常 span。"""
+    """Implementation detail."""
     for span in line.get('spans', []):
         for char in span.get('chars', []):
             yield char
 
 
 def _is_visible_standard_rotation_char(char) -> bool:
-    """判断字符是否是可见的标准方向正文字符，避免换行控制符误放行水印。"""
+    """Validate the current value."""
     text = char.get('char', '')
     if not text or text.isspace() or text in {'\r', '\n'}:
         return False
@@ -171,7 +171,7 @@ def _is_visible_standard_rotation_char(char) -> bool:
 
 
 def _get_chars_for_span_fill(page_chars):
-    """选择允许参与 span 回填的字符，保留正文内仿斜体并过滤整行斜向水印。"""
+    """Remove invalid or unnecessary data."""
     all_chars = page_chars['chars']
     fill_char_keys = {
         _get_char_fill_key(char)
@@ -197,7 +197,7 @@ def _get_chars_for_span_fill(page_chars):
         if not any(_is_visible_standard_rotation_char(char) for char in line_chars):
             continue
 
-        # 标准方向正文行内的局部旋转字符通常是仿斜体强调，需要允许回填。
+        # Implementation detail.
         for char in line_chars:
             if not _is_supported_rotation(char.get('rotation', 0)):
                 fill_char_keys.add(_get_char_fill_key(char))
@@ -213,10 +213,10 @@ def _prepare_post_ocr_spans(need_ocr_spans, spans, pil_img, scale):
         return spans
 
     for span in need_ocr_spans:
-        # 对span的bbox截图再ocr
+        # Implementation detail.
         span_pil_img = get_crop_img(span['bbox'], pil_img, scale)
         span_img = cv2.cvtColor(np.array(span_pil_img), cv2.COLOR_RGB2BGR)
-        # 计算span的对比度，低于0.17的span不进行ocr，等于0.17的临界框保留给后置OCR。
+        # Calculate the result.
         if calculate_contrast(span_img, img_mode='bgr') < 0.17:
             if _restore_post_ocr_fallback(span):
                 continue
@@ -232,7 +232,7 @@ def _prepare_post_ocr_spans(need_ocr_spans, spans, pil_img, scale):
 
 
 class SpanBlockMatcher:
-    """按 block 顺序消费 span，并用 y 方向索引减少无效重叠计算。"""
+    """Sort items into the required order."""
 
     def __init__(self, spans):
         self.spans = list(spans)
@@ -242,7 +242,7 @@ class SpanBlockMatcher:
 
     @staticmethod
     def _get_grid_size(spans):
-        """根据 span 高度估算索引网格大小，避免过细或过粗。"""
+        """Implementation detail."""
         heights = [
             span['bbox'][3] - span['bbox'][1]
             for span in spans
@@ -253,7 +253,7 @@ class SpanBlockMatcher:
         return max(1, statistics.median(heights))
 
     def _build_grid(self, spans):
-        """将 span 按 y 方向网格登记，后续按 block bbox 快速取候选。"""
+        """Implementation detail."""
         grid = collections.defaultdict(list)
         for index, span in enumerate(spans):
             bbox = span.get('bbox')
@@ -265,14 +265,14 @@ class SpanBlockMatcher:
         return grid
 
     def _cell_range(self, bbox):
-        """计算 bbox 覆盖的 y 方向网格范围。"""
+        """Calculate the result."""
         return (
             int(bbox[1] / self.grid_size),
             int(bbox[3] / self.grid_size),
         )
 
     def _candidate_indices_for_block(self, block_bbox):
-        """取出与 block 纵向范围可能相交的 span 原始索引。"""
+        """Implementation detail."""
         start_cell, end_cell = self._cell_range(block_bbox)
         candidate_indices = set()
         for cell_idx in range(start_cell, end_cell + 1):
@@ -280,7 +280,7 @@ class SpanBlockMatcher:
         return sorted(candidate_indices)
 
     def collect_for_block(self, block_bbox, overlap_ratio_getter=None, threshold=0.5):
-        """返回当前 block 命中的 span，并标记为已消费以保持旧归属语义。"""
+        """Prepare the output value."""
         if overlap_ratio_getter is None:
             overlap_ratio_getter = self._default_overlap_ratio
 
@@ -295,7 +295,7 @@ class SpanBlockMatcher:
         return block_spans
 
     def remaining_spans(self):
-        """返回尚未归属到任何 block 的 span，方便保持后续兼容。"""
+        """Prepare the output value."""
         return [
             span
             for index, span in enumerate(self.spans)
@@ -304,12 +304,12 @@ class SpanBlockMatcher:
 
     @staticmethod
     def _default_overlap_ratio(span, block_bbox):
-        """默认沿用旧逻辑：计算 span 面积中落入 block 的比例。"""
+        """Calculate the result."""
         return calculate_overlap_area_in_bbox1_area_ratio(span['bbox'], block_bbox)
 
 
 def fill_char_in_spans(spans, all_chars, median_span_height):
-    # 简单从上到下排一下序
+    # Implementation detail.
     spans = sorted(spans, key=lambda x: x['bbox'][1])
 
     grid_size = max(1, median_span_height)
@@ -356,7 +356,7 @@ def fill_char_in_spans(spans, all_chars, median_span_height):
             span[POST_OCR_FALLBACK_SCORE_KEY] = span.get('score', 1.0)
             span[POST_OCR_REASON_KEY] = POST_OCR_REASON_PRIVATE_USE_TEXT
             need_ocr_spans.append(span)
-        # 有的span中虽然没有字但有一两个空的占位符，用宽高和content长度过滤
+        # Remove invalid or unnecessary data.
         elif len(span['content']) * span['height'] < span['width'] * 0.5:
             # logger.info(f"maybe empty span: {len(span['content'])}, {span['height']}, {span['width']}")
             need_ocr_spans.append(span)
@@ -365,20 +365,20 @@ def fill_char_in_spans(spans, all_chars, median_span_height):
 
 
 LINE_STOP_FLAG = (
-    '.', '!', '?', '。', '！', '？', ')', '）', '"', '”', ':', '：', ';',
-    '；', ']', '】', '}', '}', '>', '》', '、', ',', '，', '-', '—', '–',
+    '.', '!', '?', '\u3002', '\uff01', '\uff1f', ')', '\uff09', '"', '\u201d', ':', '\uff1a', ';',
+    '\uff1b', ']', '\u3011', '}', '}', '>', '\u300b', '\u3001', ',', '\uff0c', '-', '—', '–',
 )
 LINE_START_FLAG = (
-    '(', '（', '"', '“', '【', '{', '《', '<', '「', '『', '【', '[',
+    '(', '\uff08', '"', '\u201c', '\u3010', '{', '\u300a', '<', '\u300c', '\u300e', '\u3010', '[',
 )
 
-Span_Height_Ratio = 0.33  # 字符的中轴和span的中轴高度差不能超过1/3span高度
+Span_Height_Ratio = 0.33  # Implementation detail.
 SCRIPT_BODY_HEIGHT_RATIO = 0.9
 SCRIPT_CENTER_TOLERANCE_RATIO = 0.15
 
 
 def _is_private_use_char(char: str) -> bool:
-    """判断单个字符是否落在 Unicode 私用区，用于识别字体映射异常。"""
+    """Validate the current value."""
     return (
         len(char) == 1
         and PRIVATE_USE_AREA_START <= ord(char) <= PRIVATE_USE_AREA_END
@@ -386,7 +386,7 @@ def _is_private_use_char(char: str) -> bool:
 
 
 def _get_private_use_text_signal(chars):
-    """统计 span 字符中的私用区信号，供局部后置 OCR 决策使用。"""
+    """Calculate the result."""
     pua_count = 0
     text_char_count = 0
     current_pua_run = 0
@@ -419,7 +419,7 @@ def _get_private_use_text_signal(chars):
 
 
 def _should_fallback_to_post_ocr_for_private_use_text(signal) -> bool:
-    """连续或高占比 PUA 才转后置 OCR，降低孤立私用符号误召回。"""
+    """Implementation detail."""
     pua_count = signal['pua_count']
     if pua_count < PRIVATE_USE_TEXT_COUNT_THRESHOLD:
         return False
@@ -431,14 +431,14 @@ def _should_fallback_to_post_ocr_for_private_use_text(signal) -> bool:
 
 
 def _clear_post_ocr_fallback(span):
-    """清理后置 OCR 内部兜底字段，避免进入最终 middle-json 输出。"""
+    """Remove invalid or unnecessary data."""
     span.pop(POST_OCR_FALLBACK_CONTENT_KEY, None)
     span.pop(POST_OCR_FALLBACK_SCORE_KEY, None)
     span.pop(POST_OCR_REASON_KEY, None)
 
 
 def _restore_post_ocr_fallback(span) -> bool:
-    """在后置 OCR 无法使用时恢复原始文本兜底，返回是否已恢复。"""
+    """Process text content."""
     if POST_OCR_FALLBACK_CONTENT_KEY not in span:
         _clear_post_ocr_fallback(span)
         return False
@@ -459,13 +459,13 @@ def calculate_char_in_span(char_bbox, span_bbox, char, span_height_ratio=Span_He
     if (
         span_bbox[0] < char_center_x < span_bbox[2]
         and span_bbox[1] < char_center_y < span_bbox[3]
-        # 字符的中轴和span的中轴高度差不能超过Span_Height_Ratio
+        # Implementation detail.
         and abs(char_center_y - span_center_y) < span_height * span_height_ratio
     ):
         return True
     else:
-        # 如果char是LINE_STOP_FLAG，就不用中心点判定，换一种方案（左边界在span区域内，高度判定和之前逻辑一致）
-        # 主要是给结尾符号一个进入span的机会，这个char还应该离span右边界较近
+        # Implementation detail.
+        # Implementation detail.
         if char in LINE_STOP_FLAG:
             if (
                 (span_bbox[2] - span_height) < char_bbox[0] < span_bbox[2]
@@ -487,7 +487,7 @@ def calculate_char_in_span(char_bbox, span_bbox, char, span_height_ratio=Span_He
 
 
 def _get_char_bbox_metrics(char):
-    """提取字符 bbox 的宽高和中心点，统一兼容 list 与 pdftext Bbox 对象。"""
+    """Extract the required value."""
     bbox = char['bbox']
     x0, y0, x1, y1 = [float(v) for v in bbox]
     return {
@@ -498,12 +498,12 @@ def _get_char_bbox_metrics(char):
 
 
 def _get_char_bbox_metrics_list(chars):
-    """预计算 span 内全部字符的 bbox 指标，避免上下标判断重复解析 bbox。"""
+    """Validate the current value."""
     return [_get_char_bbox_metrics(char) for char in chars]
 
 
 def _is_valid_script_reference_char(char, metrics) -> bool:
-    """过滤空白和退化 bbox，只用真实可见字符估计正文主带。"""
+    """Remove invalid or unnecessary data."""
     if char['char'] in {' ', '\r', '\n'}:
         return False
 
@@ -511,7 +511,7 @@ def _is_valid_script_reference_char(char, metrics) -> bool:
 
 
 def _get_body_axis(chars, char_metrics):
-    """根据同一 span 内最大高度字符簇估计正文中心线和正文高度。"""
+    """Implementation detail."""
     valid_metrics = [
         metrics for char, metrics in zip(chars, char_metrics)
         if _is_valid_script_reference_char(char, metrics)
@@ -534,7 +534,7 @@ def _get_body_axis(chars, char_metrics):
 
 
 def _classify_char_script_roles(chars, char_metrics):
-    """按正文主带判断每个字符属于正文、上标或下标。"""
+    """Validate the current value."""
     body_axis = _get_body_axis(chars, char_metrics)
     if body_axis is None or body_axis['height'] <= 0:
         return ['body'] * len(chars)
@@ -557,7 +557,7 @@ def _classify_char_script_roles(chars, char_metrics):
 
 
 def _append_script_wrapped_text(parts, role, text):
-    """把连续同类上下标文本包裹成 HTML 标签，正文保持原样。"""
+    """Process text content."""
     if not text:
         return
     if role == 'sup':
@@ -569,7 +569,7 @@ def _append_script_wrapped_text(parts, role, text):
 
 
 def _wrap_script_runs(role_text_parts):
-    """合并连续正文、上标、下标 run，避免每个字符单独生成标签。"""
+    """Build the required output."""
     wrapped_parts = []
     current_role = None
     current_text_parts = []
@@ -595,7 +595,7 @@ def _wrap_script_runs(role_text_parts):
 
 
 def _remove_control_line_break_chars(chars):
-    """过滤 PDFium 文本片段边界控制换行，避免其参与字符间距补空格。"""
+    """Remove invalid or unnecessary data."""
     return [
         char for char in chars
         if char.get('char') not in {'\r', '\n'}
@@ -603,10 +603,10 @@ def _remove_control_line_break_chars(chars):
 
 
 def chars_to_content(span):
-    # 检查span中的char是否为空
+    # Validate the current value.
     if len(span['chars']) != 0:
         chars = span['chars']
-        # 大多数情况下 char 已按 PDF 原始顺序进入，只有乱序时才排序。
+        # Sort items into the required order.
         if any(
             chars[idx]['char_idx'] > chars[idx + 1]['char_idx']
             for idx in range(len(chars) - 1)
@@ -630,7 +630,7 @@ def chars_to_content(span):
                 role1 = script_roles[idx]
                 role2 = script_roles[idx + 1] if char2 else None
 
-                # 如果下一个char的x0和上一个char的x1距离超过0.25个字符宽度，则需要在中间插入一个空格
+                # Add the value to the result.
                 role_text_parts.append((role1, char1['char']))
                 if (
                     char2
@@ -651,24 +651,24 @@ def chars_to_content(span):
 
 def calculate_contrast(img, img_mode) -> float:
     """
-    计算给定图像的对比度。
-    :param img: 图像，类型为numpy.ndarray
-    :Param img_mode = 图像的色彩通道，'rgb' 或 'bgr'
-    :return: 图像的对比度值
+    Calculate the result.
+    Process image content.
+    Process image content.
+    Process image content.
     """
     if img_mode == 'rgb':
-        # 将RGB图像转换为灰度图
+        # Convert the value to the required format.
         gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     elif img_mode == 'bgr':
-        # 将BGR图像转换为灰度图
+        # Convert the value to the required format.
         gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     else:
         raise ValueError("Invalid image mode. Please provide 'rgb' or 'bgr'.")
 
-    # 计算均值和标准差
+    # Calculate the result.
     mean_value = np.mean(gray_img)
     std_dev = np.std(gray_img)
-    # 对比度定义为标准差除以平均值（加上小常数避免除零错误）
+    # Implementation detail.
     contrast = std_dev / (mean_value + 1e-6)
     # logger.debug(f"contrast: {contrast}")
     return round(contrast, 2)

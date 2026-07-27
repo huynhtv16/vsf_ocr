@@ -87,7 +87,7 @@ KNOWN_NAMESPACE_DECLARATIONS = {
 
 
 def normalize_pptx_package(file_bytes: bytes) -> bytes:
-    """在进入 python-pptx 前修复常见包级兼容问题，避免修复逻辑散落到形状解析阶段。"""
+    """Parse the input data."""
     if file_bytes.startswith(LEGACY_PPT_MAGIC):
         raise ValueError(
             "Legacy binary PPT files are not supported; convert the file to PPTX before parsing."
@@ -127,7 +127,7 @@ def normalize_pptx_package(file_bytes: bytes) -> bytes:
 
 
 def _read_member_best_effort(source: ZipFile, info: ZipInfo) -> bytes | None:
-    """读取 ZIP 成员；损坏的媒体资源可跳过，关键 XML/关系文件仍保持失败。"""
+    """Remove invalid or unnecessary data."""
     try:
         return source.read(info.filename)
     except BadZipFile as exc:
@@ -140,7 +140,7 @@ def _read_member_best_effort(source: ZipFile, info: ZipInfo) -> bytes | None:
 
 
 def _is_skippable_corrupt_member(filename: str) -> bool:
-    """判断损坏成员是否属于可降级丢弃的媒体资源。"""
+    """Validate the current value."""
     return filename.startswith("ppt/media/")
 
 
@@ -149,7 +149,7 @@ def _normalize_member_xml(
     member_data: bytes,
     skipped_members: set[str] | None = None,
 ) -> bytes:
-    """仅对 XML/关系成员做文本级和结构级规范化，二进制资源保持原样。"""
+    """Convert the value to the required format."""
     if not (filename.endswith(".xml") or filename.endswith(".rels")):
         return member_data
 
@@ -171,7 +171,7 @@ def _remove_relationships_to_skipped_members(
     rels_xml: bytes,
     skipped_members: set[str],
 ) -> bytes:
-    """删除指向已跳过媒体成员的内部关系，避免归一化包保留悬空引用。"""
+    """Remove invalid or unnecessary data."""
     if not skipped_members:
         return rels_xml
 
@@ -212,7 +212,7 @@ def _remove_relationships_to_skipped_members(
 
 
 def _resolve_relationship_target(rels_filename: str, target: str) -> str:
-    """把关系文件中的 Target 解析成 ZIP 包内的规范成员路径。"""
+    """Convert the value to the required format."""
     target = target.replace("\\", "/")
     if target.startswith("/"):
         return target.lstrip("/")
@@ -224,7 +224,7 @@ def _resolve_relationship_target(rels_filename: str, target: str) -> str:
 
 
 def _relationship_source_base_dir(rels_filename: str) -> str:
-    """根据 .rels 成员路径推导源 part 的基础目录。"""
+    """Process the file path."""
     if rels_filename == "_rels/.rels":
         return ""
 
@@ -242,7 +242,7 @@ def _relationship_source_base_dir(rels_filename: str) -> str:
 
 
 def _translate_strict_ooxml_uris(xml_bytes: bytes) -> bytes:
-    """把 Strict OOXML URI 转为 python-pptx 能识别的 Transitional URI。"""
+    """Convert the value to the required format."""
     normalized = xml_bytes
     for strict_uri, transitional_uri in STRICT_OOXML_REPLACEMENTS:
         normalized = normalized.replace(strict_uri, transitional_uri)
@@ -250,7 +250,7 @@ def _translate_strict_ooxml_uris(xml_bytes: bytes) -> bytes:
 
 
 def _add_missing_known_namespaces(xml_bytes: bytes) -> bytes:
-    """为实际使用但未声明的已知前缀补齐命名空间，修复轻微损坏的 XML。"""
+    """Implementation detail."""
     declarations = []
     for prefix, declaration in KNOWN_NAMESPACE_DECLARATIONS.items():
         if prefix + b":" in xml_bytes and b"xmlns:" + prefix + b"=" not in xml_bytes:
@@ -276,7 +276,7 @@ def _add_missing_known_namespaces(xml_bytes: bytes) -> bytes:
 
 
 def _replace_content_part_alternate_content_with_fallback(xml_bytes: bytes) -> bytes:
-    """将 python-pptx 不支持的 p:contentPart 优先分支替换为可解析的 fallback 图形。"""
+    """Parse the input data."""
     if b"AlternateContent" not in xml_bytes or b"contentPart" not in xml_bytes:
         return xml_bytes
 
@@ -306,7 +306,7 @@ def _replace_content_part_alternate_content_with_fallback(xml_bytes: bytes) -> b
 
 
 def _replace_single_alternate_content(alternate_content: etree._Element) -> bool:
-    """替换单个 AlternateContent 节点，优先保留 fallback 中的可见图形。"""
+    """Implementation detail."""
     choice = alternate_content.find(f"{{{MARKUP_COMPATIBILITY_NS}}}Choice")
     fallback = alternate_content.find(f"{{{MARKUP_COMPATIBILITY_NS}}}Fallback")
     if choice is None or fallback is None:
@@ -333,7 +333,7 @@ def _replace_single_alternate_content(alternate_content: etree._Element) -> bool
 
 
 def _write_package(members: list[tuple[ZipInfo, bytes]]) -> bytes:
-    """把规范化后的成员重新写成 PPTX ZIP 包，并重新计算 CRC。"""
+    """Convert the value to the required format."""
     output = BytesIO()
     with ZipFile(output, "w", ZIP_DEFLATED) as target:
         for info, member_data in members:

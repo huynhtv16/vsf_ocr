@@ -32,7 +32,7 @@ class MagicModel:
 
         blocks = []
         self.all_spans = []
-        # 解析每个块
+        # Parse the input data.
         for index, block_info in enumerate(page_blocks):
             block_bbox = block_info["bbox"]
             try:
@@ -58,7 +58,7 @@ class MagicModel:
                     else None
                 )
             except Exception as e:
-                # 如果解析失败，可能是因为格式不正确，跳过这个块
+                # Parse the input data.
                 logger.warning(f"Invalid block format: {block_info}, error: {e}")
                 continue
 
@@ -108,10 +108,10 @@ class MagicModel:
                 span_type = ContentType.INTERLINE_EQUATION
 
             if span_type == ContentType.TEXT and block_content is None:
-                # 文本类块缺失 content 时按空文本处理，避免下游 mkcontent 遇到 None。
+                # Process text content.
                 block_content = ""
 
-            # code 和 algorithm 类型的块，如果内容中包含行内公式，则需要将块类型切换为 algorithm
+            # Process formula content.
             switch_code_to_algorithm = False
 
             if span_type in [ContentType.IMAGE, ContentType.TABLE, ContentType.CHART]:
@@ -143,15 +143,15 @@ class MagicModel:
                 ):
                     switch_code_to_algorithm = True
 
-                    # 生成包含文本和公式的span列表
+                    # Build the required output.
                     spans = []
                     last_end = 0
 
-                    # 查找所有公式
+                    # Match the expected pattern.
                     for match in re.finditer(r"\\\((.+?)\\\)", block_content):
                         start, end = match.span()
 
-                        # 添加公式前的文本
+                        # Add the value to the result.
                         if start > last_end:
                             text_before = block_content[last_end:start]
                             if text_before.strip():
@@ -163,7 +163,7 @@ class MagicModel:
                                     }
                                 )
 
-                        # 添加公式（去除\(和\)）
+                        # Add the value to the result.
                         formula = match.group(1)
                         spans.append(
                             {
@@ -175,7 +175,7 @@ class MagicModel:
 
                         last_end = end
 
-                    # 添加最后一个公式后的文本
+                    # Add the value to the result.
                     if last_end < len(block_content):
                         text_after = block_content[last_end:]
                         if text_after.strip():
@@ -195,7 +195,7 @@ class MagicModel:
                         "content": block_content,
                     }
 
-            # 处理span类型并添加到all_spans
+            # Add the value to the result.
             if isinstance(span, dict) and "bbox" in span:
                 self.all_spans.append(span)
                 spans = [span]
@@ -207,7 +207,7 @@ class MagicModel:
                     f"Invalid span type: {span_type}, expected dict or list, got {type(span)}"
                 )
 
-            # 构造 line 对象
+            # Implementation detail.
             if block_type == BlockType.CODE_BODY:
                 if switch_code_to_algorithm and code_block_sub_type == "code":
                     code_block_sub_type = "algorithm"
@@ -364,11 +364,11 @@ def fix_list_blocks(list_blocks, text_blocks, ref_text_blocks):
         elif block in ref_text_blocks:
             ref_text_blocks.remove(block)
 
-    # 移除blocks为空的list_block
+    # Remove invalid or unnecessary data.
     list_blocks = [lb for lb in list_blocks if lb["blocks"]]
 
     for list_block in list_blocks:
-        # 统计list_block["blocks"]中所有block的type，用众数作为list_block的sub_type
+        # Calculate the result.
         type_count = {}
         for sub_block in list_block["blocks"]:
             sub_block_type = sub_block["type"]

@@ -34,7 +34,7 @@ class TableRecover:
 
     @staticmethod
     def get_rows(polygons: np.array, rows_thresh=10) -> Dict[int, List[int]]:
-        """对每个框进行行分类，框定哪个是一行的"""
+        """Implementation detail."""
         y_axis = polygons[:, 0, 1]
         if y_axis.size == 1:
             return {0: [0]}
@@ -44,7 +44,7 @@ class TableRecover:
 
         result = {}
         split_idxs = np.argwhere(abs(minus_res) > rows_thresh).squeeze()
-        # 如果都在一行，则将所有下标设置为同一行
+        # Implementation detail.
         if split_idxs.size == 0:
             return {0: [i for i in range(len(y_axis))]}
         if split_idxs.ndim == 0:
@@ -59,7 +59,7 @@ class TableRecover:
                 start_idx = split_idxs[row_num - 1] + 1
             result.setdefault(row_num, []).extend(range(start_idx, idx + 1))
 
-        # 计算每一行相邻cell的iou，如果大于0.2，则合并为同一个cell
+        # Calculate the result.
         return result
 
     def get_benchmark_cols(
@@ -72,8 +72,8 @@ class TableRecover:
         min_x = longest_x_start[0]
         max_x = longest_x_end[-1]
 
-        # 根据当前col的起始x坐标，更新col的边界
-        # 2025.2.22 --- 解决最长列可能漏掉最后一列的问题
+        # Implementation detail.
+        # Implementation detail.
         def update_longest_col(col_x_list, cur_v, min_x_, max_x_, insert_last):
             for i, v in enumerate(col_x_list):
                 if cur_v - col_thresh <= v <= cur_v + col_thresh:
@@ -119,10 +119,10 @@ class TableRecover:
 
         each_row_widths = (benchmark_x[1:] - benchmark_x[:-1]).tolist()
 
-        # 求出最后一行cell中，最大的高度作为最后一行的高度
+        # Implementation detail.
         bottommost_idxs = list(rows.values())[-1]
         bottommost_boxes = polygons[bottommost_idxs]
-        # fix self.compute_L2(v[3, :], v[0, :]), v为逆时针，即v[3]为右上，v[0]为左上,v[1]为左下
+        # Implementation detail.
         max_height = max([self.compute_L2(v[1, :], v[0, :]) for v in bottommost_boxes])
         each_row_widths.append(max_height)
 
@@ -152,11 +152,11 @@ class TableRecover:
                 box = polygons[one_col]
                 box_width = self.compute_L2(box[3, :], box[0, :])
 
-                # 不一定是从0开始的，应该综合已有值和x坐标位置来确定起始位置
+                # Implementation detail.
                 loc_col_idx = np.argmin(np.abs(longest_col - box[0, 0]))
                 col_start = max(sum(one_col_result.values()), loc_col_idx)
 
-                # 计算合并多少个列方向单元格
+                # Calculate the result.
                 for i in range(col_start, col_nums):
                     col_cum_sum = sum(each_col_widths[col_start : i + 1])
                     if i == col_start and col_cum_sum > box_width:
@@ -165,7 +165,7 @@ class TableRecover:
                     elif abs(col_cum_sum - box_width) <= merge_thresh:
                         one_col_result[one_col] = i + 1 - col_start
                         break
-                    # 这里必须进行修正，不然会出现超越阈值范围后列交错
+                    # Implementation detail.
                     elif col_cum_sum > box_width:
                         idx = (
                             i
@@ -182,15 +182,15 @@ class TableRecover:
                 row_start = cur_row
                 for j in range(row_start, row_nums):
                     row_cum_sum = sum(each_row_heights[row_start : j + 1])
-                    # box_height 不确定是几行的高度，所以要逐个试验，找一个最近的几行的高
-                    # 如果第一次row_cum_sum就比box_height大，那么意味着？丢失了一行
+                    # Implementation detail.
+                    # Implementation detail.
                     if j == row_start and row_cum_sum > box_height:
                         one_row_result[one_col] = 1
                         break
                     elif abs(box_height - row_cum_sum) <= merge_thresh:
                         one_row_result[one_col] = j + 1 - row_start
                         break
-                    # 这里必须进行修正，不然会出现超越阈值范围后行交错
+                    # Implementation detail.
                     elif row_cum_sum > box_height:
                         idx = (
                             j

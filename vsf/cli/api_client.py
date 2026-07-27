@@ -98,7 +98,7 @@ TASK_RESULT_TIMEOUT_SECONDS = get_task_result_timeout_seconds()
 
 
 def get_task_result_download_timeout_seconds(default: float = 600.0) -> float:
-    """读取任务结果下载超时时间，避免和任务处理等待超时混用。"""
+    """Extract the required value."""
     return get_float_env(
         "MINERU_TASK_RESULT_DOWNLOAD_TIMEOUT_SECONDS",
         default,

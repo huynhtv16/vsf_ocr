@@ -42,12 +42,12 @@ class UnimernetModel(object):
 
     @staticmethod
     def _should_pin_memory(device) -> bool:
-        """判断 DataLoader 是否需要启用 pinned memory，仅 CUDA 搬运受益。"""
+        """Validate the current value."""
         return str(device).startswith("cuda")
 
     @staticmethod
     def _should_non_blocking_transfer(device) -> bool:
-        """判断 tensor 搬运是否使用 non_blocking，需与 pinned memory 保持一致。"""
+        """Validate the current value."""
         return UnimernetModel._should_pin_memory(device)
 
     @staticmethod

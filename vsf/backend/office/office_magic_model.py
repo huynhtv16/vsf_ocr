@@ -17,10 +17,10 @@ class MagicModel:
         blocks = []
         self.all_spans = []
 
-        # 对caption块进行分类，将其分类为image_caption, table_caption, chart_caption
+        # Implementation detail.
         page_blocks = classify_caption_blocks(page_blocks)
 
-        # 解析每个块
+        # Parse the input data.
         for index, block_info in enumerate(page_blocks):
 
             block_type = block_info["type"]
@@ -67,25 +67,25 @@ class MagicModel:
                     "content": block_content,
                 }
             elif block_type in ["list"]:
-                # 解析嵌套列表结构，生成与VLM一致的blocks结构
+                # Parse the input data.
                 parsed_list = parse_list_block(block_info)
                 if parsed_list:
-                    # 使用外层index作为列表block的index
+                    # Implementation detail.
                     parsed_list["index"] = index
                     blocks.append(parsed_list)
                 continue
             elif block_type in ["index"]:
-                # 解析嵌套索引结构（目录），生成与list一致的blocks结构
+                # Parse the input data.
                 parsed_index = parse_index_block(block_info)
                 if parsed_index:
                     parsed_index["index"] = index
                     blocks.append(parsed_index)
                 continue
             else:
-                # 未知类型，跳过
+                # Remove invalid or unnecessary data.
                 continue
 
-            # 处理span类型并添加到all_spans
+            # Add the value to the result.
             if isinstance(span, dict):
                 line = {
                     "spans": [span]
@@ -187,14 +187,14 @@ class MagicModel:
 
 
 def _parse_style_list(style_str: str | None) -> list:
-    """解析逗号分隔的 Office inline style 字符串。"""
+    """Parse the input data."""
     if not style_str:
         return []
     return [style.strip() for style in style_str.split(',') if style.strip()]
 
 
 def _parse_hyperlink_text_children(hyperlink_content: str, text_tag_re) -> tuple:
-    """解析一个 hyperlink 内部的多个 text 子片段，并保留每段样式。"""
+    """Parse the input data."""
     url_start = hyperlink_content.find('<url>')
     url_end = hyperlink_content.find('</url>')
     if url_start == -1 or url_end == -1 or url_end < url_start:
@@ -226,26 +226,26 @@ def _parse_hyperlink_text_children(hyperlink_content: str, text_tag_re) -> tuple
 
 def parse_text_block_spans(content: str) -> list:
     """
-    解析文本类block的content，提取其中的文本、行内公式、超链接和字体样式。
+    Parse the input data.
 
-    支持的标签格式：
-    - <eq>...</eq>: 行内公式
-    - <hyperlink><text [style="..."]>...</text><url>...</url></hyperlink>: 超链接（支持样式）
-    - <text style="...">...</text>: 带字体样式的普通文本
+    Implementation detail.
+    Process formula content.
+    Implementation detail.
+    Process text content.
 
-    字体样式值（逗号分隔）：bold, italic, underline, emphasis, strikethrough, superscript, subscript
+    Implementation detail.
 
     Args:
-        content: 文本块的content字符串，可能包含特殊标签
+        Process text content.
 
     Returns:
-        包含多个span的列表，每个span是一个字典，包含type和content等字段。
-        带样式的文本span额外包含 style 字段（list类型）。
+        Implementation detail.
+        Process text content.
     """
     if not content:
         return []
 
-    # 匹配 <text> 或 <text style="..."> 开始标签
+    # Match the expected pattern.
     _text_tag_re = re.compile(r'<text(?:\s+style="([^"]*)")?>')
 
     spans = []
@@ -253,15 +253,15 @@ def parse_text_block_spans(content: str) -> list:
     pos = 0
 
     while pos < len(content):
-        # 查找行内公式标签 <eq>...</eq>
+        # Match the expected pattern.
         eq_start = content.find('<eq>', pos)
-        # 查找超链接标签 <hyperlink>
+        # Match the expected pattern.
         hyperlink_start = content.find('<hyperlink>', pos)
-        # 查找带样式的文本标签 <text ...>（顶层，不在 hyperlink 内部）
+        # Match the expected pattern.
         text_tag_match = _text_tag_re.search(content, pos)
         text_tag_start = text_tag_match.start() if text_tag_match else -1
 
-        # 收集所有有效的标签位置
+        # Implementation detail.
         candidates = []
         if eq_start != -1:
             candidates.append((eq_start, 'eq'))
@@ -270,7 +270,7 @@ def parse_text_block_spans(content: str) -> list:
         if text_tag_start != -1:
             candidates.append((text_tag_start, 'text'))
 
-        # 没有找到任何标签，处理剩余文本
+        # Process text content.
         if not candidates:
             remaining_text = content[last_end:]
             if remaining_text:
@@ -280,10 +280,10 @@ def parse_text_block_spans(content: str) -> list:
                 })
             break
 
-        # 取位置最小的标签
+        # Implementation detail.
         next_tag_pos, next_tag_type = min(candidates, key=lambda x: x[0])
 
-        # 处理标签前的文本
+        # Process text content.
         if next_tag_pos > last_end:
             text_before = content[last_end:next_tag_pos]
             if text_before:
@@ -292,7 +292,7 @@ def parse_text_block_spans(content: str) -> list:
                     "content": text_before
                 })
 
-        # 处理行内公式
+        # Process formula content.
         if next_tag_type == 'eq':
             eq_end = content.find('</eq>', next_tag_pos)
             if eq_end != -1:
@@ -301,22 +301,22 @@ def parse_text_block_spans(content: str) -> list:
                     "type": ContentType.INLINE_EQUATION,
                     "content": formula_content
                 })
-                pos = eq_end + 5  # 跳过</eq>
+                pos = eq_end + 5  # Remove invalid or unnecessary data.
                 last_end = pos
             else:
-                # 未找到闭合标签，将<eq>作为普通文本处理
+                # Process text content.
                 spans.append({
                     "type": ContentType.TEXT,
                     "content": content[last_end:]
                 })
                 break
 
-        # 处理带样式的文本标签
+        # Process text content.
         elif next_tag_type == 'text':
             text_end = content.find('</text>', next_tag_pos)
             if text_end != -1:
-                # text_tag_match 对应当前 next_tag_pos 的匹配
-                # 重新匹配确保位置对齐
+                # Match the expected pattern.
+                # Match the expected pattern.
                 tag_open_end = content.find('>', next_tag_pos) + 1
                 text_content = content[tag_open_end:text_end]
                 style_str = text_tag_match.group(1) if text_tag_match and text_tag_match.start() == next_tag_pos else None
@@ -327,24 +327,24 @@ def parse_text_block_spans(content: str) -> list:
                 if style_str:
                     span["style"] = [s.strip() for s in style_str.split(',') if s.strip()]
                 spans.append(span)
-                pos = text_end + 7  # 跳过 </text>
+                pos = text_end + 7  # Remove invalid or unnecessary data.
                 last_end = pos
             else:
-                # 未找到闭合标签，作为普通文本处理
+                # Process text content.
                 spans.append({
                     "type": ContentType.TEXT,
                     "content": content[last_end:]
                 })
                 break
 
-        # 处理超链接
+        # Process the current item.
         elif next_tag_type == 'hyperlink':
             hyperlink_end = content.find('</hyperlink>', next_tag_pos)
             if hyperlink_end != -1:
-                # 提取超链接内容
+                # Extract the required value.
                 hyperlink_content = content[next_tag_pos + 11:hyperlink_end]
 
-                # 解析内部的一个或多个 <text [style="..."]> 和一个 <url> 标签
+                # Parse the input data.
                 children, link_url = _parse_hyperlink_text_children(
                     hyperlink_content,
                     _text_tag_re,
@@ -370,17 +370,17 @@ def parse_text_block_spans(content: str) -> list:
                             "children": children,
                         }
                     spans.append(span)
-                    pos = hyperlink_end + 12  # 跳过</hyperlink>
+                    pos = hyperlink_end + 12  # Remove invalid or unnecessary data.
                     last_end = pos
                 else:
-                    # 超链接格式不正确，作为普通文本处理
+                    # Process text content.
                     spans.append({
                         "type": ContentType.TEXT,
                         "content": content[last_end:]
                     })
                     break
             else:
-                # 未找到闭合标签，将<hyperlink>作为普通文本处理
+                # Process text content.
                 spans.append({
                     "type": ContentType.TEXT,
                     "content": content[last_end:]
@@ -392,13 +392,13 @@ def parse_text_block_spans(content: str) -> list:
 
 def parse_list_block(list_block: dict):
     """
-    递归解析嵌套列表结构，生成与VLM一致的blocks结构。
+    Parse the input data.
 
     Args:
-        list_block: 列表块字典
+        Implementation detail.
 
     Returns:
-        tuple: (解析后的列表block, 下一个可用索引)
+        Parse the input data.
     """
     content = list_block.get("content", [])
     if not content:
@@ -410,7 +410,7 @@ def parse_list_block(list_block: dict):
         item_type = item.get("type", "")
 
         if item_type == "text":
-            # 解析文本项（可能包含行内公式和超链接）
+            # Parse the input data.
             text_content = item.get("content", "")
             spans = parse_text_block_spans(text_content)
             text_block = {
@@ -420,12 +420,12 @@ def parse_list_block(list_block: dict):
             blocks.append(text_block)
 
         elif item_type == "list":
-            # 递归解析嵌套列表
+            # Parse the input data.
             nested_list = parse_list_block(item)
             if nested_list:
                 blocks.append(nested_list)
 
-    # 构建当前列表block
+    # Build the required output.
     result = {
         "type": BlockType.LIST,
         "attribute": list_block.get("attribute", "unordered"),
@@ -440,13 +440,13 @@ def parse_list_block(list_block: dict):
 
 def parse_index_block(index_block: dict):
     """
-    递归解析嵌套索引结构（目录），生成与list一致的blocks结构。
+    Parse the input data.
 
     Args:
-        index_block: 索引块字典
+        Implementation detail.
 
     Returns:
-        解析后的索引block字典，若内容为空则返回 None
+        Parse the input data.
     """
     content = index_block.get("content", [])
     if not content:
@@ -484,7 +484,7 @@ def parse_index_block(index_block: dict):
 
 
 def _sanitize_table_hyperlink_href(href: str) -> str:
-    """清洗表格内超链接地址，仅保留安全协议或相对链接。"""
+    """Process table content."""
     normalized_href = html_lib.unescape(href).strip()
     if not normalized_href:
         return ""
@@ -502,56 +502,56 @@ def _sanitize_table_hyperlink_href(href: str) -> str:
 
 def clean_table_html(html: str) -> str:
     """
-    清洗表格HTML，只保留对表格结构表示有用的信息。
+    Process table content.
 
-    保留的属性：
-    - colspan: 列合并
-    - rowspan: 行合并
-    - a.href: 表格内超链接
-    - img.src/alt/width/height: 表格内图片
+    Implementation detail.
+    Merge the related values.
+    Merge the related values.
+    Process table content.
+    Process image content.
 
-    清洗的内容：
-    - 移除所有style属性
-    - 移除所有class属性
-    - 移除border等其他属性
-    - 保持表格结构标签（table, thead, tbody, tr, th, td等）
+    Implementation detail.
+    Remove invalid or unnecessary data.
+    Remove invalid or unnecessary data.
+    Remove invalid or unnecessary data.
+    Process table content.
 
     Args:
-        html: 原始表格HTML字符串
+        Process table content.
 
     Returns:
-        清洗后的HTML字符串
+        Implementation detail.
     """
     if not html:
         return ""
 
-    # 需要保留的属性（对表格结构有用）
+    # Process table content.
     preserved_attrs = {'colspan', 'rowspan'}
-    # img 标签需要额外保留的属性（内联 base64 图片内容）
+    # Process image content.
     img_preserved_attrs = {'src', 'alt', 'width', 'height'}
-    # a 标签只保留清洗后的 href，避免表格超链接在中间层被清掉。
+    # Process table content.
     anchor_preserved_attrs = {'href'}
 
     def clean_tag(match):
-        """清洗单个标签，只保留结构相关的属性"""
+        """Implementation detail."""
         full_tag = match.group(0)
         tag_name = match.group(1).lower()
 
-        # 自闭合标签的处理
+        # Process the current item.
         is_self_closing = full_tag.rstrip().endswith('/>')
 
-        # img 标签额外保留图片相关属性（如内联 base64 src）
+        # Process image content.
         current_preserved = preserved_attrs | (img_preserved_attrs if tag_name == 'img' else set())
         current_preserved |= anchor_preserved_attrs if tag_name == 'a' else set()
 
-        # 提取需要保留的属性
+        # Extract the required value.
         kept_attrs = []
 
-        # 匹配所有属性: attr="value" 或 attr='value' 或 attr=value 或单独的attr
+        # Match the expected pattern.
         attr_pattern = r'(\w+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|(\S+))|(\w+)(?=\s|>|/>)'
         for attr_match in re.finditer(attr_pattern, full_tag):
             if attr_match.group(5):
-                # 单独的属性（如 disabled），跳过
+                # Remove invalid or unnecessary data.
                 continue
 
             attr_name = attr_match.group(1)
@@ -560,7 +560,7 @@ def clean_table_html(html: str) -> str:
             attr_name = attr_name.lower()
             attr_value = attr_match.group(2) or attr_match.group(3) or attr_match.group(4) or ""
 
-            # 只保留指定属性（表格结构属性，img 标签还额外保留图片内容属性）
+            # Process image content.
             if tag_name == "a" and attr_name == "href":
                 attr_value = _sanitize_table_hyperlink_href(attr_value)
                 if not attr_value:
@@ -569,7 +569,7 @@ def clean_table_html(html: str) -> str:
             if attr_name in current_preserved:
                 kept_attrs.append(f'{attr_name}="{attr_value}"')
 
-        # 重建标签
+        # Build the required output.
         if kept_attrs:
             attrs_str = ' ' + ' '.join(kept_attrs)
         else:
@@ -580,8 +580,8 @@ def clean_table_html(html: str) -> str:
         else:
             return f'<{tag_name}{attrs_str}>'
 
-    # 匹配开始标签（包括自闭合标签），捕获标签名
-    # 匹配 <tagname ...> 或 <tagname .../>
+    # Match the expected pattern.
+    # Match the expected pattern.
     tag_pattern = r'<(\w+)(?:\s+[^>]*)?\s*/?>'
 
     result = re.sub(tag_pattern, clean_tag, html)
@@ -598,7 +598,7 @@ def isolated_formula_clean(txt):
 
 
 def code_content_clean(content):
-    """清理代码内容，移除Markdown代码块的开始和结束标记"""
+    """Remove invalid or unnecessary data."""
     if not content:
         return ""
 
@@ -606,23 +606,23 @@ def code_content_clean(content):
     start_idx = 0
     end_idx = len(lines)
 
-    # 处理开头的三个反引号
+    # Process the current item.
     if lines and lines[0].startswith("```"):
         start_idx = 1
 
-    # 处理结尾的三个反引号
+    # Process the current item.
     if lines and end_idx > start_idx and lines[end_idx - 1].strip() == "```":
         end_idx -= 1
 
-    # 只有在有内容时才进行join操作
+    # Implementation detail.
     if start_idx < end_idx:
         return "\n".join(lines[start_idx:end_idx]).strip()
     return ""
 
 
 def __tie_up_category_by_index(blocks, subject_block_type, object_block_type):
-    """基于index的主客体关联包装函数"""
-    # 定义获取主体和客体对象的函数
+    """Implementation detail."""
+    # Extract the required value.
     def get_subjects():
         return list(
             map(
@@ -645,7 +645,7 @@ def __tie_up_category_by_index(blocks, subject_block_type, object_block_type):
             )
         )
 
-    # 调用通用方法
+    # Implementation detail.
     return tie_up_category_by_index(
         get_subjects,
         get_objects,
@@ -671,38 +671,38 @@ def fix_two_layer_blocks(blocks, fix_type: Literal["image", "table", "chart"]):
     not_include_blocks = []
     processed_indices = set()
 
-    # 将每个block的caption_list中不连续index的元素提出来作为普通block处理
+    # Process the current item.
     for block in need_fix_blocks:
         caption_list = block[f"{fix_type}_caption_list"]
         body_index = block[f"{fix_type}_body"]["index"]
 
-        # 处理caption_list (从body往前看,caption在body之前)
+        # Process the current item.
         if caption_list:
-            # 按index降序排列,从最接近body的开始检查
+            # Validate the current value.
             caption_list.sort(key=lambda x: x["index"], reverse=True)
             filtered_captions = [caption_list[0]]
             for i in range(1, len(caption_list)):
                 prev_index = caption_list[i - 1]["index"]
                 curr_index = caption_list[i]["index"]
 
-                # 检查是否连续
+                # Validate the current value.
                 if curr_index == prev_index - 1:
                     filtered_captions.append(caption_list[i])
                 else:
-                    # 检查gap中是否只有body_index
+                    # Validate the current value.
                     gap_indices = set(range(curr_index + 1, prev_index))
                     if gap_indices == {body_index}:
-                        # gap中只有body_index,不算真正的gap
+                        # Implementation detail.
                         filtered_captions.append(caption_list[i])
                     else:
-                        # 出现真正的gap,后续所有caption都作为普通block
+                        # Implementation detail.
                         not_include_blocks.extend(caption_list[i:])
                         break
-            # 恢复升序
+            # Implementation detail.
             filtered_captions.reverse()
             block[f"{fix_type}_caption_list"] = filtered_captions
 
-    # 构建两层结构blocks
+    # Build the required output.
     for block in need_fix_blocks:
         body = block[f"{fix_type}_body"]
         caption_list = block[f"{fix_type}_caption_list"]
@@ -720,12 +720,12 @@ def fix_two_layer_blocks(blocks, fix_type: Literal["image", "table", "chart"]):
             "index": body["index"],
         }
         two_layer_block["blocks"].extend([*caption_list])
-        # 对blocks按index排序
+        # Sort items into the required order.
         two_layer_block["blocks"].sort(key=lambda x: x["index"])
 
         fixed_blocks.append(two_layer_block)
 
-    # 添加未处理的blocks
+    # Add the value to the result.
     for block in blocks:
         block.pop("type", None)
         if block["index"] not in processed_indices and block not in not_include_blocks:
@@ -736,40 +736,40 @@ def fix_two_layer_blocks(blocks, fix_type: Literal["image", "table", "chart"]):
 
 def classify_caption_blocks(page_blocks: list) -> list:
     """
-    对page_blocks中的caption块进行分类，将其分类为image_caption、table_caption或chart_caption。
+    Implementation detail.
 
-    规则：
-    1. 只有与type为table、image或chart相邻的caption可以作为caption
-    2. caption块与table、image或chart中相隔的块全部是caption的情况视为该caption块与母块相邻
-    3. caption的类型与他前置位相邻的母块type一致，如果没有前置位母块则检查是否有后置位母块
-    4. 没有相邻母块的caption需要变更type为text
-    5. 当一个block的type是table、image或chart时，其后续的第一个text块如果以特定前缀开头，则将其设置为相应的caption类型
-       - table后的text块以["表", "table"]开头（不区分大小写）-> table_caption
-       - image后的text块以["图", "fig"]开头（不区分大小写）-> image_caption
-       - chart后的text块以["图", "fig", "chart"]开头（不区分大小写）-> chart_caption
+    Implementation detail.
+    Implementation detail.
+    Implementation detail.
+    Validate the current value.
+    Implementation detail.
+    Implementation detail.
+       Implementation detail.
+       Implementation detail.
+       Implementation detail.
     """
     if not page_blocks:
         return page_blocks
 
     available_types = ["table", "image", "chart"]
 
-    # 定义caption前缀匹配规则
-    table_caption_prefixes = ["表", "table"]
-    image_caption_prefixes = ["图", "fig"]
-    chart_caption_prefixes = ["图", "fig", "chart"]
+    # Match the expected pattern.
+    table_caption_prefixes = ["\u8868", "table"]
+    image_caption_prefixes = ["\u56fe", "fig"]
+    chart_caption_prefixes = ["\u56fe", "fig", "chart"]
 
-    # 第一步：处理table/image/chart后续的text块，将符合条件的text块标记为caption
+    # Process the current item.
     preprocessed_blocks = []
     n = len(page_blocks)
 
     for i, block in enumerate(page_blocks):
         block_type = block.get("type")
 
-        # 检查是否是table或image块
+        # Validate the current value.
         if block_type in available_types:
             preprocessed_blocks.append(block)
 
-            # 查找后续的第一个text块
+            # Match the expected pattern.
             if i + 1 < n:
                 next_block = page_blocks[i + 1]
                 next_block_type = next_block.get("type")
@@ -777,29 +777,29 @@ def classify_caption_blocks(page_blocks: list) -> list:
                 if next_block_type == "text":
                     content = next_block.get("content", "").strip().lower()
 
-                    # 根据当前块类型检查是否匹配caption前缀
+                    # Validate the current value.
                     if block_type == "table":
                         if any(content.startswith(prefix.lower()) for prefix in table_caption_prefixes):
-                            # 将text块标记为caption，后续会被处理为table_caption
+                            # Process the current item.
                             next_block = next_block.copy()
                             next_block["type"] = "caption"
                             page_blocks[i + 1] = next_block
                     elif block_type == "image":
                         if any(content.startswith(prefix.lower()) for prefix in image_caption_prefixes):
-                            # 将text块标记为caption，后续会被处理为image_caption
+                            # Process the current item.
                             next_block = next_block.copy()
                             next_block["type"] = "caption"
                             page_blocks[i + 1] = next_block
                     elif block_type == "chart":
                         if any(content.startswith(prefix.lower()) for prefix in chart_caption_prefixes):
-                            # 将text块标记为caption，后续会被处理为chart_caption
+                            # Process the current item.
                             next_block = next_block.copy()
                             next_block["type"] = "caption"
                             page_blocks[i + 1] = next_block
         else:
             preprocessed_blocks.append(block)
 
-    # 第二步：处理caption块的分类
+    # Process the current item.
     result_blocks = []
 
     for i, block in enumerate(page_blocks):
@@ -807,8 +807,8 @@ def classify_caption_blocks(page_blocks: list) -> list:
             result_blocks.append(block)
             continue
 
-        # 查找前置位相邻的母块（table、image或chart）
-        # 向前查找，跳过连续的caption块
+        # Match the expected pattern.
+        # Remove invalid or unnecessary data.
         prev_parent_type = None
         j = i - 1
         while j >= 0:
@@ -817,14 +817,14 @@ def classify_caption_blocks(page_blocks: list) -> list:
                 prev_parent_type = prev_block_type
                 break
             elif prev_block_type == "caption":
-                # 继续向前查找
+                # Match the expected pattern.
                 j -= 1
             else:
-                # 遇到非caption且非table/image/chart的块，停止查找
+                # Match the expected pattern.
                 break
 
-        # 查找后置位相邻的母块（table、image或chart）
-        # 向后查找，跳过连续的caption块
+        # Match the expected pattern.
+        # Remove invalid or unnecessary data.
         next_parent_type = None
         k = i + 1
         while k < n:
@@ -833,22 +833,22 @@ def classify_caption_blocks(page_blocks: list) -> list:
                 next_parent_type = next_block_type
                 break
             elif next_block_type == "caption":
-                # 继续向后查找
+                # Match the expected pattern.
                 k += 1
             else:
-                # 遇到非caption且非table/image/chart的块，停止查找
+                # Match the expected pattern.
                 break
 
-        # 根据规则确定caption类型
+        # Implementation detail.
         new_block = block.copy()
         if prev_parent_type:
-            # 优先使用前置位母块的类型
+            # Implementation detail.
             new_block["type"] = f"{prev_parent_type}_caption"
         elif next_parent_type:
-            # 没有前置位母块，使用后置位母块的类型
+            # Implementation detail.
             new_block["type"] = f"{next_parent_type}_caption"
         else:
-            # 没有相邻母块，变更为text
+            # Implementation detail.
             new_block["type"] = "text"
 
         result_blocks.append(new_block)

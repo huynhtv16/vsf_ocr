@@ -21,7 +21,7 @@ class FCTranspose(nn.Module):
 
 class MultiHead(nn.Module):
     def __init__(self, in_channels, out_channels_list, **kwargs):
-        """初始化多头识别 Head，v6 LightSVTR 分支使用 HF safetensors 命名。"""
+        """Initialize the component."""
         super().__init__()
         self.head_list = kwargs.pop("head_list")
         self.use_light_svtr_head = False
@@ -41,7 +41,7 @@ class MultiHead(nn.Module):
                 neck_args = self.head_list[idx][name]["Neck"]
                 encoder_type = neck_args.pop("name")
                 if encoder_type == "lightsvtr":
-                    # v6 safetensors 中 CTC 分支直接命名为 head.encoder/head.head。
+                    # Implementation detail.
                     self.encoder = EncoderWithLightSVTR(in_channels=in_channels, **neck_args)
                     self.head = nn.Linear(self.encoder.out_channels, out_channels_list["CTCLabelDecode"], bias=True)
                     self.out_channels = out_channels_list["CTCLabelDecode"]
@@ -64,13 +64,13 @@ class MultiHead(nn.Module):
                 raise NotImplementedError(f"{name} is not supported in MultiHead yet")
 
     def forward(self, x, data=None):
-        """根据配置执行 v6 LightSVTR 或历史 CTC 分支。"""
+        """Implementation detail."""
         if self.use_light_svtr_head:
             ctc_encoder = self.encoder(x)
             ctc_encoder = ctc_encoder.squeeze(dim=2).permute(0, 2, 1)
             predicts = self.head(ctc_encoder)
             if not self.training:
-                # 推理阶段保留 raw logits，交给 CTC 解码端按需计算 max 概率，避免整块 softmax 矩阵搬运。
+                # Calculate the result.
                 return {"ctc_logits": predicts, "ctc_use_raw_logits": True}
             return predicts
         ctc_encoder = self.ctc_encoder(x)

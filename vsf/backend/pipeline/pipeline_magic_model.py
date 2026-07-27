@@ -87,8 +87,8 @@ class MagicModel:
         self.all_image_spans = []
         self.__layout_det_by_index = {}
         self.__scale = scale
-        self.__fix_axis()  # bbox坐标修正，删除高度或者宽度小于等于0的spans
-        self.__post_process()  # index重排，填充行内公式和文本span
+        self.__fix_axis()  # Remove invalid or unnecessary data.
+        self.__post_process()  # Sort items into the required order.
         if not ocr_enable:
             virtual_block = [0, 0, page_w, page_h, None, None, None, "text"]
             self.page_ocr_res = txt_spans_extract(
@@ -132,11 +132,11 @@ class MagicModel:
             block["type"] == BlockType.TEXT
             and is_vertical_text_block_by_spans(block["spans"])
         ):
-            # layout 偶发会把竖排正文识别为横排 text，这里用旧版 span 高宽比规则兜底。
+            # Implementation detail.
             block["type"] = BlockType.VERTICAL_TEXT
 
         if block["type"] == BlockType.VERTICAL_TEXT:
-            # 如果是纵向文本块，则按纵向lines处理
+            # Process text content.
             block_lines = merge_spans_to_vertical_line(block['spans'])
             sort_block_lines = vertical_line_sort_spans_from_top_to_bottom(block_lines)
         else:
@@ -184,12 +184,12 @@ class MagicModel:
 
     @staticmethod
     def __is_seal_layout_block(layout_det: dict) -> bool:
-        """判断原始 layout 是否为印章，输出层会将其规范为 image 子类型。"""
+        """Validate the current value."""
         return layout_det.get("label") == "seal"
 
     @staticmethod
     def __normalize_seal_text(content):
-        """将 seal OCR 的列表或字符串结果规范为 VLM 一致的多行字符串。"""
+        """Convert the value to the required format."""
         if isinstance(content, list):
             return "\n".join(str(item) for item in content if str(item).strip())
         if isinstance(content, str):
@@ -209,7 +209,7 @@ class MagicModel:
             ]:
                 self.discarded_blocks.append(block)
             else:
-                # 单独处理code block
+                # Process the current item.
                 if block["type"] in [BlockType.CODE]:
                     for sub_block in block["blocks"]:
                         if sub_block["type"] == BlockType.CODE_BODY:
@@ -274,12 +274,12 @@ class MagicModel:
                     block.pop("latex", None)
 
                 self.all_image_spans.append(span)
-                # 构造line对象
+                # Implementation detail.
                 spans = [span]
                 line = {"bbox": block["bbox"], "spans": spans}
                 block["lines"] = [line]
             else:
-                # span填充
+                # Add the value to the result.
                 if block["type"] == BlockType.FORMULA_NUMBER:
                     block_spans = span_matcher.collect_for_block(
                         block["bbox"],
@@ -304,7 +304,7 @@ class MagicModel:
                 int(y1 / self.__scale),
             ]
             layout_det["bbox"] = bbox
-            # 删除高度或者宽度小于等于2的spans
+            # Remove invalid or unnecessary data.
             if bbox[2] - bbox[0] <= 2 or bbox[3] - bbox[1] <= 2:
                 need_remove_list.append(layout_det)
         for need_remove in need_remove_list:
@@ -452,7 +452,7 @@ class MagicModel:
             }
             if original_block_type in [BlockType.IMAGE, BlockType.CHART] and block.get("sub_type"):
                 two_layer_block["sub_type"] = block["sub_type"]
-            # 对blocks按index排序
+            # Sort items into the required order.
             two_layer_block["blocks"].sort(key=lambda x: x["index"])
             rebuilt_page_blocks.append(two_layer_block)
 

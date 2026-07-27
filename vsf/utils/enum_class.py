@@ -13,14 +13,14 @@ class BlockType:
     TABLE_CAPTION = 'table_caption'
     CHART_CAPTION = 'chart_caption'
     ALGORITHM_CAPTION = 'algorithm_caption'
-    FOOTNOTE = 'footnote'  # pp_layout中的vision_footnote
+    FOOTNOTE = 'footnote'  # Implementation detail.
     IMAGE_FOOTNOTE = 'image_footnote'
     TABLE_FOOTNOTE = 'table_footnote'
     CHART_FOOTNOTE = 'chart_footnote'
     TEXT = 'text'
     TITLE = 'title'
     INTERLINE_EQUATION = 'interline_equation'
-    EQUATION = "equation"  # 公式(独立公式)
+    EQUATION = "equation"  # Process formula content.
     LIST = 'list'
     INDEX = 'index'
     DISCARDED = 'discarded'

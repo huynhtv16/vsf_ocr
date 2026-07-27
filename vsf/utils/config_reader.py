@@ -10,7 +10,7 @@ except ImportError:
     pass
 
 
-# 定义配置文件名常量
+# Process the file path.
 CONFIG_FILE_NAME = os.getenv('MINERU_TOOLS_CONFIG_JSON', 'mineru.json')
 
 
@@ -31,7 +31,7 @@ def read_config():
 
 
 def get_configured_model_source(default: str | None = None) -> str | None:
-    """读取配置文件中的固定模型来源配置，auto 或缺失时返回默认值。"""
+    """Extract the required value."""
     supported_sources = {'huggingface', 'modelscope'}
     config = read_config()
     if config is None:
@@ -61,7 +61,7 @@ def get_configured_model_source(default: str | None = None) -> str | None:
 
 
 def get_s3_config(bucket_name: str):
-    """~/magic-pdf.json 读出来."""
+    """Implementation detail."""
     config = read_config()
 
     bucket_info = config.get('bucket_info')
@@ -90,8 +90,8 @@ def get_bucket_name(path):
 
 def parse_bucket_key(s3_full_path: str):
     """
-    输入 s3://bucket/path/to/my/file.txt
-    输出 bucket, path/to/my/file.txt
+    Implementation detail.
+    Prepare the output value.
     """
     s3_full_path = s3_full_path.strip()
     if s3_full_path.startswith("s3://"):

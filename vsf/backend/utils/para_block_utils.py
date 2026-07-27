@@ -5,7 +5,7 @@ from mineru.utils.enum_class import BlockType, SplitFlag
 from mineru.utils.span_block_fix import is_vertical_text_block_by_spans
 
 
-LINE_STOP_FLAG = ('.', '!', '?', '。', '！', '？', ')', '）', '"', '”', ':', '：', ';', '；')
+LINE_STOP_FLAG = ('.', '!', '?', '\u3002', '\uff01', '\uff1f', ')', '\uff09', '"', '\u201d', ':', '\uff1a', ';', '\uff1b')
 SECTION_MERGE_BARRIER_TYPES = {
     BlockType.TITLE,
     BlockType.DOC_TITLE,
@@ -16,7 +16,7 @@ TEXT_MERGE_BARRIER_TYPES = {
     *SECTION_MERGE_BARRIER_TYPES,
     BlockType.LIST,
 }
-# 文本段落合并只允许跨过这些视觉根块，避免 ref_text/phonetic 等语义块被当作透明块。
+# Merge the related values.
 TEXT_MERGE_TRANSPARENT_TYPES = {
     BlockType.IMAGE,
     BlockType.TABLE,
@@ -87,7 +87,7 @@ def _merge_current_text_block(
     auto_merge_by_det,
     auto_merge_vertical_by_det,
 ):
-    """处理当前 text block 的 merge_prev 候选合并和 Hybrid det 自动合并。"""
+    """Merge the related values."""
     previous_block = None
     if current_block.get("merge_prev"):
         previous_block = _find_previous_merge_prev_text_block(
@@ -134,7 +134,7 @@ def _merge_current_ref_text_list_block(
     current_index,
     current_block,
 ):
-    """处理当前 ref_text list 与前一个相邻 ref_text list 的合并。"""
+    """Merge the related values."""
     previous_block = _find_previous_ref_text_list_block(
         ordered_blocks,
         current_index,
@@ -158,7 +158,7 @@ def can_auto_merge_text_blocks(
     allow_single_line_blocks=False,
     allow_vertical_blocks=False,
 ):
-    """按段落首尾文本和行几何规则判断 text 是否可合并。"""
+    """Validate the current value."""
     current_lines = current_block.get("lines", [])
     previous_lines = previous_block.get("lines", [])
     current_metric_lines = _resolve_local_metric_lines(current_block)
@@ -236,7 +236,7 @@ def _find_previous_text_block(
     ordered_blocks,
     current_index,
 ):
-    """查找前序 text；除 merge_prev 专用路径外默认允许跨页查找。"""
+    """Match the expected pattern."""
     for previous_index in range(current_index - 1, -1, -1):
         _, _, previous_block = ordered_blocks[previous_index]
 
@@ -257,7 +257,7 @@ def _find_previous_merge_prev_text_block(
     current_index,
     current_page_idx,
 ):
-    """查找同页 merge_prev 提示对应的前序 text，但不跨越段落合并屏障。"""
+    """Match the expected pattern."""
     for previous_index in range(current_index - 1, -1, -1):
         previous_page_idx, _, previous_block = ordered_blocks[previous_index]
         if previous_page_idx != current_page_idx:
@@ -280,7 +280,7 @@ def _find_previous_ref_text_list_block(
     current_index,
     current_block,
 ):
-    """查找紧邻当前 list 的前一个 ref_text list，默认允许跨页拼接。"""
+    """Match the expected pattern."""
     previous_index = current_index - 1
     if previous_index < 0:
         return None
@@ -298,17 +298,17 @@ def _find_previous_ref_text_list_block(
 
 
 def _is_ref_text_list_block(block):
-    """判断 list block 是否为引用文本列表，只允许这种列表自动拼接。"""
+    """Validate the current value."""
     return block.get("type") == BlockType.LIST and block.get("sub_type") == BlockType.REF_TEXT
 
 
 def _resolve_auto_metric_lines(block):
-    """优先使用 OCR det 行提示；没有提示时退回 block 自身 lines。"""
+    """Implementation detail."""
     return block.get(OCR_DET_LINES_KEY) or block.get("lines", [])
 
 
 def _resolve_local_metric_lines(block):
-    """过滤跨页追加行，避免已合并内容污染后续本地几何判定。"""
+    """Remove invalid or unnecessary data."""
     metric_lines = _resolve_auto_metric_lines(block)
     local_metric_lines = [
         line for line in metric_lines if not _is_cross_page_line(line)
@@ -332,20 +332,20 @@ def _merge_text_block(current_block, previous_block, is_cross_page):
 
 
 def _mark_lines_cross_page(lines):
-    """给跨页合并进来的文本行和 det hint 行同步打跨页标记。"""
+    """Merge the related values."""
     for line in lines:
         for span in line.get("spans", []):
             span[SplitFlag.CROSS_PAGE] = True
 
 
 def _is_cross_page_line(line):
-    """判断整行是否来自跨页追加，供几何度量时排除。"""
+    """Validate the current value."""
     spans = line.get("spans", [])
     return bool(spans) and all(span.get(SplitFlag.CROSS_PAGE) for span in spans)
 
 
 def _merge_ref_text_list_block(current_block, previous_block, is_cross_page):
-    """合并相邻 ref_text list，并在跨页时给当前 list 内 span 标记跨页。"""
+    """Merge the related values."""
     if is_cross_page:
         for span in iter_block_spans(current_block):
             span[SplitFlag.CROSS_PAGE] = True
@@ -363,7 +363,7 @@ def _line_height(line):
 
 
 def _line_width(line):
-    """计算行或纵排列的宽度，供纵排几何规则使用。"""
+    """Calculate the result."""
     bbox = line.get("bbox")
     if not bbox:
         return 0
@@ -386,7 +386,7 @@ def _block_has_lines(block):
 
 
 def _first_non_empty_content(lines):
-    """从行列表中提取第一个非空 span 文本，用于段落起始字符规则判断。"""
+    """Validate the current value."""
     for line in lines:
         for span in line.get("spans", []):
             content = span.get("content", "")
@@ -396,7 +396,7 @@ def _first_non_empty_content(lines):
 
 
 def _last_non_empty_content(lines):
-    """从行列表中提取最后一个非空 span 文本，用于段落结尾字符规则判断。"""
+    """Validate the current value."""
     for line in reversed(lines):
         for span in reversed(line.get("spans", [])):
             content = span.get("content", "")
@@ -406,12 +406,12 @@ def _last_non_empty_content(lines):
 
 
 def _has_mergeable_block_bbox_relation(current_block, previous_block):
-    """复刻 pipeline text 合并的核心几何条件：当前块上边界进入前块范围。"""
+    """Merge the related values."""
     return current_block["bbox"][1] < previous_block["bbox"][3]
 
 
 def _is_vertical_text_block_by_lines(lines):
-    """使用当前几何行中的 spans 判断文本块是否为纵排。"""
+    """Validate the current value."""
     spans = [
         span
         for line in lines
@@ -428,7 +428,7 @@ def _can_auto_merge_vertical_text_blocks(
     current_metric_lines,
     previous_metric_lines,
 ):
-    """复刻 pipeline 纵排文本块合并规则，几何优先使用 OCR det 行。"""
+    """Merge the related values."""
     first_metric_line = current_metric_lines[0]
     last_metric_line = previous_metric_lines[-1]
     first_line_width = _line_width(first_metric_line)
@@ -463,12 +463,12 @@ def _can_auto_merge_vertical_text_blocks(
 
 
 def _has_mergeable_vertical_block_bbox_relation(current_block, previous_block):
-    """复刻横排同构关系：当前纵排块右边界需要进入前块左边界右侧。"""
+    """Implementation detail."""
     return current_block["bbox"][2] > previous_block["bbox"][0]
 
 
 def _cleanup_block_internal_metadata(block):
-    """递归清理只供 finalize 内部流程使用的临时字段。"""
+    """Remove invalid or unnecessary data."""
     for metadata_key in INTERNAL_BLOCK_METADATA_KEYS:
         block.pop(metadata_key, None)
     for sub_block in block.get("blocks", []):

@@ -30,7 +30,7 @@ from mineru.version import __version__
 
 
 def _resolve_title_line_avg_height(title_block):
-    """解析标题平均行高：优先复用 Hybrid OCR det 行提示，再回退到原始行或块高。"""
+    """Parse the input data."""
     for lines_key in [OCR_DET_LINES_KEY, "lines"]:
         line_heights = []
         for line in title_block.get(lines_key, []):
@@ -57,7 +57,7 @@ def blocks_to_page_info(
         page_index,
         _ocr_enable,
 ) -> dict:
-    """将blocks转换为页面信息"""
+    """Convert the value to the required format."""
 
     scale = image_dict["scale"]
     page_pil_img = image_dict["img_pil"]
@@ -84,7 +84,7 @@ def blocks_to_page_info(
     phonetic_blocks = magic_model.get_phonetic_blocks()
     list_blocks = magic_model.get_list_blocks()
 
-    # 标题平均行高是 finalized middle json 的稳定字段，供服务端和客户端标题分级共用。
+    # Process the service request.
     for title_block in title_blocks:
         title_block['line_avg_height'] = _resolve_title_line_avg_height(title_block)
 
@@ -92,7 +92,7 @@ def blocks_to_page_info(
     interline_equation_blocks = magic_model.get_interline_equation_blocks()
 
     all_spans = magic_model.get_all_spans()
-    # 对image/table/chart/interline_equation的span截图
+    # Implementation detail.
     for span in all_spans:
         if span["type"] in [ContentType.IMAGE, ContentType.TABLE, ContentType.CHART, ContentType.INTERLINE_EQUATION]:
             span = cut_image_and_table(span, page_pil_img, page_img_md5, page_index, image_writer, scale=scale)
@@ -112,7 +112,7 @@ def blocks_to_page_info(
         *interline_equation_blocks,
         *list_blocks,
     ])
-    # 对page_blocks根据index的值进行排序
+    # Sort items into the required order.
     page_blocks.sort(key=lambda x: x["index"])
 
     page_info = {
@@ -163,7 +163,7 @@ def _apply_post_ocr(pdf_info_list, hybrid_pipeline_model):
 
 
 def _normalize_split_title_blocks(pdf_info_list):
-    """将Hybrid内部拆分标题统一为输出层通用title，并补齐默认标题层级。"""
+    """Prepare the output value."""
     title_type_to_level = {
         BlockType.DOC_TITLE: 1,
         BlockType.PARAGRAPH_TITLE: 2,
@@ -179,7 +179,7 @@ def _normalize_split_title_blocks(pdf_info_list):
 
 
 def init_middle_json(_ocr_enable, effort="medium"):
-    """初始化 Hybrid middle json，使用公开 effort 元数据描述解析强度。"""
+    """Parse the input data."""
     return {
         "pdf_info": [],
         "_backend": "hybrid",
@@ -249,13 +249,13 @@ def apply_server_side_postprocess(
     hybrid_pipeline_model,
     _ocr_enable,
 ):
-    """执行 Hybrid 只能在服务端完成的 post-OCR，避免客户端依赖 pipeline OCR 模型。"""
+    """Configure the model."""
     if not _ocr_enable:
         _apply_post_ocr(pdf_info_list, hybrid_pipeline_model)
 
 
 def finalize_middle_json_from_preproc(pdf_info_list, effort="medium"):
-    """从 Hybrid preproc_blocks 执行完整 finalize，供服务端完整路径和客户端复用。"""
+    """Process the service request."""
     build_para_blocks_from_preproc(pdf_info_list)
     merge_para_text_blocks(
         pdf_info_list,
@@ -278,7 +278,7 @@ def finalize_middle_json(
     _ocr_enable,
     effort="medium",
 ):
-    """服务端先做必要 post-OCR，再按公开 effort 执行完整 finalize。"""
+    """Process the service request."""
     apply_server_side_postprocess(
         pdf_info_list,
         hybrid_pipeline_model,

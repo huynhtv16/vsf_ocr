@@ -28,7 +28,7 @@ from ...utils.pdfium_guard import (
 )
 
 
-os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 让mps可以fallback
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # Implementation detail.
 
 class ModelSingleton:
     _instance = None
@@ -64,7 +64,7 @@ def custom_model_init(
     table_enable=True,
 ):
     model_init_start = time.time()
-    # 从配置文件读取model-dir和device
+    # Extract the required value.
     device = get_device()
 
     formula_config = {"enable": formula_enable}
@@ -365,7 +365,7 @@ def batch_image_analyze(
             f'GPU Memory: {gpu_memory} GB, Batch Ratio: {batch_ratio}. '
     )
 
-    # 检测torch的版本号
+    # Implementation detail.
     import torch
     from packaging import version
     device_type = os.getenv("MINERU_LMDEPLOY_DEVICE", "")

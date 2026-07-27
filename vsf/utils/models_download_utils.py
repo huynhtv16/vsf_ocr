@@ -21,7 +21,7 @@ REMOTE_MODEL_SOURCES = ("huggingface", "modelscope")
 
 
 def get_tools_config_file_path() -> str:
-    """获取 MinerU 工具配置文件路径，支持环境变量指定绝对或相对路径。"""
+    """Extract the required value."""
     config_file_name = os.getenv('MINERU_TOOLS_CONFIG_JSON', 'mineru.json')
     if os.path.isabs(config_file_name):
         return config_file_name
@@ -29,16 +29,16 @@ def get_tools_config_file_path() -> str:
 
 
 def download_json(url):
-    """下载 JSON 文件并返回解析后的内容。"""
+    """Parse the input data."""
     response = requests.get(url)
     response.raise_for_status()
     return response.json()
 
 
 def is_config_version_outdated(config_version):
-    """判断本地配置版本是否低于当前模板版本。"""
+    """Validate the current value."""
     def version_tuple(version):
-        """将版本号字符串转换为可比较的整数元组。"""
+        """Convert the value to the required format."""
         parts = []
         for part in str(version).split('.'):
             parts.append(int(part) if part.isdigit() else 0)
@@ -53,7 +53,7 @@ def is_config_version_outdated(config_version):
 
 
 def merge_config_dict(base_config: dict, override_config: dict, skip_keys: set[str] | None = None) -> dict:
-    """递归合并配置字典，用 override_config 覆盖 base_config 并保留新模板字段。"""
+    """Merge the related values."""
     skip_keys = skip_keys or set()
     merged_config = dict(base_config)
     for key, value in override_config.items():
@@ -68,7 +68,7 @@ def merge_config_dict(base_config: dict, override_config: dict, skip_keys: set[s
 
 
 def download_and_modify_json(url, local_filename, modifications):
-    """下载或读取 JSON 配置，并按 modifications 合并更新后写回。"""
+    """Extract the required value."""
     if os.path.exists(local_filename):
         with open(local_filename, encoding='utf-8') as f:
             data = json.load(f)
@@ -86,7 +86,7 @@ def download_and_modify_json(url, local_filename, modifications):
 
 
 def persist_resolved_model_source(model_source: str) -> None:
-    """将 auto 解析出的实际模型来源写入配置文件，避免下次启动时再次受网络波动影响。"""
+    """Parse the input data."""
     if model_source not in REMOTE_MODEL_SOURCES:
         return
     try:
@@ -100,7 +100,7 @@ def persist_resolved_model_source(model_source: str) -> None:
 
 
 def normalize_download_relative_path(relative_path: str, repo_mode: str) -> str:
-    """按仓库模式规范化下载相对路径，保持 pipeline 与 VLM 原有路径语义。"""
+    """Convert the value to the required format."""
     if repo_mode == 'pipeline':
         return relative_path.strip('/')
     if repo_mode == 'vlm':
@@ -111,7 +111,7 @@ def normalize_download_relative_path(relative_path: str, repo_mode: str) -> str:
 
 
 def read_existing_tools_config() -> dict | None:
-    """读取已存在的工具 JSON 配置；不存在或读取失败时返回 None，不影响后续下载。"""
+    """Extract the required value."""
     config_file = get_tools_config_file_path()
     if not os.path.exists(config_file):
         return None
@@ -128,7 +128,7 @@ def read_existing_tools_config() -> dict | None:
 
 
 def get_configured_repo_model_root(config: dict, repo_mode: str) -> str | None:
-    """从 JSON 配置中获取指定仓库模式的模型根路径，缺失或类型不正确时返回 None。"""
+    """Extract the required value."""
     models_dir = config.get('models-dir')
     if not isinstance(models_dir, dict):
         return None
@@ -142,14 +142,14 @@ def get_configured_repo_model_root(config: dict, repo_mode: str) -> str | None:
 
 
 def build_configured_model_path(model_root: str, relative_path: str) -> str:
-    """根据模型根路径和本次下载相对路径拼出本地待检查路径。"""
+    """Validate the current value."""
     if relative_path in ("", "/"):
         return model_root
     return os.path.join(model_root, relative_path)
 
 
 def get_existing_configured_model_root(repo_mode: str, relative_path: str) -> str | None:
-    """如果 JSON 中配置的模型路径已包含本次所需模型，则返回该模型根路径以跳过下载。"""
+    """Remove invalid or unnecessary data."""
     config = read_existing_tools_config()
     if config is None:
         return None
@@ -166,7 +166,7 @@ def get_existing_configured_model_root(repo_mode: str, relative_path: str) -> st
 
 
 def persist_downloaded_model_config(model_source: str, repo_mode: str, model_root: str) -> None:
-    """snapshot_download 成功后，创建或更新 JSON，写入本次模型根路径和实际来源。"""
+    """Build the required output."""
     config_file = get_tools_config_file_path()
     try:
         download_and_modify_json(
@@ -188,7 +188,7 @@ def persist_downloaded_model_config(model_source: str, repo_mode: str, model_roo
 
 @lru_cache(maxsize=1)
 def resolve_auto_model_source() -> str:
-    """通过 Hugging Face 模型列表页探测 auto 应该使用的实际模型来源。"""
+    """Configure the model."""
     last_error = None
     for _ in range(HUGGINGFACE_MODELS_PAGE_MAX_ATTEMPTS):
         try:
@@ -209,7 +209,7 @@ def resolve_auto_model_source() -> str:
 
 
 def resolve_model_source(model_source: str | None = None, allow_auto: bool = False) -> str:
-    """将环境变量或配置文件中的模型来源解析为实际可下载的来源。"""
+    """Parse the input data."""
     if model_source is None:
         model_source = os.getenv(MODEL_SOURCE_ENV_VAR)
         if isinstance(model_source, str) and model_source.strip().lower() == "auto":
@@ -252,18 +252,18 @@ def resolve_model_source(model_source: str | None = None, allow_auto: bool = Fal
 
 @lru_cache(maxsize=None)
 def _snapshot_download_cached(model_source: str, repo_mode: str, repo: str, relative_path: str) -> str:
-    """按进程缓存远端 snapshot_download 结果，减少重复缓存检查和 Fetching 日志。"""
+    """Validate the current value."""
     if model_source == "huggingface":
         snapshot_download = hf_snapshot_download
     elif model_source == "modelscope":
         snapshot_download = ms_snapshot_download
     else:
-        raise ValueError(f"未知的仓库类型: {model_source}")
+        raise ValueError(f"\u672a\u77e5\u7684\u4ed3\u5e93\u7c7b\u578b: {model_source}")
 
     if repo_mode == 'pipeline':
         cache_dir = snapshot_download(repo, allow_patterns=[relative_path, relative_path + "/*"])
     elif repo_mode == 'vlm':
-        # VLM 整仓下载和局部路径下载都参与缓存，但保持原有 allow_patterns 行为。
+        # Process the file path.
         if relative_path == "/":
             cache_dir = snapshot_download(repo)
         else:
@@ -278,12 +278,12 @@ def _snapshot_download_cached(model_source: str, repo_mode: str, repo: str, rela
 
 def auto_download_and_get_model_root_path(relative_path: str, repo_mode='pipeline') -> str:
     """
-    支持文件或目录的可靠下载。
-    - 如果输入文件: 返回本地文件绝对路径
-    - 如果输入目录: 返回本地缓存下与 relative_path 同结构的相对路径字符串
-    :param repo_mode: 指定仓库模式，'pipeline' 或 'vlm'
-    :param relative_path: 文件或目录相对路径
-    :return: 本地文件绝对路径或相对路径
+    Process the file path.
+    Process the file path.
+    Process the file path.
+    Implementation detail.
+    Process the file path.
+    Process the file path.
     """
     model_source = resolve_model_source()
 
@@ -294,7 +294,7 @@ def auto_download_and_get_model_root_path(relative_path: str, repo_mode='pipelin
             raise ValueError(f"Local path for repo_mode '{repo_mode}' is not configured.")
         return root_path
 
-    # 建立仓库模式到路径的映射
+    # Process the file path.
     repo_mapping = {
         'pipeline': {
             'huggingface': ModelPath.pipeline_root_hf,
@@ -309,7 +309,7 @@ def auto_download_and_get_model_root_path(relative_path: str, repo_mode='pipelin
     if repo_mode not in repo_mapping:
         raise ValueError(f"Unsupported repo_mode: {repo_mode}, must be 'pipeline' or 'vlm'")
 
-    # model_source 已解析为实际远端来源后，再选择对应仓库。
+    # Parse the input data.
     repo = repo_mapping[repo_mode][model_source]
 
     relative_path = normalize_download_relative_path(relative_path, repo_mode)
@@ -327,4 +327,4 @@ def auto_download_and_get_model_root_path(relative_path: str, repo_mode='pipelin
 if __name__ == '__main__':
     path1 = "models/README.md"
     root = auto_download_and_get_model_root_path(path1)
-    print("本地文件绝对路径:", os.path.join(root, path1))
+    print("\u672c\u5730\u6587\u4ef6\u7edd\u5bf9\u8def\u5f84:", os.path.join(root, path1))

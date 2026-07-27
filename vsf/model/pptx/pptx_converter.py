@@ -98,12 +98,12 @@ class PptxConverter:
         self.pptx_obj = None
         self.pages = []
         self.cur_page = []
-        self.list_block_stack: list = []  # 列表块堆栈
+        self.list_block_stack: list = []  # Implementation detail.
         self._shape_type_cache: dict[
             tuple[Optional[str], Optional[int], Optional[str]],
             Optional[MSO_SHAPE_TYPE],
         ] = {}
-        self.equation_bookends: str = "<eq>{EQ}</eq>"  # 公式标记格式
+        self.equation_bookends: str = "<eq>{EQ}</eq>"  # Process formula content.
 
     def convert(
         self,
@@ -125,7 +125,7 @@ class PptxConverter:
             self._retry_convert_package_bytes_after_normalization(file_bytes, exc)
 
     def _reset_state(self) -> None:
-        """重置解析状态，确保失败重试时不会残留上一次半解析结果。"""
+        """Parse the input data."""
         self.pages = []
         self.cur_page = []
         self.list_block_stack = []
@@ -134,11 +134,11 @@ class PptxConverter:
         self.pptx_obj = None
 
     def _convert_package_bytes(self, file_bytes: bytes) -> None:
-        """用独立字节流解析 PPTX 包，便于原始包失败后用规范化包重试。"""
+        """Convert the value to the required format."""
         self._convert_package_stream(BytesIO(file_bytes))
 
     def _convert_package_stream(self, file_stream: BinaryIO) -> None:
-        """直接使用可复位的 PPTX 流解析正常路径，避免提前复制完整包字节。"""
+        """Parse the input data."""
         self._reset_state()
         rewind_stream(file_stream)
         self.file_stream = file_stream
@@ -154,7 +154,7 @@ class PptxConverter:
         file_bytes: bytes,
         exc: Exception,
     ) -> None:
-        """首次解析失败后，仅在包规范化确实产生变化时使用规范化字节重试。"""
+        """Convert the value to the required format."""
         normalized_bytes = normalize_pptx_package(file_bytes)
         if normalized_bytes == file_bytes:
             raise exc
@@ -165,13 +165,13 @@ class PptxConverter:
         slide_width = int(pptx_obj.slide_width)
         slide_height = int(pptx_obj.slide_height)
 
-        # 遍历每一张幻灯片
+        # Iterate over the available items.
         for _, slide in enumerate(pptx_obj.slides):
             linear_shapes = self._flatten_slide_shapes(slide.shapes)
             sortable_shape_entries = []
             tail_blocks = []
 
-            # 遍历幻灯片中的每一个形状
+            # Iterate over the available items.
             for shape_index, shape_entry in enumerate(linear_shapes):
                 shape_blocks = self._collect_shape_blocks(
                     shape_entry,
@@ -443,7 +443,7 @@ class PptxConverter:
 
     @staticmethod
     def _shape_has_raw_text(shape) -> bool:
-        """通过shape底层XML判断是否有文本，避免数学公式触发python-pptx文本转换。"""
+        """Validate the current value."""
         if not getattr(shape, "has_text_frame", False):
             return False
 
@@ -595,17 +595,17 @@ class PptxConverter:
             return False
 
     def _handle_tables(self, shape):
-        """将PowerPoint表格转换为HTML格式。
+        """Convert the value to the required format.
 
         Args:
-            shape: 包含表格的形状对象。
-            parent_slide: 父幻灯片组。
-            slide_ind: 当前幻灯片索引。
-            doc: 文档对象(此实现中未使用)。
-            slide_size: 幻灯片尺寸。
+            Process table content.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
 
         Returns:
-            str: 表格的HTML字符串，如果没有表格则返回None。
+            Process table content.
         """
         if not shape.has_table:
             return None
@@ -613,21 +613,21 @@ class PptxConverter:
         table = shape.table
         table_xml = shape._element
 
-        # 开始构建HTML表格
+        # Build the required output.
         html_parts = ['<table border="1">']
 
-        # 跟踪已被合并单元格占用的位置
-        # 格式: {(row, col): True}
+        # Merge the related values.
+        # Implementation detail.
         occupied_cells = {}
 
         for row_idx, row in enumerate(table.rows):
             html_parts.append("  <tr>")
 
             for col_idx, cell in enumerate(row.cells):
-                # 跳过被合并占用的单元格
+                # Remove invalid or unnecessary data.
                 if (row_idx, col_idx) in occupied_cells:
                     continue
-                # 获取单元格XML以读取跨度信息
+                # Extract the required value.
                 cell_xml = table_xml.xpath(
                     f".//a:tbl/a:tr[{row_idx + 1}]/a:tc[{col_idx + 1}]"
                 )
@@ -637,23 +637,23 @@ class PptxConverter:
 
                 cell_xml = cell_xml[0]
 
-                # 解析行跨度和列跨度
+                # Parse the input data.
                 row_span = cell_xml.get("rowSpan")
                 col_span = cell_xml.get("gridSpan")
 
                 row_span = int(row_span) if row_span else 1
                 col_span = int(col_span) if col_span else 1
 
-                # 标记被此单元格占用的位置
+                # Implementation detail.
                 for r in range(row_idx, row_idx + row_span):
                     for c in range(col_idx, col_idx + col_span):
                         if (r, c) != (row_idx, col_idx):
                             occupied_cells[(r, c)] = True
 
-                # 确定标签类型：第一行使用<th>，其他使用<td>
+                # Implementation detail.
                 tag = "th" if row_idx == 0 else "td"
 
-                # 构建属性字符串
+                # Build the required output.
                 attrs = []
                 if row_span > 1:
                     attrs.append(f'rowspan="{row_span}"')
@@ -662,9 +662,9 @@ class PptxConverter:
 
                 attr_str = " " + " ".join(attrs) if attrs else ""
 
-                # 获取单元格文本内容
+                # Extract the required value.
                 cell_text = cell.text.strip() if cell.text else ""
-                # 转义HTML特殊字符，防止XSS
+                # Implementation detail.
                 cell_text = (
                     cell_text.replace("&", "&amp;")
                     .replace("<", "&lt;")
@@ -747,7 +747,7 @@ class PptxConverter:
 
     @classmethod
     def _serialize_picture_image_best_effort(cls, image_bytes: bytes) -> Optional[str]:
-        """尽量序列化图片；损坏图片失败时降级跳过，避免中断整份 PPTX。"""
+        """Remove invalid or unnecessary data."""
         try:
             return cls._serialize_picture_image(image_bytes)
         except PIL_IMAGE_LOAD_ERRORS as exc:
@@ -756,7 +756,7 @@ class PptxConverter:
 
     @staticmethod
     def _serialize_picture_image(image_bytes: bytes) -> str:
-        """将单张 Pillow 支持的图片转为 Markdown 可用的 base64 字符串。"""
+        """Convert the value to the required format."""
         pil_image = Image.open(BytesIO(image_bytes))
 
         if is_vector_image(pil_image):
@@ -796,7 +796,7 @@ class PptxConverter:
 
     @staticmethod
     def _has_blip_without_relationship(shape) -> bool:
-        """判断图片节点是否只有空blip，避免把空fallback误报为图片资源缺失。"""
+        """Validate the current value."""
         if not hasattr(shape, "_element"):
             return False
 
@@ -921,7 +921,7 @@ class PptxConverter:
 
     @staticmethod
     def _get_run_raw_text(run) -> str:
-        """从run底层XML读取文本，避免数学run触发python-pptx的to_latex诊断输出。"""
+        """Extract the required value."""
         run_xml = getattr(run, "_r", None)
         if run_xml is None:
             return ""
@@ -989,7 +989,7 @@ class PptxConverter:
         run,
         paragraph_font_sources: list[etree._Element],
     ) -> Optional[str]:
-        """从PPTX run对象提取可序列化的生效字体样式字符串。"""
+        """Extract the required value."""
         if run is None:
             return None
 
@@ -1011,7 +1011,7 @@ class PptxConverter:
         hyperlink: Optional[str],
         style_str: Optional[str] = None,
     ) -> str:
-        """按Office约定格式输出带样式/超链接的文本片段。"""
+        """Process text content."""
         if not text:
             return ""
 
@@ -1028,7 +1028,7 @@ class PptxConverter:
         return f"<hyperlink>{text_tag}<url>{hyperlink}</url></hyperlink>"
 
     def _resolve_hyperlink_from_run(self, run, shape) -> Optional[str]:
-        """解析 run 对应的超链接，优先公开 API，回退到 XML + rels。"""
+        """Parse the input data."""
         try:
             if hasattr(run, "hyperlink") and run.hyperlink is not None:
                 address = run.hyperlink.address
@@ -1072,7 +1072,7 @@ class PptxConverter:
         return None
 
     def _build_paragraph_plain_text(self, paragraph) -> str:
-        """构建段落纯文本（保留软换行为空格）。"""
+        """Build the required output."""
         p = paragraph._element
         text_parts = []
         for node in p.content_children:
@@ -1137,7 +1137,7 @@ class PptxConverter:
         return None
 
     def _build_paragraph_rich_text(self, paragraph, shape) -> str:
-        """按 run 维度构建段落富文本，支持样式与超链接标签。"""
+        """Build the required output."""
         paragraph_font_sources = self._get_paragraph_font_sources(shape, paragraph)
         run_map = {}
         for run in paragraph.runs:
@@ -1489,7 +1489,7 @@ class PptxConverter:
         }
 
     def _get_paragraph_list_info(self, shape, paragraph) -> dict:
-        """基于段落->文本框->布局->母版继承链解析段落列表属性。"""
+        """Parse the input data."""
         marker_info = self._get_effective_list_marker(shape, paragraph)
         p = paragraph._element
         level = marker_info.get("level", self._get_paragraph_level(p))
@@ -1538,7 +1538,7 @@ class PptxConverter:
                 "start_is_explicit_restart": False,
             }
 
-        # 兜底：段落级标记 + 缩进层级判断
+        # Validate the current value.
         bu_auto_num = p.find(".//a:buAutoNum", namespaces={"a": self.namespaces["a"]})
         if bu_auto_num is not None:
             start = self._parse_positive_int(bu_auto_num.get("startAt"))
@@ -1588,7 +1588,7 @@ class PptxConverter:
         start: Optional[int] = None,
         start_is_explicit_restart: bool = False,
     ):
-        """将列表栈调整到目标层级，并在必要时创建同级/子级列表块。"""
+        """Build the required output."""
         while len(list_stack) > level + 1:
             list_stack.pop()
 
@@ -1624,7 +1624,7 @@ class PptxConverter:
 
     @staticmethod
     def _get_ordered_list_next_number(list_block: dict) -> int:
-        """计算当前有序列表继续追加同级文本项时应使用的下一个编号。"""
+        """Calculate the result."""
         try:
             start = int(list_block.get("start", 1))
         except (TypeError, ValueError):
@@ -1644,7 +1644,7 @@ class PptxConverter:
         start: Optional[int],
         start_is_explicit_restart: bool,
     ) -> bool:
-        """判断 startAt 是否表示当前同级有序列表需要重新开始。"""
+        """Validate the current value."""
         if not start_is_explicit_restart:
             return False
         if attribute != "ordered" or start is None:
@@ -1667,7 +1667,7 @@ class PptxConverter:
         start: Optional[int] = None,
         start_is_explicit_restart: bool = False,
     ):
-        """向目标层级列表追加文本项。"""
+        """Process text content."""
         self._ensure_list_level(
             list_stack,
             level,
@@ -1688,7 +1688,7 @@ class PptxConverter:
         base_level: int,
     ) -> int:
         """
-        将连续列表段的首个可见层级归一化为0级，避免缺失父级时输出代码块缩进。
+        Prepare the output value.
         """
         return max(0, raw_level - base_level)
 
@@ -1833,7 +1833,7 @@ class PptxConverter:
         self.list_block_stack = []
         list_level_base: Optional[int] = None
 
-        # 遍历段落以构建文本
+        # Iterate over the available items.
         for paragraph in shape.text_frame.paragraphs:
             list_info = self._get_paragraph_list_info(shape, paragraph)
 
@@ -1857,7 +1857,7 @@ class PptxConverter:
                     )
                 continue
 
-            # 段落不是列表项，关闭当前 shape 的列表上下文
+            # Implementation detail.
             self.list_block_stack.clear()
             list_level_base = None
 
@@ -1887,31 +1887,31 @@ class PptxConverter:
 
             self.cur_page.append(block)
 
-        # shape 结束后清理列表上下文，避免跨 shape 污染
+        # Remove invalid or unnecessary data.
         self.list_block_stack.clear()
         return
 
     def _is_list_item(self, paragraph) -> tuple[bool, str]:
         """
-        判断段落是否应被视为列表项。
-        该方法首先尝试通过拥有该段落的形状来解析列表样式信息。
-        如果无法做到，则回退到基于段落属性和级别的更简单检查。
+        Validate the current value.
+        Parse the input data.
+        Validate the current value.
         Args:
-            paragraph: 需要检查的'python-pptx'段落对象。
+            Validate the current value.
 
         Returns:
-            返回一个2元组(`is_list`, `bullet_type`)，其中：
-            `is_list` - 若段落被视为列表项，为True，否则为False；
-            `bullet_type` - 为以下之一：'Bullet'(项目符号)、'Numbered'(编号)或'None'，
-            描述列表标记类型。
+            Prepare the output value.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
         """
-        # 尝试从段落获取形状（包含该段落的对象），如果可能的话
+        # Extract the required value.
         shape = None
         try:
-            # 这个路径适用于python-pptx段落对象
-            # 首先获取文本框架(段落的父对象)
+            # Process the file path.
+            # Extract the required value.
             text_frame = paragraph._parent
-            # 然后获取形状(文本框架的父对象)
+            # Extract the required value.
             shape = text_frame._parent
         except AttributeError:
             pass
@@ -1925,7 +1925,7 @@ class PptxConverter:
                 return (True, "Numbered")
             return (True, "Bullet")
 
-        # 如果无法获取形状，使用更简单的检查方式
+        # Validate the current value.
         p = paragraph._element
         if p.find(".//a:buChar", namespaces={"a": self.namespaces["a"]}) is not None:
             return (True, "Bullet")
@@ -1934,34 +1934,34 @@ class PptxConverter:
         ):
             return (True, "Numbered")
         elif paragraph.level > 0:
-            # 很可能是子列表项(缩进表示嵌套)
+            # Implementation detail.
             return (True, "None")
         else:
             return (False, "None")
 
     def _get_effective_list_marker(self, shape, paragraph) -> dict:
         """
-        返回描述段落的有效列表标记的字典。
-        列表标记信息可以来自多个来源：直接段落属性、形状级别的列表样式、
-        布局占位符或主幻灯片文本样式。此辅助方法解析所有这些层，并返回
-        有效标记的统一视图。
+        Prepare the output value.
+        Implementation detail.
+        Parse the input data.
+        Implementation detail.
 
         Args:
-            shape: 包含段落的形状对象。
-            paragraph: 需要检查的'python-pptx'段落对象。
+            Implementation detail.
+            Validate the current value.
 
         Returns:
-            返回列表标记信息的字典，其中：
-            `is_list` - True/False/None，表示这是否是列表项；
-            `kind` - 为以下之一：`buChar`、`buAutoNum`、`buBlip`、`buNone`或None，描述标记类型；
-            `detail` - 项目符号字符或编号类型字符串，或如果不适用则为None；
-            `start_is_explicit_restart` - True 表示 start 来自段落级显式 startAt；
-            `level` - 段落级别，范围在(0, 8)内。
+            Prepare the output value.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
         """
         p = paragraph._element
         lvl = self._get_paragraph_level(p)
 
-        # 1) 直接段落属性
+        # Implementation detail.
         pPr = p.find("a:pPr", namespaces=self.namespaces)
         is_list, kind, detail, start = self._parse_bullet_from_paragraph_properties(pPr)
         if is_list is not None:
@@ -1971,11 +1971,11 @@ class PptxConverter:
                 "detail": detail,
                 "level": lvl,
                 "start": start,
-                # 只有段落自身声明的 startAt 才表示一次显式重启。
+                # Implementation detail.
                 "start_is_explicit_restart": kind == "buAutoNum" and start is not None,
             }
 
-        # 2) 形状级别的列表样式(txBody/a:lstStyle)
+        # Implementation detail.
         txBody = shape._element.find(".//p:txBody", namespaces=self.namespaces)
         is_list, kind, detail, start = self._parse_bullet_from_text_body_list_style(
             txBody, lvl
@@ -1990,7 +1990,7 @@ class PptxConverter:
                 "start_is_explicit_restart": False,
             }
 
-        # 3) 布局占位符列表样式(如果这是一个占位符)
+        # Process document layout data.
         layout_result = None
         if shape.is_placeholder:
             layout_ph = self._resolve_layout_placeholder(shape)
@@ -2006,7 +2006,7 @@ class PptxConverter:
                     start,
                 ) = self._parse_bullet_from_text_body_list_style(layout_tx, lvl)
 
-                # 仅在is_list明确为True/False时使用布局结果
+                # Process document layout data.
                 if is_list is not None:
                     layout_result = {
                         "is_list": is_list,
@@ -2017,7 +2017,7 @@ class PptxConverter:
                         "start_is_explicit_restart": False,
                     }
 
-                # 4) 解析主文本样式
+                # Parse the input data.
                 ph_type = shape.placeholder_format.type
                 master = shape.part.slide.slide_layout.slide_master
                 (
@@ -2027,7 +2027,7 @@ class PptxConverter:
                     start,
                 ) = self._parse_bullet_from_master_text_styles(master, ph_type, lvl)
 
-                # 检查主样式是否有标记信息
+                # Validate the current value.
                 if kind in ("buChar", "buAutoNum", "buBlip"):
                     return {
                         "is_list": True,
@@ -2048,7 +2048,7 @@ class PptxConverter:
                     }
 
             # If layout has explicit is_list value but master didn't override it, use layout
-            # 如果布局有显式的is_list值但主样式没有覆盖它，则使用布局结果
+            # Process document layout data.
             if layout_result is not None:
                 return layout_result
 
@@ -2063,15 +2063,15 @@ class PptxConverter:
 
     def _get_paragraph_level(self, paragraph) -> int:
         """
-        返回段落XML元素的缩进级别。
-        段落可以有不同的缩进级别(0-8)。级别存储在段落属性XML元素的'lvl'属性中。
+        Prepare the output value.
+        Implementation detail.
 
         Args:
-            paragraph: 需要提取级别的段落XML元素。
+            Extract the required value.
 
         Returns:
-            返回范围在(0, 8)内的段落级别。当找不到'a:pPr'元素、没有'lvl'属性
-            或'lvl'属性值无效时，返回0。
+            Prepare the output value.
+            Prepare the output value.
         """
         pPr = paragraph.find("a:pPr", namespaces=self.namespaces)
         if pPr is not None and "lvl" in pPr.attrib:
@@ -2083,7 +2083,7 @@ class PptxConverter:
 
     @staticmethod
     def _parse_positive_int(value: Optional[str]) -> Optional[int]:
-        """解析正整数属性，非法或缺失时返回 None。"""
+        """Parse the input data."""
         if value is None:
             return None
         try:
@@ -2096,34 +2096,34 @@ class PptxConverter:
         self, pPr
     ) -> tuple[Optional[bool], Optional[str], Optional[str], Optional[int]]:
         """
-        从段落属性节点解析项目符号或编号信息。
-        检查'a:pPr'或'a:lvlXpPr'元素，并提取关于项目符号字符、自动编号、
-        图片项目符号或显式'buNone'标记的信息。
+        Parse the input data.
+        Validate the current value.
+        Process image content.
 
         Args:
-            pPr: 段落属性XML元素('a:pPr'或'a:lvlXpPr')。
+            Implementation detail.
 
         Returns:
-            返回一个4元组(`is_list`, `kind`, `detail`, `start`)，其中：
-            `is_list` - 为True/False/None，表示这是否是列表项；
-            `kind` - 为以下之一：`buChar`(项目符号字符)、`buAutoNum`(自动编号)、
-            `buBlip`(图片项目符号)、`buNone`(无标记)或None，描述标记类型；
-            `detail` - 项目符号字符、编号类型字符串，或如果不适用则为None。
-            `start` - 自动编号起始值；未声明时为None。
+            Prepare the output value.
+            Implementation detail.
+            Implementation detail.
+            Process image content.
+            Implementation detail.
+            Implementation detail.
         """
         if pPr is None:
             return (None, None, None, None)
 
-        # 显式指定无项目符号
+        # Implementation detail.
         if pPr.find("a:buNone", namespaces=self.namespaces) is not None:
             return (False, "buNone", None, None)
 
-        # 项目符号字符
+        # Implementation detail.
         buChar = pPr.find("a:buChar", namespaces=self.namespaces)
         if buChar is not None:
             return (True, "buChar", buChar.get("char"), None)
 
-        # 自动编号
+        # Implementation detail.
         buAuto = pPr.find("a:buAutoNum", namespaces=self.namespaces)
         if buAuto is not None:
             return (
@@ -2133,7 +2133,7 @@ class PptxConverter:
                 self._parse_positive_int(buAuto.get("startAt")),
             )
 
-        # 图片项目符号
+        # Process image content.
         buBlip = pPr.find("a:buBlip", namespaces=self.namespaces)
         if buBlip is not None:
             return (True, "buBlip", "image", None)
@@ -2144,19 +2144,19 @@ class PptxConverter:
         self, txBody, lvl: int
     ) -> tuple[Optional[bool], Optional[str], Optional[str], Optional[int]]:
         """
-        从文本体的列表样式中解析项目符号或编号信息。
-        在'txBody'下搜索'a:lstStyle/a:lvl{lvl+1}pPr'，并使用级别特定的段落属性
-        推断项目符号或编号信息。
+        Parse the input data.
+        Match the expected pattern.
+        Implementation detail.
 
         Args:
-            txBody: 文本体XML元素'p:txBody'。
-            lvl: 段落级别，范围在(0, 8)内。
+            Process text content.
+            Implementation detail.
         Returns:
-            返回一个4元组(`is_list`, `kind`, `detail`, `start`)，其中：
-            `is_list` - 为True/False/None，表示这是否是列表项；
-            `kind` - 为以下之一：`buChar`、`buAutoNum`、`buBlip`、`buNone`或None；
-            `detail` - 项目符号字符、编号类型字符串，或如果不适用则为None。
-            `start` - 自动编号起始值；未声明时为None。
+            Prepare the output value.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
         """
         if txBody is None:
             return (None, None, None, None)
@@ -2168,21 +2168,21 @@ class PptxConverter:
         self, slide_master, placeholder_type, lvl: int
     ) -> tuple[Optional[bool], Optional[str], Optional[str], Optional[int]]:
         """
-        从主幻灯片的文本样式中解析项目符号或编号信息。
-        在主幻灯片的'p:txStyles'中查找相应的样式bucket('titleStyle'、'bodyStyle'或
-        'otherStyle')，并为给定的级别提取项目符号或编号信息。
+        Parse the input data.
+        Match the expected pattern.
+        Extract the required value.
 
         Args:
-            slide_master: 与当前幻灯片关联的主幻灯片对象。
-            placeholder_type: 来自'PP_PLACEHOLDER'的占位符类型枚举。
-            lvl: 段落级别，范围在(0, 8)内。
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
 
         Returns:
-            返回一个4元组(`is_list`, `kind`, `detail`, `start`)，其中：
-            `is_list` - 为True/False/None，表示这是否是列表项；
-            `kind` - 为以下之一：`buChar`、`buAutoNum`、`buBlip`、`buNone`或None；
-            `detail` - 项目符号字符、编号类型字符串，或如果不适用则为None。
-            `start` - 自动编号起始值；未声明时为None。
+            Prepare the output value.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
         """
         style = self._get_master_text_style_node(slide_master, placeholder_type)
         if style is None:
@@ -2193,22 +2193,22 @@ class PptxConverter:
 
     def _find_level_properties_in_list_style(self, lstStyle, lvl: int):
         """Find the level-specific paragraph properties node from a list style.
-        从列表样式中查找指定级别的段落属性节点。
+        Match the expected pattern.
 
         This looks for an `a:lvl{lvl+1}pPr` node inside an `a:lstStyle` element, where
-        在'a:lstStyle'元素内查找'a:lvl{lvl+1}pPr'节点，其中'a:lvl1pPr'对应级别0，
+        Match the expected pattern.
         `a:lvl1pPr` corresponds to level 0, `a:lvl2pPr` to level 1, and so on.
-        'a:lvl2pPr'对应级别1，依此类推。
+        Implementation detail.
 
         Args:
             lstStyle: List style XML element `a:lstStyle`.
-            lstStyle: 列表样式XML元素'a:lstStyle'。
+            Implementation detail.
             lvl: Paragraph level in the range (0, 8).
-            lvl: 段落级别，范围在(0, 8)内。
+            Implementation detail.
 
         Returns:
             Matching `a:lvl{lvl+1}pPr` XML element, or None if no matching element is
-            匹配的'a:lvl{lvl+1}pPr'XML元素，如果未找到匹配元素则返回None。
+            Match the expected pattern.
                 found.
         """
         if lstStyle is None:
@@ -2220,16 +2220,16 @@ class PptxConverter:
         self, slide_master, placeholder_type
     ) -> Optional[etree._Element]:
         """
-        获取占位符的相应主文本样式节点。
-        大多数内容占位符(BODY/OBJECT)使用'p:bodyStyle'，而标题使用'p:titleStyle'。
-        所有其他占位符默认使用'p:otherStyle'。
+        Extract the required value.
+        Implementation detail.
+        Implementation detail.
 
         Args:
-            slide_master: 与当前幻灯片关联的主幻灯片对象。
-            placeholder_type: 来自'PP_PLACEHOLDER'的占位符类型枚举。
+            Implementation detail.
+            Implementation detail.
 
         Returns:
-            从主幻灯片的'p:txStyles'中匹配的样式节点('p:bodyStyle'、'p:titleStyle'或'p:otherStyle')，或当未定义样式时返回None。
+            Match the expected pattern.
         """
         txStyles = slide_master._element.find(
             ".//p:txStyles", namespaces=self.namespaces

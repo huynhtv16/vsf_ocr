@@ -21,7 +21,7 @@ TABLE_MATCH_CHUNK_SIZE = 256
 
 
 def _normalize_cell_bboxes(cell_bboxes):
-    """将4点或8点单元格框统一为[x0, y0, x1, y1]，便于后续向量化匹配。"""
+    """Match the expected pattern."""
     if cell_bboxes is None:
         return np.empty((0, 4), dtype=np.float64)
 
@@ -71,7 +71,7 @@ def _normalize_cell_bboxes(cell_bboxes):
 
 
 def _pairwise_iou_and_distance(dt_boxes, cell_bboxes):
-    """批量计算OCR框到所有单元格框的IoU和原有distance指标，保持旧排序语义。"""
+    """Sort items into the required order."""
     dt = dt_boxes[:, None, :]
     cells = cell_bboxes[None, :, :]
 
@@ -103,7 +103,7 @@ def _pairwise_iou_and_distance(dt_boxes, cell_bboxes):
 
 
 def _select_best_cell_indices(iou_scores, distance_scores):
-    """按旧实现的(1-IoU, distance)排序规则，为每个OCR框选择最优单元格下标。"""
+    """Sort items into the required order."""
     best_indices = []
     inverse_iou_scores = 1.0 - iou_scores
     for row_index in range(inverse_iou_scores.shape[0]):
@@ -151,7 +151,7 @@ class TableMatch:
             for offset, best_cell_index in enumerate(best_cell_indices):
                 ocr_index = start + offset
                 best_inverse_iou = 1.0 - iou_scores[offset, best_cell_index]
-                # 保持旧实现的阈值语义：最佳IoU过低时不分配到任何单元格。
+                # Implementation detail.
                 if best_inverse_iou >= 1 - min_iou:
                     continue
 
@@ -221,7 +221,7 @@ class TableMatch:
         current_col = 0
         max_rows = 0
         max_cols = 0
-        occupied_cells = {}  # 用于记录已经被占用的单元格
+        occupied_cells = {}  # Implementation detail.
 
         def is_occupied(row, col):
             return (row, col) in occupied_cells
@@ -236,16 +236,16 @@ class TableMatch:
             token = pred_structures[i]
 
             if token == "<tr>":
-                current_col = 0  # 每次遇到 <tr> 时，重置当前列号
+                current_col = 0  # Implementation detail.
             elif token == "</tr>":
-                current_row += 1  # 行结束，行号增加
+                current_row += 1  # Implementation detail.
             elif token.startswith("<td"):
                 colspan = 1
                 rowspan = 1
                 j = i
                 if token != "<td></td>":
                     j += 1
-                    # 提取 colspan 和 rowspan 属性
+                    # Extract the required value.
                     while j < len(pred_structures) and not pred_structures[
                         j
                     ].startswith(">"):
@@ -255,29 +255,29 @@ class TableMatch:
                             rowspan = int(pred_structures[j].split("=")[1].strip("\"'"))
                         j += 1
 
-                # 跳过已经处理过的属性 token
+                # Remove invalid or unnecessary data.
                 i = j
 
-                # 找到下一个未被占用的列
+                # Implementation detail.
                 while is_occupied(current_row, current_col):
                     current_col += 1
 
-                # 计算逻辑坐标
+                # Calculate the result.
                 r_start = current_row
                 r_end = current_row + rowspan - 1
                 col_start = current_col
                 col_end = current_col + colspan - 1
 
-                # 记录逻辑坐标
+                # Implementation detail.
                 logic_points.append([r_start, r_end, col_start, col_end])
 
-                # 标记占用的单元格
+                # Implementation detail.
                 mark_occupied(r_start, col_start, rowspan, colspan)
 
-                # 更新当前列号
+                # Implementation detail.
                 current_col += colspan
 
-                # 更新最大行数和列数
+                # Implementation detail.
                 max_rows = max(max_rows, r_end + 1)
                 max_cols = max(max_cols, col_end + 1)
 

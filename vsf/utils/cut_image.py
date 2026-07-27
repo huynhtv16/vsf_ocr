@@ -23,6 +23,6 @@ def cut_image_and_table(span, page_pil_img, page_img_md5, page_id, image_writer,
 
 def check_img_bbox(bbox) -> bool:
     if any([bbox[0] >= bbox[2], bbox[1] >= bbox[3]]):
-        logger.warning(f"image_bboxes: 错误的box, {bbox}")
+        logger.warning(f"image_bboxes: \u9519\u8bef\u7684box, {bbox}")
         return False
     return True

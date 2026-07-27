@@ -7,7 +7,7 @@ import torch
 from .modeling.architectures.base_model import BaseModel
 
 
-# OCR 推理精度开关：auto 表示 CPU 使用 fp32，非 CPU 自动使用 fp16。
+# Implementation detail.
 OCR_INFERENCE_PRECISION = "auto"
 
 
@@ -23,7 +23,7 @@ class BaseOCRV20:
         self.net = BaseModel(self.config, **kwargs)
 
     def _resolve_inference_dtype(self, device):
-        """根据常量和设备类型解析 OCR 网络推理使用的浮点精度。"""
+        """Parse the input data."""
         precision = OCR_INFERENCE_PRECISION.lower()
         device_name = str(device).lower()
         is_cpu = device_name.startswith("cpu")
@@ -37,14 +37,14 @@ class BaseOCRV20:
         return torch.float16
 
     def _apply_inference_precision(self, device):
-        """将 OCR 网络移动到目标设备，并在非 CPU 半精度场景下切到 fp16。"""
+        """Implementation detail."""
         self.net.to(device)
         self.ocr_inference_dtype = self._resolve_inference_dtype(device)
         if self.ocr_inference_dtype == torch.float16:
             self.net.to(dtype=torch.float16)
 
     def _to_inference_dtype(self, tensor):
-        """将浮点输入 tensor 转为 OCR 推理精度，整型/布尔辅助输入保持原 dtype。"""
+        """Convert the value to the required format."""
         if torch.is_tensor(tensor) and torch.is_floating_point(tensor):
             inference_dtype = getattr(self, "ocr_inference_dtype", torch.float32)
             return tensor.to(dtype=inference_dtype)
@@ -52,12 +52,12 @@ class BaseOCRV20:
 
     @staticmethod
     def _is_safetensors_path(weights_path):
-        """判断权重文件是否为 safetensors 格式。"""
+        """Validate the current value."""
         return Path(weights_path).suffix == ".safetensors"
 
     @staticmethod
     def _load_weight_file(weights_path):
-        """根据文件后缀选择 safetensors 或 torch 原生加载方式。"""
+        """Process the file path."""
         if BaseOCRV20._is_safetensors_path(weights_path):
             from safetensors.torch import load_file
 
@@ -69,7 +69,7 @@ class BaseOCRV20:
 
     @staticmethod
     def _normalize_ppocrv6_state_dict(weights, weights_path):
-        """归一化 HF OCR safetensors 的外层 `model.` 前缀。"""
+        """Implementation detail."""
         if not BaseOCRV20._is_safetensors_path(weights_path):
             return weights
         if not any(key.startswith("model.") for key in weights.keys()):
@@ -80,16 +80,16 @@ class BaseOCRV20:
         }
 
     def read_pytorch_weights(self, weights_path):
-        """读取 PyTorch OCR 权重，并兼容 PP-OCRv6 safetensors。"""
+        """Extract the required value."""
         if not os.path.exists(weights_path):
             raise FileNotFoundError('{} is not existed.'.format(weights_path))
         weights = self._load_weight_file(weights_path)
         return self._normalize_ppocrv6_state_dict(weights, weights_path)
 
     def get_out_channels(self, weights):
-        """从权重结构推断识别输出通道数。"""
+        """Prepare the output value."""
         if "head.head.weight" in weights:
-            # PP-OCRv6 safetensors 的识别分类层固定命名为 head.head。
+            # Implementation detail.
             return weights["head.head.weight"].shape[0]
         if list(weights.keys())[-1].endswith('.weight') and len(list(weights.values())[-1].shape) == 2:
             out_channels = list(weights.values())[-1].numpy().shape[1]
@@ -102,7 +102,7 @@ class BaseOCRV20:
         # print('weights is loaded.')
 
     def load_pytorch_weights(self, weights_path):
-        """加载 PyTorch OCR 权重，按后缀兼容 safetensors。"""
+        """Implementation detail."""
         self.net.load_state_dict(self.read_pytorch_weights(weights_path))
         # print('model is loaded: {}'.format(weights_path))
 

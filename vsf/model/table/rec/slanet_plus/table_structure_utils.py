@@ -317,13 +317,13 @@ class BatchTablePreprocess:
     def __call__(
         self, img_list: List[np.ndarray]
     ) -> Tuple[List[np.ndarray], List[List[float]]]:
-        """批量处理图像
+        """Process image content.
 
         Args:
-            img_list: 图像列表
+            Process image content.
 
         Returns:
-            预处理后的图像列表和形状信息列表
+            Process image content.
         """
         processed_imgs = []
         shape_lists = []

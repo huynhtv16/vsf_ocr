@@ -3,7 +3,7 @@ from ..io.base import IOReader, IOWriter
 
 
 def _load_s3_client_dependencies():
-    """按需加载 S3 客户端依赖，避免导入 S3 类时强制安装 boto3。"""
+    """Implementation detail."""
     try:
         import boto3
         from botocore.config import Config

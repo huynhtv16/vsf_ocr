@@ -41,12 +41,12 @@ def page_model_info_to_page_info(page_model_info, image_dict, page, image_writer
         ocr_enable
     )
 
-    """从magic_model对象中获取后面会用到的区块信息"""
+    """\u4ecemagic_model\u5bf9\u8c61\u4e2d\u83b7\u53d6\u540e\u9762\u4f1a\u7528\u5230\u7684\u533a\u5757\u4fe1\u606f"""
     preproc_blocks = magic_model.get_preproc_blocks()
     discarded_blocks = magic_model.get_discarded_blocks()
     all_image_spans = magic_model.get_all_image_spans()
 
-    # 对image/table/chart/interline_equation的span截图
+    # Implementation detail.
     for span in all_image_spans:
         if span["type"] in [
             ContentType.IMAGE,
@@ -56,7 +56,7 @@ def page_model_info_to_page_info(page_model_info, image_dict, page, image_writer
         ]:
             span = cut_image_and_table(span, page_pil_img, page_img_md5, page_index, image_writer, scale=scale)
 
-    """构造page_info"""
+    """\u6784\u9020page_info"""
     replace_inline_table_images(preproc_blocks, image_writer, page_index)
 
     page_info = make_page_info_dict(preproc_blocks, page_index, page_w, page_h, discarded_blocks)
@@ -209,12 +209,12 @@ def _post_block_process(pdf_info_list):
 
 
 def apply_server_side_postprocess(pdf_info_list, lang=None):
-    """执行只能在服务端完成的后处理；目前仅包含依赖 OCR 模型的 post-OCR。"""
+    """Configure the model."""
     _apply_post_ocr(pdf_info_list, lang=lang)
 
 
 def finalize_middle_json_from_preproc(pdf_info_list):
-    """从 preproc_blocks 执行确定性 finalize，供服务端完整路径和客户端复用。"""
+    """Process the service request."""
     optimize_formula_number_blocks(pdf_info_list)
     para_split(pdf_info_list)
     cross_page_table_merge(pdf_info_list)

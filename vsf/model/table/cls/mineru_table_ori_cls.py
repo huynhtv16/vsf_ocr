@@ -10,11 +10,11 @@ from loguru import logger
 from tqdm import tqdm
 
 
-# 旋转候选门控回到旧规则，先尽量召回疑似旋转表，再由 OCR rec 评分决定最终角度。
+# Implementation detail.
 ROTATED_TEXT_ASPECT_RATIO_THRESHOLD = 0.8
 ROTATED_TEXT_RATIO_THRESHOLD = 0.28
 ROTATED_TEXT_MIN_BOXES = 3
-# OCR rec 角度评分参数，控制抽样成本和 0 度优先的保守阈值。
+# Implementation detail.
 ORIENTATION_SCORE_MAX_SAMPLE_BOXES = 18
 ORIENTATION_SCORE_MIN_VALID_RESULTS = 5
 ORIENTATION_ZERO_SCORE_PRIORITY_THRESHOLD = 0.9
@@ -29,12 +29,12 @@ class MineruTableOrientationClsModel:
     def predict(self, input_img):
         np_img = self._to_numpy_image(input_img)
 
-        # 单张预测作为 batch_predict 的特例，保证门控、det 和 OCR 评分逻辑完全一致。
+        # Implementation detail.
         return self.batch_predict([{"table_img": np_img}], det_batch_size=1)[0]
 
     @staticmethod
     def _to_numpy_image(input_img) -> np.ndarray:
-        """统一将 Pillow/ndarray 输入转为 numpy 图像，保持外部入参校验一致。"""
+        """Validate the current value."""
         if isinstance(input_img, Image.Image):
             return np.asarray(input_img)
         if isinstance(input_img, np.ndarray):
@@ -43,13 +43,13 @@ class MineruTableOrientationClsModel:
 
     @classmethod
     def _to_bgr_table_image(cls, table_info: Dict) -> np.ndarray:
-        """从表格信息中读取 table_img，并转换为 OCR detector 使用的 BGR 图像。"""
+        """Convert the value to the required format."""
         table_img = cls._to_numpy_image(table_info["table_img"])
         return cv2.cvtColor(table_img, cv2.COLOR_RGB2BGR)
 
     @staticmethod
     def _ceil_to_stride(value: int, stride: int) -> int:
-        """将尺寸向上对齐到 stride 倍数，已经整除时保持原尺寸。"""
+        """Implementation detail."""
         if stride <= 0:
             raise ValueError("stride must be positive")
         if value <= 0:
@@ -58,7 +58,7 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _box_width_height(box_ocr_res) -> tuple[float, float]:
-        """从 OCR 四点框中提取宽高，统一处理 list/ndarray 两种输入。"""
+        """Extract the required value."""
         points = np.asarray(box_ocr_res, dtype=np.float32)
         p1 = points[0]
         p3 = points[2]
@@ -66,20 +66,20 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _count_rotated_text_boxes(det_boxes) -> int:
-        """统计符合旧规则的高窄 OCR 框数量，作为疑似旋转表候选证据。"""
+        """Calculate the result."""
         vertical_count = 0
         for box_ocr_res in det_boxes:
             width, height = MineruTableOrientationClsModel._box_width_height(box_ocr_res)
             aspect_ratio = width / height if height > 0 else 1.0
 
-            # 旧规则允许更宽的高窄框进入候选，最终是否旋转交给 OCR rec 评分。
+            # Implementation detail.
             if aspect_ratio < ROTATED_TEXT_ASPECT_RATIO_THRESHOLD:
                 vertical_count += 1
         return vertical_count
 
     @classmethod
     def _is_rotation_candidate_by_det_boxes(cls, det_boxes) -> bool:
-        """用旧竖框规则判断是否进入 OCR 多角度评分。"""
+        """Validate the current value."""
         if det_boxes is None or len(det_boxes) == 0:
             return False
 
@@ -91,7 +91,7 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _rotate_image_by_label(img: np.ndarray, label: str) -> np.ndarray:
-        """按候选角度旋转图像，0 度返回副本以避免后续误改原图。"""
+        """Process image content."""
         if label == "270":
             return cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
         if label == "90":
@@ -100,7 +100,7 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _sample_det_boxes(det_boxes) -> list:
-        """对 OCR det 框做均匀抽样，限制 rec 打分成本并覆盖整张表。"""
+        """Implementation detail."""
         if det_boxes is None or len(det_boxes) == 0:
             return []
         if len(det_boxes) <= ORIENTATION_SCORE_MAX_SAMPLE_BOXES:
@@ -116,7 +116,7 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _crop_image_without_text_rotation(img: np.ndarray, points) -> np.ndarray | None:
-        """为方向评分按外接矩形切图，不做透视修正或文本方向自动转正。"""
+        """Process text content."""
         points = np.asarray(points, dtype=np.float32)
         if len(points) != 4:
             return None
@@ -136,7 +136,7 @@ class MineruTableOrientationClsModel:
         img_bgr: np.ndarray,
         det_boxes,
     ) -> Dict:
-        """根据已有 OCR det 框构造评分任务，复用 0 度门控结果并统一裁图逻辑。"""
+        """Prepare the output value."""
         sampled_boxes = self._sample_det_boxes(det_boxes)
 
         img_crop_list = []
@@ -154,7 +154,7 @@ class MineruTableOrientationClsModel:
         }
 
     def _build_orientation_score_task(self, label: str, img_bgr: np.ndarray) -> Dict:
-        """为单个角度构造评分任务，只做 det、抽样和切图，不执行 rec。"""
+        """Implementation detail."""
         det_ocr_res = self.ocr_engine.ocr(img_bgr, rec=False)
         det_res = det_ocr_res[0] if det_ocr_res else None
         return self._build_orientation_score_task_from_det_boxes(
@@ -164,7 +164,7 @@ class MineruTableOrientationClsModel:
         )
 
     def _build_orientation_score_tasks(self, img_bgr: np.ndarray) -> List[Dict]:
-        """为一张表构造 0/90/270 三个角度的评分任务。"""
+        """Implementation detail."""
         tasks = []
         for label in ORIENTATION_SCORE_LABELS:
             rotated_img = self._rotate_image_by_label(img_bgr, label)
@@ -173,7 +173,7 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _score_rec_results(rec_res) -> tuple[float, int, int]:
-        """根据 OCR rec 结果计算平均置信度、有效文本数和字符数。"""
+        """Calculate the result."""
         valid_scores = []
         char_count = 0
         for rec_item in rec_res or []:
@@ -192,7 +192,7 @@ class MineruTableOrientationClsModel:
         return float(np.mean(valid_scores)), len(valid_scores), char_count
 
     def _score_orientation_tasks_with_rec(self, tasks: List[Dict], rec_res) -> Dict[str, tuple[float, int, int]]:
-        """按任务记录的 crop slice 回填 rec 结果，得到每个角度的评分。"""
+        """Prepare the output value."""
         score_by_label = {}
         rec_res = rec_res or []
         for task in tasks:
@@ -210,7 +210,7 @@ class MineruTableOrientationClsModel:
         table_index: int,
         score_by_label: Dict[str, tuple[float, int, int]],
     ) -> None:
-        """输出单张表格各旋转候选的 OCR-rec 分数，便于排查误旋转。"""
+        """Process table content."""
         score_parts = []
         for label in ORIENTATION_SCORE_LABELS:
             score, valid_count, char_count = score_by_label.get(label, (0.0, 0, 0))
@@ -224,7 +224,7 @@ class MineruTableOrientationClsModel:
         )
 
     def _score_rotation_candidate_by_ocr(self, img_bgr: np.ndarray) -> tuple[float, int, int]:
-        """对单个候选角度执行 OCR det+抽样 rec，返回平均置信度、有效文本数和字符数。"""
+        """Process text content."""
         task = self._build_orientation_score_task("", img_bgr)
         if task["crop_count"] == 0:
             return 0.0, 0, 0
@@ -235,7 +235,7 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _select_rotation_label_by_scores(score_by_label: Dict[str, tuple[float, int, int]]) -> str:
-        """按 OCR 评分选择最终角度，分差较小时优先保持 0 度。"""
+        """Implementation detail."""
         if not score_by_label:
             return "0"
 
@@ -256,7 +256,7 @@ class MineruTableOrientationClsModel:
         return best_label
 
     def _select_rotation_by_ocr_score(self, img_bgr: np.ndarray) -> str:
-        """比较 0/90/270 三个角度的 OCR rec 分数，分差很小时优先保持 0 度。"""
+        """Implementation detail."""
         score_by_label = {}
         for label in ORIENTATION_SCORE_LABELS:
             rotated_img = self._rotate_image_by_label(img_bgr, label)
@@ -267,7 +267,7 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _set_progress_description(progress_bar, desc: str):
-        """切换复用进度条的阶段描述，并兼容测试替身和 tqdm 对象。"""
+        """Implementation detail."""
         if progress_bar is None:
             return
         if hasattr(progress_bar, "set_description"):
@@ -277,7 +277,7 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _extend_progress_total(progress_bar, count: int):
-        """按新增工作量动态扩展总进度，保证最终 total 覆盖 det/score/rec。"""
+        """Implementation detail."""
         if progress_bar is None or count <= 0:
             return
         current_total = progress_bar.total if progress_bar.total is not None else progress_bar.n
@@ -291,7 +291,7 @@ class MineruTableOrientationClsModel:
         imgs: List[Dict],
         resolution_group_stride: int,
     ) -> Dict[tuple[int, int], list[Dict]]:
-        """兼容旧私有入口，实际收集逻辑已不再按表格宽高比过滤。"""
+        """Remove invalid or unnecessary data."""
         return cls._collect_orientation_image_groups(
             imgs,
             resolution_group_stride,
@@ -303,7 +303,7 @@ class MineruTableOrientationClsModel:
         imgs: List[Dict],
         resolution_group_stride: int,
     ) -> Dict[tuple[int, int], list[Dict]]:
-        """按归一化分辨率收集所有有效表格图，旋转判断交给 OCR det/rec 评分。"""
+        """Validate the current value."""
         resolution_groups = defaultdict(list)
         for index, img in enumerate(imgs):
             bgr_img = cls._to_bgr_table_image(img)
@@ -325,7 +325,7 @@ class MineruTableOrientationClsModel:
 
     @classmethod
     def _collect_orientation_images(cls, imgs: List[Dict]) -> list[Dict]:
-        """扁平收集有效表格图，首轮 det 的分桶和 batch 交给 OCR detector 内部处理。"""
+        """Process table content."""
         orientation_imgs = []
         for index, img in enumerate(imgs):
             bgr_img = cls._to_bgr_table_image(img)
@@ -347,7 +347,7 @@ class MineruTableOrientationClsModel:
         group_imgs: list[Dict],
         resolution_group_stride: int,
     ) -> list[np.ndarray]:
-        """将同组表格 padding 到统一尺寸，便于 OCR detector 批处理。"""
+        """Process table content."""
         max_h = max(img["table_img_bgr"].shape[0] for img in group_imgs)
         max_w = max(img["table_img_bgr"].shape[1] for img in group_imgs)
         target_h = cls._ceil_to_stride(max_h, resolution_group_stride)
@@ -370,7 +370,7 @@ class MineruTableOrientationClsModel:
         tqdm_desc: str = "OCR-det Predict",
         progress_bar=None,
     ):
-        """统一调用 OCR detector batch_predict，并兼容不支持进度参数的测试替身。"""
+        """Implementation detail."""
         if not img_list:
             return []
 
@@ -406,7 +406,7 @@ class MineruTableOrientationClsModel:
         tqdm_desc: str = "Table orientation",
         progress_bar=None,
     ) -> list[Dict]:
-        """对表格批量做 OCR det，并筛选需要进入多角度评分的候选。"""
+        """Process table content."""
         rotated_imgs = []
         batch_images = [img_info["table_img_bgr"] for img_info in orientation_imgs]
         batch_results = self._batch_detect_text_boxes(
@@ -427,7 +427,7 @@ class MineruTableOrientationClsModel:
 
     @staticmethod
     def _add_score_task_crops(task: Dict, all_crop_imgs: list[np.ndarray]) -> None:
-        """将有效评分任务加入 OCR-rec 输入，不足阈值的任务直接记为 0 分。"""
+        """Implementation detail."""
         if task["crop_count"] < ORIENTATION_SCORE_MIN_VALID_RESULTS:
             task["score"] = (0.0, 0, 0)
             task["crop_start"] = len(all_crop_imgs)
@@ -446,7 +446,7 @@ class MineruTableOrientationClsModel:
         det_batch_size: int,
         progress_bar=None,
     ) -> tuple[list[tuple[Dict, list[Dict]]], list[np.ndarray]]:
-        """为所有旋转候选构造三角度评分任务，并汇总成一次 OCR rec 输入。"""
+        """Implementation detail."""
         img_score_tasks = []
         all_crop_imgs = []
         score_det_images = []
@@ -503,7 +503,7 @@ class MineruTableOrientationClsModel:
         tqdm_desc: str = "Table orientation",
         tqdm_progress_bar=None,
     ) -> list:
-        """对所有候选角度 crop 合并执行 OCR rec，返回可按 slice 回填的结果。"""
+        """Merge the related values."""
         if not all_crop_imgs:
             return []
 
@@ -525,7 +525,7 @@ class MineruTableOrientationClsModel:
         tqdm_desc: str = "Table orientation",
         progress_bar=None,
     ) -> Dict[int, str]:
-        """批量评分旋转候选，并返回原始表格下标到最终角度标签的映射。"""
+        """Process table content."""
         if not rotated_imgs:
             return {}
 
@@ -562,7 +562,7 @@ class MineruTableOrientationClsModel:
         tqdm_desc: str = "Table orientation",
     ) -> List[str]:
         """
-        批量预测传入表格图片的旋转角度，只返回角度，不修改输入图片。
+        Process image content.
         """
         rotate_labels = ["0"] * len(imgs)
         orientation_imgs = self._collect_orientation_images(imgs)

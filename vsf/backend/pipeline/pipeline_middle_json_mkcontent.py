@@ -68,9 +68,9 @@ def make_blocks_to_markdown(paras_of_layout,
 
 
 def merge_visual_blocks_to_markdown(para_block, img_buket_path=''):
-    # 将 image/table/chart/code 这类视觉块的子 block 按阅读顺序拼接成 markdown。
-    # 这里不再写死 caption/body/footnote 的优先级，而是先展开成 segment，
-    # 再根据 markdown_line / html_block 两类片段决定分隔方式。
+    # Sort items into the required order.
+    # Implementation detail.
+    # Implementation detail.
     rendered_segments = []
 
     for block in get_blocks_in_index_order(para_block.get('blocks', [])):
@@ -89,8 +89,8 @@ def merge_visual_blocks_to_markdown(para_block, img_buket_path=''):
 
 
 def get_blocks_in_index_order(blocks):
-    # 按 middle json 中的 index 排序子 block；
-    # 如果 index 缺失，则退化为保持原始顺序。
+    # Sort items into the required order.
+    # Sort items into the required order.
     return [
         block
         for _, block in sorted(
@@ -101,8 +101,8 @@ def get_blocks_in_index_order(blocks):
 
 
 def _inherit_parent_code_render_metadata(block, parent_block):
-    # pipeline_magic_model 会把 code_body 的 sub_type/guess_lang 提升到父 code block。
-    # markdown 渲染 code_body 时需要把这两个字段临时透传回来，但不能修改原始输入。
+    # Implementation detail.
+    # Implementation detail.
     if block.get('type') != BlockType.CODE_BODY:
         return block
     if parent_block.get('type') != BlockType.CODE:
@@ -122,9 +122,9 @@ def _inherit_parent_code_render_metadata(block, parent_block):
 
 
 def render_visual_block_segments(block, img_buket_path='', para_block=None):
-    # 将单个视觉子 block 渲染成一个或多个 segment。
-    # 文本类子块统一输出 markdown_line；
-    # table 的 html 输出为 html_block，供后续决定是否需要空行隔开。
+    # Implementation detail.
+    # Process text content.
+    # Prepare the output value.
     block_type = block['type']
 
     if block_type in [
@@ -189,10 +189,10 @@ def render_visual_block_segments(block, img_buket_path='', para_block=None):
 
 
 def get_visual_block_separator(prev_segment_kind, current_segment_kind):
-    # 根据前后 segment 类型决定分隔符：
-    # 1. 普通 markdown 行之间用 hard break（"  \\n"）
-    # 2. 进入 html block 前只换一行
-    # 3. html block 后必须留空行，否则后续文本仍会被当作 html 块内容
+    # Implementation detail.
+    # Implementation detail.
+    # Implementation detail.
+    # Process text content.
     if prev_segment_kind == 'html_block':
         # Raw HTML blocks need a blank line after them, otherwise the following
         # markdown text is still treated as part of the HTML block.
@@ -254,7 +254,7 @@ def _format_embedded_html(html, img_buket_path):
 
 
 def _normalize_visual_content(content):
-    """将视觉块识别内容统一成字符串，便于 markdown 和结构化输出复用。"""
+    """Prepare the output value."""
     if isinstance(content, list):
         return "\n".join(str(item) for item in content if str(item).strip())
     if isinstance(content, str):
@@ -263,7 +263,7 @@ def _normalize_visual_content(content):
 
 
 def _build_visual_details_block(content, summary):
-    """根据视觉块的识别文本生成 VLM 风格的折叠详情块。"""
+    """Build the required output."""
     normalized_content = _normalize_visual_content(content)
     if not normalized_content:
         return ''
@@ -277,7 +277,7 @@ def _build_visual_details_block(content, summary):
 
 
 def _apply_visual_sub_type(para_content, para_block):
-    """将视觉父块的 sub_type 透传到 content_list 输出顶层。"""
+    """Prepare the output value."""
     sub_type = para_block.get('sub_type')
     if sub_type:
         para_content['sub_type'] = sub_type
@@ -303,11 +303,11 @@ def merge_para_with_text(para_block):
 
 
 def _merge_para_text(para_block, escape_markdown=True, list_line_break='  \n'):
-    # 将普通文本段落 block 渲染成 markdown 字符串。
-    # 处理流程分为三层：
-    # 1. 先收集文本内容做语言检测
-    # 2. 再把每个 span 渲染成 markdown 片段
-    # 3. 最后按语言和上下文决定 span 之间如何补空格/换行
+    # Process text content.
+    # Process the current item.
+    # Process text content.
+    # Implementation detail.
+    # Implementation detail.
     block_lang = detect_lang(_collect_text_for_lang_detection(para_block))
     para_parts = []
 
@@ -346,8 +346,8 @@ def _is_fenced_code_block(para_block):
 
 
 def _collect_text_for_lang_detection(para_block):
-    # 只收集 TEXT span 的内容，用于语言检测。
-    # 这里会先做全角转半角，但不会修改原始输入数据。
+    # Implementation detail.
+    # Implementation detail.
     block_text_parts = []
     for line in para_block['lines']:
         for span in line['spans']:
@@ -357,14 +357,14 @@ def _collect_text_for_lang_detection(para_block):
 
 
 def _normalize_text_content(content):
-    # 对原始文本做统一归一化，当前只负责全角转半角。
-    # 单独拆出来是为了让语言检测和渲染阶段复用同一套文本预处理。
+    # Process text content.
+    # Process text content.
     return full_to_half_exclude_marks(content or '')
 
 
 def _render_span(span, escape_markdown=True):
-    # 将单个 span 渲染成 markdown 片段。
-    # 这里只负责“渲染成什么文本”，不决定后面是否补空格。
+    # Implementation detail.
+    # Process text content.
     span_type = span['type']
     content = ''
 
@@ -389,11 +389,11 @@ def _render_span(span, escape_markdown=True):
 
 
 def _join_rendered_span(para_block, block_lang, line, line_idx, span_idx, span_type, content):
-    # 根据语言和上下文决定当前 span 后面的分隔符。
-    # 这里集中处理：
-    # 1. CJK 与西文的空格差异
-    # 2. 西文行尾连字符是否需要跨行合并
-    # 3. 独立公式是否作为块内容直接插入
+    # Implementation detail.
+    # Process the current item.
+    # Implementation detail.
+    # Merge the related values.
+    # Add the value to the result.
     if span_type == ContentType.INTERLINE_EQUATION:
         return content, ''
 
@@ -420,16 +420,16 @@ def _join_rendered_span(para_block, block_lang, line, line_idx, span_idx, span_t
 
 
 def _line_prefix(line_idx, line, list_line_break='  \n'):
-    # 处理进入新 list item 前的 block 级换行。
-    # 这里保留历史语义：list 起始行前插入一个 hard break。
+    # Process the current item.
+    # Add the value to the result.
     if line_idx >= 1 and line.get(ListLineTag.IS_LIST_START_LINE, False):
         return list_line_break
     return ''
 
 
 def _next_line_starts_with_lowercase_text(para_block, line_idx):
-    # 判断下一行是否以小写英文文本开头。
-    # 这个条件用于决定西文行尾的连字符是否应与下一行合并。
+    # Validate the current value.
+    # Merge the related values.
     if line_idx + 1 >= len(para_block['lines']):
         return False
 
@@ -1020,6 +1020,6 @@ def get_title_level(block):
 
 def escape_special_markdown_char(content):
     """
-    转义正文里对markdown语法有特殊意义的字符
+    Implementation detail.
     """
     return escape_conservative_markdown_text(content)

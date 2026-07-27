@@ -15,25 +15,25 @@ def calculate_iou(
     """
     b1_x1, b1_y1, b1_x2, b1_y2 = box1[0], box1[1], box1[2], box1[3]
     b2_x1, b2_y1, b2_x2, b2_y2 = box2[0], box2[1], box2[2], box2[3]
-    # 不相交直接退出检测
+    # Implementation detail.
     if b1_x2 < b2_x1 or b1_x1 > b2_x2 or b1_y2 < b2_y1 or b1_y1 > b2_y2:
         return 0.0
-    # 计算交集
+    # Calculate the result.
     inter_x1 = max(b1_x1, b2_x1)
     inter_y1 = max(b1_y1, b2_y1)
     inter_x2 = min(b1_x2, b2_x2)
     inter_y2 = min(b1_y2, b2_y2)
     i_area = max(0, inter_x2 - inter_x1) * max(0, inter_y2 - inter_y1)
 
-    # 计算并集
+    # Calculate the result.
     b1_area = (b1_x2 - b1_x1) * (b1_y2 - b1_y1)
     b2_area = (b2_x2 - b2_x1) * (b2_y2 - b2_y1)
     u_area = b1_area + b2_area - i_area
 
-    # 避免除零错误，如果区域小到乘积为0,认为是错误识别，直接去掉
+    # Implementation detail.
     if u_area == 0:
         return 1
-        # 检查完全包含
+        # Validate the current value.
     iou = i_area / u_area
     return iou
 
@@ -49,29 +49,29 @@ def is_box_contained(
     """
     b1_x1, b1_y1, b1_x2, b1_y2 = box1[0], box1[1], box1[2], box1[3]
     b2_x1, b2_y1, b2_x2, b2_y2 = box2[0], box2[1], box2[2], box2[3]
-    # 不相交直接退出检测
+    # Implementation detail.
     if b1_x2 < b2_x1 or b1_x1 > b2_x2 or b1_y2 < b2_y1 or b1_y1 > b2_y2:
         return None
-    # 计算box2的总面积
+    # Calculate the result.
     b2_area = (b2_x2 - b2_x1) * (b2_y2 - b2_y1)
     b1_area = (b1_x2 - b1_x1) * (b1_y2 - b1_y1)
 
-    # 计算box1和box2的交集
+    # Calculate the result.
     intersect_x1 = max(b1_x1, b2_x1)
     intersect_y1 = max(b1_y1, b2_y1)
     intersect_x2 = min(b1_x2, b2_x2)
     intersect_y2 = min(b1_y2, b2_y2)
 
-    # 计算交集的面积
+    # Calculate the result.
     intersect_area = max(0, intersect_x2 - intersect_x1) * max(
         0, intersect_y2 - intersect_y1
     )
 
-    # 计算外面的面积
+    # Calculate the result.
     b1_outside_area = b1_area - intersect_area
     b2_outside_area = b2_area - intersect_area
 
-    # 计算外面的面积占box2总面积的比例
+    # Calculate the result.
     ratio_b1 = b1_outside_area / b1_area if b1_area > 0 else 0
     ratio_b2 = b2_outside_area / b2_area if b2_area > 0 else 0
 
@@ -79,7 +79,7 @@ def is_box_contained(
         return 1
     if ratio_b2 < threshold:
         return 2
-    # 判断比例是否大于阈值
+    # Validate the current value.
     return None
 
 
@@ -97,7 +97,7 @@ def is_single_axis_contained(
     b1_x1, b1_y1, b1_x2, b1_y2 = box1[0], box1[1], box1[2], box1[3]
     b2_x1, b2_y1, b2_x2, b2_y2 = box2[0], box2[1], box2[2], box2[3]
 
-    # 计算轴重叠大小
+    # Calculate the result.
     if axis == "x":
         b1_area = b1_x2 - b1_x1
         b2_area = b2_x2 - b2_x1
@@ -106,7 +106,7 @@ def is_single_axis_contained(
         b1_area = b1_y2 - b1_y1
         b2_area = b2_y2 - b2_y1
         i_area = min(b1_y2, b2_y2) - max(b1_y1, b2_y1)
-        # 计算外面的面积
+        # Calculate the result.
     b1_outside_area = b1_area - i_area
     b2_outside_area = b2_area - i_area
 
@@ -138,7 +138,7 @@ def sorted_ocr_boxes(
     indices = list(indices)
     _boxes = [dt_boxes[i] for i in indices]
     threahold = 20
-    # 避免输出和输入格式不对应，与函数功能不符合
+    # Prepare the output value.
     if isinstance(dt_boxes, np.ndarray):
         _boxes = np.array(_boxes)
     for i in range(num_boxes - 1):
@@ -165,7 +165,7 @@ def box_4_1_poly_to_box_4_2(poly_box: Union[list, np.ndarray]) -> List[List[floa
 
 def box_4_2_poly_to_box_4_1(poly_box: Union[list, np.ndarray]) -> List[Any]:
     """
-    将poly_box转换为box_4_1
+    Convert the value to the required format.
     :param poly_box:
     :return:
     """
@@ -173,7 +173,7 @@ def box_4_2_poly_to_box_4_1(poly_box: Union[list, np.ndarray]) -> List[Any]:
 
 
 def _ocr_boxes_to_array(dt_rec_boxes: List[List[Union[Any, str]]]) -> np.ndarray:
-    """将 OCR 四点框批量转换为 [xmin, ymin, xmax, ymax]，保持旧逻辑使用第 0/2 点。"""
+    """Convert the value to the required format."""
     if len(dt_rec_boxes) == 0:
         return np.empty((0, 4), dtype=np.float64)
     return np.asarray(
@@ -191,7 +191,7 @@ def _ocr_boxes_to_array(dt_rec_boxes: List[List[Union[Any, str]]]) -> np.ndarray
 
 
 def _pred_boxes_to_array(pred_bboxes: np.ndarray) -> np.ndarray:
-    """将预测 cell 四点框批量转换为 [xmin, ymin, xmax, ymax]，保持旧逻辑使用第 0/2 点。"""
+    """Convert the value to the required format."""
     pred_bboxes = np.asarray(pred_bboxes)
     if pred_bboxes.size == 0:
         return np.empty((0, 4), dtype=np.float64)
@@ -217,7 +217,7 @@ _TABLE_CELL_TOKEN_RE = re.compile(
 
 
 def _char_visual_weight(char: str) -> float:
-    """按字符视觉宽度估算拆分位置，避免简单按字符数切分造成明显偏移。"""
+    """Implementation detail."""
     if "\u4e00" <= char <= "\u9fff":
         return 1.8
     if char.isdigit() or char.isalpha():
@@ -230,7 +230,7 @@ def _char_visual_weight(char: str) -> float:
 
 
 def _intersect_box(box1: np.ndarray, box2: np.ndarray) -> List[float]:
-    """生成 OCR 子框与目标 cell 的交集框，作为拆分后伪 OCR 的 bbox。"""
+    """Build the required output."""
     x0 = max(float(box1[0]), float(box2[0]))
     y0 = max(float(box1[1]), float(box2[1]))
     x1 = min(float(box1[2]), float(box2[2]))
@@ -243,7 +243,7 @@ def _intersect_box(box1: np.ndarray, box2: np.ndarray) -> List[float]:
 
 
 def _make_split_ocr_result(gt_box: List[Union[Any, str]], bbox: List[float], text: str):
-    """复制原 OCR 结果，只替换 bbox 和文本，保持 score 等后续字段不变。"""
+    """Process text content."""
     split_result = list(gt_box)
     split_result[0] = box_4_1_poly_to_box_4_2(bbox)
     split_result[1] = text
@@ -251,7 +251,7 @@ def _make_split_ocr_result(gt_box: List[Union[Any, str]], bbox: List[float], tex
 
 
 def _extract_cell_tokens(text: str, cell_count: int) -> List[str]:
-    """优先用金额、日期、百分比和短 token 拆分跨格文本。"""
+    """Process text content."""
     stripped_text = text.strip()
     if not stripped_text:
         return []
@@ -273,7 +273,7 @@ def _split_text_by_cell_boundaries(
     ocr_box: np.ndarray,
     candidate_boxes: List[np.ndarray],
 ) -> List[str]:
-    """按 cell 边界在 OCR 框中的相对位置，结合字符宽度估算文本切点。"""
+    """Process text content."""
     stripped_text = text.strip()
     if len(stripped_text) < len(candidate_boxes):
         return []
@@ -319,15 +319,15 @@ def _split_text_by_cell_boundaries(
     for segment, left_x, right_x in zip(segments, split_positions, split_positions[1:]):
         segment_weight = sum(_char_visual_weight(char) for char in segment)
         expected_width = ocr_width * segment_weight / total_weight
-        # 检测框轻微越过单元格边界时也会被强制分到至少一个字符；这里要求切片的
-        # 实际投影宽度能支撑该片段的加权字符宽度，避免把 bbox padding 误当成跨格文本。
+        # Implementation detail.
+        # Process text content.
         if right_x - left_x < expected_width * 0.6:
             return []
     return segments
 
 
 def _min_projection_segment_width(text: str, ocr_box: np.ndarray) -> float:
-    """估算一个可拆文本片段的最小像素宽度，用于过滤 OCR 检测框的轻微越界。"""
+    """Remove invalid or unnecessary data."""
     stripped_text = text.strip()
     ocr_width = float(ocr_box[2] - ocr_box[0])
     if not stripped_text or ocr_width <= 0:
@@ -338,13 +338,13 @@ def _min_projection_segment_width(text: str, ocr_box: np.ndarray) -> float:
     if total_weight <= 0:
         return float("inf")
 
-    # 允许 OCR 框/字符宽度有一定误差，但相邻 cell 的投影宽度至少要接近一个最窄字符；
-    # 同时要求达到 OCR 框宽度的一小段比例，过滤长 OCR 框轻微擦到行标题 cell 的情况。
+    # Implementation detail.
+    # Remove invalid or unnecessary data.
     return max(ocr_width * min(weights) / total_weight * 0.7, ocr_width * 0.04)
 
 
 def _same_row_adjacent_cells(candidate_boxes: List[np.ndarray]) -> bool:
-    """确认候选 cell 位于同一行且横向相邻，避免拆分跨行或非相邻文本。"""
+    """Process text content."""
     if len(candidate_boxes) < 2:
         return False
 
@@ -376,7 +376,7 @@ def _split_cross_cell_ocr_result(
     candidate_indices: np.ndarray,
     allow_weighted_split: bool = True,
 ) -> List[Tuple[int, List[Union[Any, str]]]]:
-    """把横跨同一行相邻 cell 的 OCR 结果拆成多个伪 OCR 结果。"""
+    """Prepare the output value."""
     if len(candidate_indices) < 2:
         return []
 
@@ -406,7 +406,7 @@ def _select_clear_best_cell(
     ocr_box: np.ndarray,
     pred_boxes: np.ndarray,
 ) -> Union[int, None]:
-    """当某个 cell 明显优于其他候选时直接归属，避免不必要拆分。"""
+    """Implementation detail."""
     if len(candidate_indices) == 1:
         return int(candidate_indices[0])
 
@@ -476,7 +476,7 @@ def match_ocr_cell(dt_rec_boxes: List[List[Union[Any, str]]], pred_bboxes: np.nd
     ocr_area = ocr_width * ocr_height
     pred_area = pred_width * pred_height
 
-    # 等价实现 is_box_contained(ocr_box, pred_box, 0.6) == 1。
+    # Implementation detail.
     ocr_outside_ratio = np.divide(
         ocr_area - inter_area,
         ocr_area,
@@ -485,7 +485,7 @@ def match_ocr_cell(dt_rec_boxes: List[List[Union[Any, str]]], pred_bboxes: np.nd
     )
     contained = intersects & (ocr_outside_ratio < 0.6)
 
-    # 等价实现 calculate_iou()，包括 union 为 0 时返回 1 的历史行为。
+    # Prepare the output value.
     union_area = ocr_area + pred_area - inter_area
     iou = np.divide(
         inter_area,
@@ -501,8 +501,8 @@ def match_ocr_cell(dt_rec_boxes: List[List[Union[Any, str]]], pred_bboxes: np.nd
         out=np.zeros_like(inter_area, dtype=np.float64),
         where=ocr_area > 0,
     )
-    # 低覆盖率横向长 OCR 需要按投影找同一行候选。这里复用上面已经算出的交集矩阵，
-    # 避免每个 unmatched OCR 再用 Python 循环扫描所有 cell。
+    # Implementation detail.
+    # Iterate over the available items.
     projection_y_ratio = np.divide(
         inter_height,
         ocr_height,
@@ -558,7 +558,7 @@ def match_ocr_cell(dt_rec_boxes: List[List[Union[Any, str]]], pred_bboxes: np.nd
                 matched.setdefault(cell_idx, []).append(split_gt_box)
             continue
 
-        # 无法确定归属时不要把同一 OCR 重复塞进多个 cell，交给空 cell 裁剪 OCR 兜底。
+        # Implementation detail.
         not_match_orc_boxes.append(gt_box)
 
     return matched, not_match_orc_boxes
@@ -602,7 +602,7 @@ def gather_ocr_list_by_row(ocr_list: List[Any], threhold: float = 0.2) -> List[A
 
 
 def _normalize_logic_points(logi_points: Union[np.ndarray, List]) -> np.ndarray:
-    """把逻辑坐标统一成 N x 4 数组，方便后续按结构网格渲染空 cell。"""
+    """Implementation detail."""
     points = np.asarray(logi_points, dtype=np.int32)
     if points.size == 0:
         return np.empty((0, 4), dtype=np.int32)
@@ -610,7 +610,7 @@ def _normalize_logic_points(logi_points: Union[np.ndarray, List]) -> np.ndarray:
 
 
 def _normalize_cell_text_map(cell_box_map: Dict[int, List[str]]) -> Dict[int, List[str]]:
-    """把 OCR 文本映射规整成 cell_index -> 文本列表，缺失的 cell 后续按空文本处理。"""
+    """Process text content."""
     normalized = {}
     for cell_idx, values in (cell_box_map or {}).items():
         if values is None:
@@ -630,7 +630,7 @@ def _normalize_cell_text_map(cell_box_map: Dict[int, List[str]]) -> Dict[int, Li
 def _normalize_cell_bboxes(
     cell_bboxes: Optional[Union[np.ndarray, List]]
 ) -> Optional[np.ndarray]:
-    """把单元格物理框统一成 N x 4 x 2，用于判断边缘空列是否是结构噪声。"""
+    """Validate the current value."""
     if cell_bboxes is None:
         return None
     bboxes = np.asarray(cell_bboxes, dtype=np.float64)
@@ -655,7 +655,7 @@ def _normalize_cell_bboxes(
 
 
 def _build_table_grid(logic_points: np.ndarray):
-    """按完整结构坐标填充网格，空文本 cell 也保留结构占位。"""
+    """Add the value to the result."""
     max_row = int(logic_points[:, 1].max() + 1)
     max_col = int(logic_points[:, 3].max() + 1)
     grid = [[None] * max_col for _ in range(max_row)]
@@ -668,17 +668,17 @@ def _build_table_grid(logic_points: np.ndarray):
 
 
 def _cell_text(cell_text_map: Dict[int, List[str]], cell_idx: int) -> str:
-    """获取 cell 文本；没有 OCR 命中的结构 cell 返回空字符串。"""
+    """Extract the required value."""
     return "".join(cell_text_map.get(cell_idx, []))
 
 
 def _cell_has_visible_text(cell_text_map: Dict[int, List[str]], cell_idx: int) -> bool:
-    """判断 cell 是否有可见文本，避免仅靠空白字符阻止边缘噪声裁剪。"""
+    """Validate the current value."""
     return bool(_cell_text(cell_text_map, cell_idx).strip())
 
 
 def _cell_bbox_rect(cell_bboxes: Optional[np.ndarray], cell_idx: int):
-    """读取 cell 外接矩形，缺少物理框时返回 None 并退化为结构判断。"""
+    """Validate the current value."""
     if cell_bboxes is None or cell_idx >= len(cell_bboxes):
         return None
     bbox = cell_bboxes[cell_idx]
@@ -696,7 +696,7 @@ def _estimate_axis_sizes(
     axis: str,
     axis_count: int,
 ) -> List[Optional[float]]:
-    """估算每行/列的几何尺寸，用来区分真实完整空列和异常外围噪声列。"""
+    """Implementation detail."""
     if cell_bboxes is None:
         return [None] * axis_count
     axis_sizes = [[] for _ in range(axis_count)]
@@ -728,7 +728,7 @@ def _estimate_axis_sizes(
 def _axis_reference_size(
     axis_sizes: List[Optional[float]], axis_idx: int
 ) -> Optional[float]:
-    """用其它行/列的中位尺寸作为参照，避免单个边缘噪声框主导判断。"""
+    """Validate the current value."""
     sizes = [
         size
         for i, size in enumerate(axis_sizes)
@@ -742,7 +742,7 @@ def _axis_reference_size(
 def _axis_size_is_abnormal(
     axis_sizes: List[Optional[float]], axis_idx: int
 ) -> bool:
-    """判断空边缘行/列尺寸是否明显异常；正常尺寸的完整空列需要保留。"""
+    """Validate the current value."""
     axis_size = axis_sizes[axis_idx]
     reference_size = _axis_reference_size(axis_sizes, axis_idx)
     if axis_size is None or reference_size is None or reference_size <= 0:
@@ -761,7 +761,7 @@ def _edge_axis_has_text(
     col_start: int,
     col_end: int,
 ) -> bool:
-    """检查当前边缘行/列是否有文本；有文本的边缘不能被裁剪。"""
+    """Validate the current value."""
     if axis == "col":
         positions = (grid[row][axis_idx] for row in range(row_start, row_end + 1))
     else:
@@ -781,7 +781,7 @@ def _edge_axis_coverage(
     col_start: int,
     col_end: int,
 ) -> Tuple[int, int]:
-    """统计边缘行/列在当前保留范围内的结构覆盖度，覆盖不完整通常是外围噪声。"""
+    """Calculate the result."""
     if axis == "col":
         covered = sum(
             grid[row][axis_idx] is not None
@@ -808,7 +808,7 @@ def _is_noise_edge_axis(
     col_start: int,
     col_end: int,
 ) -> bool:
-    """只裁剪无文本且结构不完整或尺寸异常的边缘，保留真实完整空行/空列。"""
+    """Process text content."""
     if _edge_axis_has_text(
         grid, cell_text_map, axis, axis_idx, row_start, row_end, col_start, col_end
     ):
@@ -829,7 +829,7 @@ def _trim_noise_edges(
     max_row: int,
     max_col: int,
 ) -> Tuple[int, int, int, int]:
-    """裁剪外围噪声行列；完整覆盖且尺寸正常的空边缘会被当作真实表格结构保留。"""
+    """Process table content."""
     row_start, row_end = 0, max_row - 1
     col_start, col_end = 0, max_col - 1
 

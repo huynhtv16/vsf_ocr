@@ -63,7 +63,7 @@ from mineru.utils.pdfium_guard import (
     open_pdfium_document,
 )
 
-os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 让mps可以fallback
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # Implementation detail.
 
 LAYOUT_BASE_BATCH_SIZE = 1
 MFR_BASE_BATCH_SIZE = 16
@@ -108,37 +108,37 @@ MEDIUM_EFFORT_LAYOUT_LABEL_TO_VLM_TYPE = {
 
 
 def _validate_parse_effort(effort: str = "medium") -> str:
-    """校验 Hybrid effort，避免静默走错解析强度分支。"""
+    """Validate the current value."""
     if effort not in HYBRID_ANALYZE_EFFORTS:
         raise ValueError('effort must be "medium" or "high"')
     return effort
 
 
 def _resolve_effective_image_analysis(effort: str, image_analysis: bool) -> bool:
-    """根据 Hybrid 解析强度计算实际图片分析开关；medium 强制关闭以保持快速路径。"""
+    """Parse the input data."""
     if effort == "medium":
         return False
     return image_analysis
 
 
 def _vlm_type_for_medium_layout_label(label: str | None) -> str | None:
-    """将 pipeline layout 标签映射为 mineru-vl-utils 支持的 VLM 抽取类型。"""
+    """Implementation detail."""
     return MEDIUM_EFFORT_LAYOUT_LABEL_TO_VLM_TYPE.get(label)
 
 
 def _apply_medium_visual_sub_type(block, label: str | None):
-    """为视觉块补充下游需要透传的子类型。"""
+    """Implementation detail."""
     if label == "seal":
         block["sub_type"] = "seal"
 
 
 def _is_hybrid_ocr_det_candidate(block, candidate_types=None):
-    """判断 Hybrid 文本类块是否需要 OCR det 生成行级视觉信息。"""
+    """Validate the current value."""
     candidate_types = candidate_types or HYBRID_OCR_DET_TEXT_TYPES
     return (block.get("type") or block.get("label")) in candidate_types
 
 def ocr_classify(pdf_bytes, parse_method: str = 'auto',) -> bool:
-    # 确定OCR设置
+    # Implementation detail.
     _ocr_enable = False
     if parse_method == 'auto':
         if classify(pdf_bytes) == 'ocr':
@@ -169,7 +169,7 @@ def ocr_det(
 
     ocr_res_list = []
     if not hybrid_pipeline_model.enable_ocr_det_batch:
-        # 非批处理模式 - 逐页处理
+        # Process the current item.
         for np_image, page_mfd_res, page_results in tqdm(
             zip(np_images, mfd_res, model_list),
             total=len(np_images),
@@ -219,8 +219,8 @@ def ocr_det(
 
                     ocr_res_list[-1].extend(ocr_result_list)
     else:
-        # 批处理模式 - 按分辨率分组
-        # 收集所有需要OCR检测的裁剪图像
+        # Process the current item.
+        # Process image content.
         all_cropped_images_info = []
 
         for np_image, page_mfd_res, page_results in zip(
@@ -271,11 +271,11 @@ def ocr_det(
             bgr_image, _det_image, useful_list, adjusted_mfdetrec_res, ocr_page_res_list = crop_info
 
             if dt_boxes is not None and len(dt_boxes) > 0:
-                # 处理检测框
+                # Process the current item.
                 dt_boxes_sorted = sorted_boxes(dt_boxes)
                 dt_boxes_merged = merge_det_boxes(dt_boxes_sorted) if dt_boxes_sorted else []
 
-                # 根据公式位置更新检测框
+                # Process formula content.
                 dt_boxes_final = (update_det_boxes(dt_boxes_merged, adjusted_mfdetrec_res)
                                   if dt_boxes_merged and adjusted_mfdetrec_res
                                   else dt_boxes_merged)
@@ -294,7 +294,7 @@ def ocr_det(
 
 
 def normalize_bbox_to_unit(item, page_width, page_height):
-    """将像素级bbox归一化为[0, 1]区间"""
+    """Implementation detail."""
     bbox = item.get('bbox')
     if bbox is None or len(bbox) != 4:
         return False
@@ -319,7 +319,7 @@ def normalize_bbox_to_unit(item, page_width, page_height):
 
 
 def _layout_det_bbox_to_unit(layout_det, page_width, page_height):
-    """复制并归一化 layout bbox，避免构造 VLM 输入时改动 pipeline 原始结果。"""
+    """Prepare the output value."""
     bbox = layout_det.get("bbox")
     if bbox is None or len(bbox) != 4:
         return None
@@ -330,7 +330,7 @@ def _layout_det_bbox_to_unit(layout_det, page_width, page_height):
 
 
 def _layout_det_bbox_to_pixel(layout_det, page_width, page_height):
-    """将layout bbox转换为页面像素坐标，兼容归一化和像素两种输入。"""
+    """Convert the value to the required format."""
     bbox = layout_det.get("bbox")
     if bbox is None or len(bbox) != 4:
         return None
@@ -355,7 +355,7 @@ def _layout_det_bbox_to_pixel(layout_det, page_width, page_height):
 
 
 def _normalize_medium_vlm_angle(angle):
-    """将pipeline方向标签转换为mineru-vl-utils接受的整数角度。"""
+    """Convert the value to the required format."""
     try:
         normalized_angle = int(angle)
     except (TypeError, ValueError):
@@ -366,7 +366,7 @@ def _normalize_medium_vlm_angle(angle):
 
 
 def _build_medium_vlm_layout_blocks(layout_dets, page_width, page_height):
-    """用 pipeline layout 构造 VLM 外部 layout 输入，跳过 VLM 自身 layout 解析。"""
+    """Parse the input data."""
     blocks = []
     for layout_det in layout_dets or []:
         label = layout_det.get("label")
@@ -397,7 +397,7 @@ def _apply_medium_table_orientation_labels(
     hybrid_pipeline_model,
     batch_ratio: int = 1,
 ):
-    """复用pipeline表格方向分类，为Hybrid medium effort 的 table layout 写入VLM旋转角度。"""
+    """Process table content."""
     table_inputs = []
     table_layout_refs = []
     for pil_img, layout_res in zip(images_pil_list, images_layout_res):
@@ -450,7 +450,7 @@ def _formula_item_to_pixel_bbox(item):
 
 
 def _layout_item_to_float_bbox(item):
-    """校验并读取layout检测框，异常或无效bbox返回None。"""
+    """Validate the current value."""
     bbox = item.get("bbox")
     if bbox is None or len(bbox) != 4:
         return None
@@ -467,18 +467,18 @@ def _layout_item_to_float_bbox(item):
 
 
 def _bbox_center_point(bbox):
-    """计算bbox中心点，用于判断行内公式是否落入视觉容器。"""
+    """Validate the current value."""
     return (float(bbox[0] + bbox[2]) / 2.0, float(bbox[1] + bbox[3]) / 2.0)
 
 
 def _is_point_inside_bbox(point, bbox):
-    """判断点是否位于bbox内部，边界点按内部处理。"""
+    """Validate the current value."""
     x, y = point
     return bbox[0] <= x <= bbox[2] and bbox[1] <= y <= bbox[3]
 
 
 def _is_inline_formula_inside_container(inline_formula_bbox, container_bboxes):
-    """判断行内公式中心点是否落入任一视觉/行间公式容器。"""
+    """Validate the current value."""
     inline_formula_center = _bbox_center_point(inline_formula_bbox)
     return any(
         _is_point_inside_bbox(inline_formula_center, container_bbox)
@@ -487,7 +487,7 @@ def _is_inline_formula_inside_container(inline_formula_bbox, container_bboxes):
 
 
 def _filter_inline_formulas_inside_containers(images_layout_res):
-    """原地移除位于table/image/chart/display_formula内的行内公式。"""
+    """Remove invalid or unnecessary data."""
     for layout_res in images_layout_res:
         container_bboxes = []
         for res in layout_res:
@@ -539,7 +539,7 @@ def _build_inline_formula_inputs(images_layout_res):
 
 
 def _build_formula_mask_inputs(images_layout_res):
-    """从 layout 检测结果提取公式框，供 OCR det 规避行内/行间公式区域。"""
+    """Extract the required value."""
     page_formula_masks = []
     for layout_res in images_layout_res:
         page_masks = []
@@ -554,7 +554,7 @@ def _build_formula_mask_inputs(images_layout_res):
 
 
 def _build_inline_formula_det_inputs(images_layout_res):
-    """从 layout 检测结果提取行内公式框，供 VLM-OCR 作为 OCR det hint 使用。"""
+    """Extract the required value."""
     inline_formula_inputs = []
     for layout_res in images_layout_res:
         page_inline_formula_inputs = []
@@ -576,7 +576,7 @@ def _build_inline_formula_det_inputs(images_layout_res):
 
 
 def _normalize_page_size(page_image):
-    """从PIL或numpy图像中读取页面宽高，供归一化bbox还原为像素bbox。"""
+    """Extract the required value."""
     if hasattr(page_image, "size"):
         return page_image.size
 
@@ -585,7 +585,7 @@ def _normalize_page_size(page_image):
 
 
 def _bbox_to_pixel_bbox(bbox, page_size):
-    """将归一化或像素bbox统一成像素bbox，异常bbox返回None。"""
+    """Prepare the output value."""
     if bbox is None or len(bbox) != 4:
         return None
 
@@ -606,7 +606,7 @@ def _bbox_to_pixel_bbox(bbox, page_size):
 
 
 def _collect_layout_doc_title_bboxes(layout_res, page_size):
-    """只收集layout小模型输出的doc_title框，忽略paragraph_title等其他类型。"""
+    """Configure the model."""
     doc_title_bboxes = []
     for layout_item in layout_res or []:
         if layout_item.get("label") != MineruBlockType.DOC_TITLE:
@@ -618,7 +618,7 @@ def _collect_layout_doc_title_bboxes(layout_res, page_size):
 
 
 def _has_doc_title_overlap(title_bbox, doc_title_bboxes, overlap_threshold):
-    """判断VLM标题框是否与任一layout doc_title框达到最小框重叠阈值。"""
+    """Validate the current value."""
     return any(
         calculate_overlap_area_2_minbox_area_ratio(title_bbox, doc_title_bbox)
         >= overlap_threshold
@@ -632,7 +632,7 @@ def _apply_layout_title_split(
     page_sizes,
     overlap_threshold=LAYOUT_TITLE_SPLIT_OVERLAP_THRESHOLD,
 ):
-    """用layout doc_title框将VLM title拆分为doc_title和paragraph_title。"""
+    """Implementation detail."""
     for page_model_list, layout_res, page_size in zip(model_list, images_layout_res, page_sizes):
         doc_title_bboxes = _collect_layout_doc_title_bboxes(layout_res, page_size)
         for block in page_model_list:
@@ -652,7 +652,7 @@ def _predict_layout_for_title_split(
     images,
     batch_ratio,
 ):
-    """执行layout小模型检测，专门为Hybrid标题拆分提供页面layout结果。"""
+    """Configure the model."""
     return run_layout_inference(
         hybrid_pipeline_model.layout_model.batch_predict,
         images,
@@ -666,9 +666,9 @@ def _predict_layout_for_window(
     batch_ratio,
     ocr_enable,
 ):
-    """为单个处理窗口执行一次 pipeline layout，并返回可复用的小模型实例。"""
+    """Configure the model."""
     hybrid_model_singleton = HybridModelSingleton()
-    # OCR 模式下文本由 VLM 抽取，pipeline 侧只需要 layout，不再启用公式识别模型。
+    # Process formula content.
     hybrid_pipeline_model = hybrid_model_singleton.get_model(
         formula_enable=inline_formula_enable and not ocr_enable,
     )
@@ -690,18 +690,18 @@ def _process_ocr_and_formulas(
     images_layout_res,
     hybrid_pipeline_model,
 ):
-    """处理OCR和公式识别"""
+    """Process formula content."""
 
-    # 遍历model_list,对文本块截图交由OCR识别
-    # 此函数只在非 OCR 模式调用，因此 OCR 只开 det，不做 rec。
-    # 根据inline_formula_enable决定是使用mfd和ocr结合的方式,还是纯ocr方式
+    # Iterate over the available items.
+    # Implementation detail.
+    # Implementation detail.
 
-    # 将PIL图片转换为numpy数组
+    # Convert the value to the required format.
     np_images = [np.asarray(pil_image).copy() for pil_image in images_pil_list]
 
     if inline_formula_enable:
         images_mfd_res = _build_inline_formula_inputs(images_layout_res)
-        # 公式识别
+        # Process formula content.
         inline_formula_list = run_mfr_inference(
             hybrid_pipeline_model.mfr_model.batch_predict,
             images_mfd_res,
@@ -722,7 +722,7 @@ def _process_ocr_and_formulas(
             page_mfd_res.append({"bbox": bbox})
         mfd_res.append(page_mfd_res)
 
-    # vlm没有执行ocr，需要ocr_det
+    # Implementation detail.
     ocr_res_list = ocr_det(
         hybrid_pipeline_model,
         np_images,
@@ -748,7 +748,7 @@ def _apply_vlm_ocr_det_sidecars_for_window(
     images_layout_res,
     hybrid_pipeline_model,
 ):
-    """为VLM-OCR路径追加OCR det空文本行和行内公式框sidecar。"""
+    """Process formula content."""
     formula_mask_inputs = _build_formula_mask_inputs(images_layout_res)
     inline_formula_list = _build_inline_formula_det_inputs(images_layout_res)
     np_images = [np.asarray(pil_image).copy() for pil_image in images_pil_list]
@@ -774,16 +774,16 @@ def _normalize_bbox(
     ocr_res_list,
     images_pil_list,
 ):
-    """归一化坐标并生成最终结果"""
+    """Build the required output."""
     for page_inline_formula_list, page_ocr_res_list, page_pil_image in zip(
             inline_formula_list, ocr_res_list, images_pil_list
     ):
         if page_inline_formula_list or page_ocr_res_list:
             page_width, page_height = page_pil_image.size
-            # 处理公式列表
+            # Process formula content.
             for formula in page_inline_formula_list:
                 normalize_bbox_to_unit(formula, page_width, page_height)
-            # 处理OCR结果列表
+            # Prepare the output value.
             for ocr_res in page_ocr_res_list:
                 normalize_bbox_to_unit(ocr_res, page_width, page_height)
 
@@ -798,7 +798,7 @@ def _build_inline_formula_model_item(formula):
 
 
 def _build_ocr_text_model_item(ocr_res, keep_text=True):
-    """构造 OCR det sidecar；VLM-OCR 路径可只保留空文本行提示。"""
+    """Process text content."""
     return {
         "type": "ocr_text",
         "bbox": list(ocr_res["bbox"]),
@@ -834,19 +834,19 @@ def _merge_page_sidecar_items(
 
 def get_batch_ratio(device):
     """
-    根据显存大小或环境变量获取 batch ratio
+    Extract the required value.
     """
-    # 1. 优先尝试从环境变量获取
+    # Extract the required value.
     """
-    c/s架构分离部署时，建议通过设置环境变量 MINERU_HYBRID_BATCH_RATIO 来指定 batch ratio
-    建议的设置值如如下，以下配置值已考虑一定的冗余，单卡多终端部署时为了保证稳定性，可以额外保留一个client端的显存作为整体冗余
-    单个client端显存大小 | MINERU_HYBRID_BATCH_RATIO
+    c/s\u67b6\u6784\u5206\u79bb\u90e8\u7f72\u65f6\uff0c\u5efa\u8bae\u901a\u8fc7\u8bbe\u7f6e\u73af\u5883\u53d8\u91cf MINERU_HYBRID_BATCH_RATIO \u6765\u6307\u5b9a batch ratio
+    \u5efa\u8bae\u7684\u8bbe\u7f6e\u503c\u5982\u5982\u4e0b\uff0c\u4ee5\u4e0b\u914d\u7f6e\u503c\u5df2\u8003\u8651\u4e00\u5b9a\u7684\u5197\u4f59\uff0c\u5355\u5361\u591a\u7ec8\u7aef\u90e8\u7f72\u65f6\u4e3a\u4e86\u4fdd\u8bc1\u7a33\u5b9a\u6027\uff0c\u53ef\u4ee5\u989d\u5916\u4fdd\u7559\u4e00\u4e2aclient\u7aef\u7684\u663e\u5b58\u4f5c\u4e3a\u6574\u4f53\u5197\u4f59
+    \u5355\u4e2aclient\u7aef\u663e\u5b58\u5927\u5c0f | MINERU_HYBRID_BATCH_RATIO
     ------------------|------------------------
     <= 6   GB         | 8
     <= 4   GB         | 4
     <= 3   GB         | 2
     <= 2   GB         | 1
-    例如：
+    \u4f8b\u5982\uff1a
     export MINERU_HYBRID_BATCH_RATIO=4
     """
     env_val = os.getenv("MINERU_HYBRID_BATCH_RATIO")
@@ -858,9 +858,9 @@ def get_batch_ratio(device):
         except ValueError as e:
             logger.warning(f"Invalid MINERU_HYBRID_BATCH_RATIO value: {env_val}, switching to auto ratio. Error: {e}")
 
-    # 2. 根据显存自动推断
+    # Implementation detail.
     """
-    根据总显存大小粗略估计 batch ratio，需要排除掉vllm等推理框架占用的显存开销
+    \u6839\u636e\u603b\u663e\u5b58\u5927\u5c0f\u7c97\u7565\u4f30\u8ba1 batch ratio\uff0c\u9700\u8981\u6392\u9664\u6389vllm\u7b49\u63a8\u7406\u6846\u67b6\u5360\u7528\u7684\u663e\u5b58\u5f00\u9500
     """
     gpu_memory = get_vram(device)
     if gpu_memory >= 32:

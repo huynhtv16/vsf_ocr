@@ -26,13 +26,13 @@ class PaddleTableClsModel:
         self.labels = [AtomicModel.WiredTable, AtomicModel.WirelessTable]
 
     def preprocess(self, input_img):
-        # 放大图片，使其最短边长为256
+        # Process image content.
         h, w = input_img.shape[:2]
         scale = 256 / min(h, w)
         h_resize = round(h * scale)
         w_resize = round(w * scale)
         img = cv2.resize(input_img, (w_resize, h_resize), interpolation=1)
-        # 调整为224*224的正方形
+        # Implementation detail.
         h, w = img.shape[:2]
         cw, ch = 224, 224
         x1 = max(0, (w - cw) // 2)
@@ -44,7 +44,7 @@ class PaddleTableClsModel:
                 f"Input image ({w}, {h}) smaller than the target size ({cw}, {ch})."
             )
         img = img[y1:y2, x1:x2, ...]
-        # 正则化
+        # Implementation detail.
         split_im = list(cv2.split(img))
         std = [0.229, 0.224, 0.225]
         scale = 0.00392156862745098
@@ -56,7 +56,7 @@ class PaddleTableClsModel:
             split_im[c] *= alpha[c]
             split_im[c] += beta[c]
         img = cv2.merge(split_im)
-        # 5. 转换为 CHW 格式
+        # Convert the value to the required format.
         img = img.transpose((2, 0, 1))
         imgs = [img]
         x = np.stack(imgs, axis=0).astype(dtype=np.float32, copy=False)
@@ -77,14 +77,14 @@ class PaddleTableClsModel:
 
     def list_2_batch(self, img_list, batch_size=16):
         """
-        将任意长度的列表按照指定的batch size分成多个batch
+        Implementation detail.
 
         Args:
-            img_list: 输入的列表
-            batch_size: 每个batch的大小，默认为16
+            Implementation detail.
+            Implementation detail.
 
         Returns:
-            一个包含多个batch的列表，每个batch都是原列表的一个子列表
+            Implementation detail.
         """
         batches = []
         for i in range(0, len(img_list), batch_size):
@@ -96,13 +96,13 @@ class PaddleTableClsModel:
         res_imgs = []
         for img in imgs:
             img = np.asarray(img)
-            # 放大图片，使其最短边长为256
+            # Process image content.
             h, w = img.shape[:2]
             scale = 256 / min(h, w)
             h_resize = round(h * scale)
             w_resize = round(w * scale)
             img = cv2.resize(img, (w_resize, h_resize), interpolation=1)
-            # 调整为224*224的正方形
+            # Implementation detail.
             h, w = img.shape[:2]
             cw, ch = 224, 224
             x1 = max(0, (w - cw) // 2)
@@ -114,7 +114,7 @@ class PaddleTableClsModel:
                     f"Input image ({w}, {h}) smaller than the target size ({cw}, {ch})."
                 )
             img = img[y1:y2, x1:x2, ...]
-            # 正则化
+            # Implementation detail.
             split_im = list(cv2.split(img))
             std = [0.229, 0.224, 0.225]
             scale = 0.00392156862745098
@@ -126,7 +126,7 @@ class PaddleTableClsModel:
                 split_im[c] *= alpha[c]
                 split_im[c] += beta[c]
             img = cv2.merge(split_im)
-            # 5. 转换为 CHW 格式
+            # Convert the value to the required format.
             img = img.transpose((2, 0, 1))
             res_imgs.append(img)
         x = np.stack(res_imgs, axis=0).astype(dtype=np.float32, copy=False)

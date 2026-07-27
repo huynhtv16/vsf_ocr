@@ -70,11 +70,11 @@ class TableStructurer:
     def batch_process(
         self, img_list: List[np.ndarray]
     ) -> List[Tuple[List[str], np.ndarray, float]]:
-        """批量处理图像列表
+        """Process image content.
         Args:
-            img_list: 图像列表
+            Process image content.
         Returns:
-            结果列表，每个元素包含 (table_struct_str, cell_bboxes, elapse)
+            Prepare the output value.
         """
         starttime = time.perf_counter()
 

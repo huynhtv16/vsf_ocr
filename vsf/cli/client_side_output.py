@@ -14,7 +14,7 @@ SUPPORTED_BACKENDS = {*PDF_BACKENDS, "office"}
 
 
 def _select_union_make(backend: str) -> Callable[[list, str, str], Any]:
-    """根据 middle json 后端选择对应的 Markdown/content list 渲染函数。"""
+    """Implementation detail."""
     if backend == "pipeline":
         from mineru.backend.pipeline.pipeline_middle_json_mkcontent import union_make
 
@@ -34,7 +34,7 @@ def _select_union_make(backend: str) -> Callable[[list, str, str], Any]:
 
 
 def _write_json(path: Path, payload: Any) -> None:
-    """按项目现有格式写入 JSON 文件，保持中文内容可读。"""
+    """Process the file path."""
     path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=4),
         encoding="utf-8",
@@ -45,7 +45,7 @@ def regenerate_client_side_outputs(
     parse_dir: str | Path,
     doc_stem: str,
 ) -> tuple[Path, ...]:
-    """读取服务端 staged/finalized middle json，并在客户端覆盖生成最终输出产物。"""
+    """Build the required output."""
     parse_dir = Path(parse_dir)
     middle_json_path = parse_dir / f"{doc_stem}_middle.json"
     markdown_path = parse_dir / f"{doc_stem}.md"

@@ -63,14 +63,14 @@ def _format_embedded_html(html, img_buket_path):
 
 
 def _normalize_text_content(content):
-    """将 VLM 文本 span 的空 content 规范为空字符串，再做全角转半角。"""
+    """Convert the value to the required format."""
     if content is None:
         return ''
     return full_to_half_exclude_marks(content)
 
 
 def _has_following_joinable_span(para_block, line_idx, span_idx):
-    """判断当前 span 后面是否还有可拼接文本，避免把分隔空格落到段落末尾。"""
+    """Validate the current value."""
     for next_line_idx in range(line_idx, len(para_block['lines'])):
         next_line = para_block['lines'][next_line_idx]
         start_span_idx = span_idx + 1 if next_line_idx == line_idx else 0
@@ -312,15 +312,15 @@ def merge_para_with_text(
                     para_text += content
                     continue
 
-                # 定义CJK语言集合(中日韩)
+                # Implementation detail.
                 cjk_langs = {'zh', 'ja', 'ko'}
                 # logger.info(f'block_lang: {block_lang}, content: {content}')
 
-                # 判断是否为行末span
+                # Validate the current value.
                 is_last_span = j == len(line['spans']) - 1
                 has_following_joinable_span = _has_following_joinable_span(para_block, i, j)
 
-                if block_lang in cjk_langs:  # 中文/日语/韩文语境下，换行不需要空格分隔,但是如果是行内公式结尾，还是要加空格
+                if block_lang in cjk_langs:  # Process formula content.
                     if (
                             has_following_joinable_span
                             and (not is_last_span or span_type == ContentType.INLINE_EQUATION)
@@ -329,15 +329,15 @@ def merge_para_with_text(
                     else:
                         para_text += content
                 else:
-                    # 西方文本语境下 每行的最后一个span判断是否要去除连字符
+                    # Validate the current value.
                     if span_type in [ContentType.TEXT, ContentType.INLINE_EQUATION]:
-                        # 如果span是line的最后一个且末尾带有-连字符，那么末尾不应该加空格,同时应该把-删除
+                        # Remove invalid or unnecessary data.
                         if (
                                 is_last_span
                                 and span_type == ContentType.TEXT
                                 and is_hyphen_at_line_end(content)
                         ):
-                            # 如果下一行的第一个span是小写字母开头，删除连字符
+                            # Remove invalid or unnecessary data.
                             if (
                                     i+1 < len(para_block['lines'])
                                     and para_block['lines'][i + 1].get('spans')
@@ -346,9 +346,9 @@ def merge_para_with_text(
                                     and para_block['lines'][i + 1]['spans'][0]['content'][0].islower()
                             ):
                                 para_text += content[:-1]
-                            else:  # 如果没有下一行，或者下一行的第一个span不是小写字母开头，则保留连字符但不加空格
+                            else:  # Implementation detail.
                                 para_text += content
-                        else:  # 西方文本语境下 content间需要空格分隔
+                        else:  # Process text content.
                             if has_following_joinable_span:
                                 para_text += f'{content} '
                             else:
@@ -789,7 +789,7 @@ def get_body_data(para_block):
                     return '', span.get('content', '')
         return '', ''
 
-    # 处理嵌套的 blocks 结构
+    # Process the current item.
     if 'blocks' in para_block:
         for block in para_block['blocks']:
             block_type = block.get('type')
@@ -799,7 +799,7 @@ def get_body_data(para_block):
                     return result
         return '', ''
 
-    # 处理直接包含 lines 的结构
+    # Process the current item.
     return get_data_from_spans(para_block.get('lines', []))
 
 
@@ -828,26 +828,26 @@ def merge_para_with_text_v2(para_block):
                 if span_type in [
                     ContentTypeV2.SPAN_TEXT,
                 ]:
-                    # 定义CJK语言集合(中日韩)
+                    # Implementation detail.
                     cjk_langs = {'zh', 'ja', 'ko'}
                     # logger.info(f'block_lang: {block_lang}, content: {content}')
 
-                    # 判断是否为行末span
+                    # Validate the current value.
                     is_last_span = j == len(line['spans']) - 1
                     has_following_joinable_span = _has_following_joinable_span(para_block, i, j)
 
-                    if block_lang in cjk_langs:  # 中文/日语/韩文语境下，换行不需要空格分隔,但是如果是行内公式结尾，还是要加空格
+                    if block_lang in cjk_langs:  # Process formula content.
                         if has_following_joinable_span and not is_last_span:
                             span_content = f"{span['content']} "
                         else:
                             span_content = span['content']
                     else:
-                        # 如果span是line的最后一个且末尾带有-连字符，那么末尾不应该加空格,同时应该把-删除
+                        # Remove invalid or unnecessary data.
                         if (
                                 is_last_span
                                 and is_hyphen_at_line_end(span['content'])
                         ):
-                            # 如果下一行的第一个span是小写字母开头，删除连字符
+                            # Remove invalid or unnecessary data.
                             if (
                                     i + 1 < len(para_block['lines'])
                                     and para_block['lines'][i + 1].get('spans')
@@ -856,17 +856,17 @@ def merge_para_with_text_v2(para_block):
                                     and para_block['lines'][i + 1]['spans'][0]['content'][0].islower()
                             ):
                                 span_content = span['content'][:-1]
-                            else:  # 如果没有下一行，或者下一行的第一个span不是小写字母开头，则保留连字符但不加空格
+                            else:  # Implementation detail.
                                 span_content = span['content']
                         else:
-                            # 西方文本语境下content间需要空格分隔
+                            # Process text content.
                             if has_following_joinable_span:
                                 span_content = f"{span['content']} "
                             else:
                                 span_content = span['content']
 
                     if para_content and para_content[-1]['type'] == span_type:
-                        # 合并相同类型的span
+                        # Merge the related values.
                         para_content[-1]['content'] += span_content
                     else:
                         span_content = {

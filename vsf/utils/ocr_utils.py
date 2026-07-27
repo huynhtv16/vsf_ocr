@@ -11,7 +11,7 @@ class OcrConfidence:
     min_confidence = 0.5
     min_width = 3
 
-LINE_WIDTH_TO_HEIGHT_RATIO_THRESHOLD = 4  # 一般情况下，行宽度超过高度4倍时才是一个正常的横向文本块
+LINE_WIDTH_TO_HEIGHT_RATIO_THRESHOLD = 4  # Process text content.
 TEXT_REC_ROTATE_RATIO = 1.5
 
 
@@ -19,7 +19,7 @@ def mask_formula_regions_for_ocr_det(
     bgr_image: np.ndarray,
     mask_boxes: list[dict] | None,
 ) -> np.ndarray:
-    """在 OCR det 前将公式区域置白，避免公式干扰相邻文本行检测。"""
+    """Process formula content."""
     if not mask_boxes:
         return bgr_image
 
@@ -44,21 +44,21 @@ def merge_spans_to_line(spans, threshold=0.6):
     if len(spans) == 0:
         return []
     else:
-        # 按照y0坐标排序
+        # Sort items into the required order.
         spans.sort(key=lambda span: span['bbox'][1])
 
         lines = []
         current_line = [spans[0]]
         for span in spans[1:]:
-            # 如果当前的span与当前行的最后一个span在y轴上重叠，则添加到当前行
+            # Add the value to the result.
             if _is_overlaps_y_exceeds_threshold(span['bbox'], current_line[-1]['bbox'], threshold):
                 current_line.append(span)
             else:
-                # 否则，开始新行
+                # Implementation detail.
                 lines.append(current_line)
                 current_line = [span]
 
-        # 添加最后一行
+        # Add the value to the result.
         if current_line:
             lines.append(current_line)
 
@@ -67,7 +67,7 @@ def merge_spans_to_line(spans, threshold=0.6):
 def _is_overlaps_y_exceeds_threshold(bbox1,
                                      bbox2,
                                      overlap_ratio_threshold=0.8):
-    """检查两个bbox在y轴上是否有重叠，并且该重叠区域的高度占两个bbox高度更低的那个超过80%"""
+    """Validate the current value."""
     _, y0_1, _, y1_1 = bbox1
     _, y0_2, _, y1_2 = bbox2
 
@@ -82,7 +82,7 @@ def _is_overlaps_y_exceeds_threshold(bbox1,
 def _is_overlaps_x_exceeds_threshold(bbox1,
                                      bbox2,
                                      overlap_ratio_threshold=0.8):
-    """检查两个bbox在x轴上是否有重叠，并且该重叠区域的宽度占两个bbox宽度更低的那个超过指定阈值"""
+    """Validate the current value."""
     x0_1, _, x1_1, _ = bbox1
     x0_2, _, x1_2, _ = bbox2
 
@@ -149,13 +149,13 @@ def sorted_boxes(dt_boxes):
 
 
 def bbox_to_points(bbox):
-    """ 将bbox格式转换为四个顶点的数组 """
+    """Convert the value to the required format."""
     x0, y0, x1, y1 = bbox
     return np.array([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]).astype('float32')
 
 
 def points_to_bbox(points):
-    """ 将四个顶点的数组转换为bbox格式 """
+    """Convert the value to the required format."""
     x0, y0 = points[0]
     x1, _ = points[1]
     _, y1 = points[2]
@@ -311,7 +311,7 @@ def merge_det_boxes(dt_boxes):
         for span in line:
             line_bbox_list.append(span['bbox'])
 
-        # 计算整行的宽度和高度
+        # Calculate the result.
         min_x = min(bbox[0] for bbox in line_bbox_list)
         max_x = max(bbox[2] for bbox in line_bbox_list)
         min_y = min(bbox[1] for bbox in line_bbox_list)
@@ -319,7 +319,7 @@ def merge_det_boxes(dt_boxes):
         line_width = max_x - min_x
         line_height = max_y - min_y
 
-        # 只有当行宽度超过高度4倍时才进行合并
+        # Merge the related values.
         if line_width > line_height * LINE_WIDTH_TO_HEIGHT_RATIO_THRESHOLD:
 
             # Merge overlapping text regions within the same line
@@ -329,7 +329,7 @@ def merge_det_boxes(dt_boxes):
             for span in merged_spans:
                 new_dt_boxes.append(bbox_to_points(span))
         else:
-            # 不进行合并，直接添加原始区域
+            # Add the value to the result.
             for bbox in line_bbox_list:
                 new_dt_boxes.append(bbox_to_points(bbox))
 
@@ -377,7 +377,7 @@ def get_ocr_result_list(
             p1, p2, p3, p4 = box_ocr_res[0]
             text, score = box_ocr_res[1]
             # logger.info(f"text: {text}, score: {score}")
-            if score < OcrConfidence.min_confidence:  # 过滤低置信度的结果
+            if score < OcrConfidence.min_confidence:  # Remove invalid or unnecessary data.
                 continue
         else:
             p1, p2, p3, p4 = box_ocr_res
@@ -398,8 +398,8 @@ def get_ocr_result_list(
 
         if calculate_is_angle(poly):
             # logger.info(f"average_angle_degrees: {average_angle_degrees}, text: {text}")
-            # 与x轴的夹角超过0.5度，对边界做一下矫正
-            # 计算几何中心
+            # Implementation detail.
+            # Calculate the result.
             x_center = sum(point[0] for point in poly) / 4
             y_center = sum(point[1] for point in poly) / 4
             new_height = ((p4[1] - p1[1]) + (p3[1] - p2[1])) / 2

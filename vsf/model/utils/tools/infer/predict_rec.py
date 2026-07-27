@@ -307,7 +307,7 @@ class TextRecognizer(BaseOCRV20):
         rec_res = [['', 0.0]] * img_num
         batch_num = self.rec_batch_num
         elapse = 0
-        # tqdm_progress_bar 由上层复用时，不再创建内部 OCR-rec 进度条。
+        # Build the required output.
         pbar = tqdm_progress_bar
         should_close_pbar = False
         if pbar is None:
@@ -443,7 +443,7 @@ class TextRecognizer(BaseOCRV20):
                     rec_res[indices[beg_img_no + rno]] = rec_result[rno]
                 elapse += time.time() - starttime
 
-                # 更新进度条，每次增加batch_size，但要注意最后一个batch可能不足batch_size
+                # Implementation detail.
                 current_batch_size = min(batch_num, img_num - index * batch_num)
                 index += 1
                 pbar.update(current_batch_size)

@@ -31,31 +31,31 @@ DEFAULT_IMAGE_SIZE = (800, 800)
 DEFAULT_RESCALE_FACTOR = 1.0 / 255.0
 
 PP_DOCLAYOUT_V2_LABELS = [
-    "abstract",           # 0 论文摘要
-    "algorithm",          # 1 算法
-    "aside_text",         # 2 页边注文本，通常位于页面边缘，提供补充信息或注释，与主内容相关但不直接包含在内
-    "chart",              # 3 图表，通常包含数据可视化元素，如柱状图、折线图、饼图等，用于展示数据关系和趋势
-    "content",            # 4 只在大的目录块中出现，其他地方未见
-    "display_formula",    # 5 独立展示的公式，通常占据整行或多行，具有较大字体和清晰的布局，以突出其重要性和可读性
-    "doc_title",          # 6 文章标题，一篇文章的主标题
-    "figure_title",       # 7 image/chart/table的caption
-    "footer",             # 8 页脚文本
-    "footer_image",       # 9 页脚图片
-    "footnote",           # 10 page footnote，通常位于页面底部，提供对正文中特定内容的补充说明、引用来源或其他相关信息
-    "formula_number",     # 11 公式编号，通常与display_formula配合使用，标识独立展示的公式在文档中的位置和顺序，便于引用和索引
-    "header",             # 12 页眉文本
-    "header_image",       # 13 页眉图片
-    "image",              # 14 图片
-    "inline_formula",     # 15 行内公式
-    "number",             # 16 页码
-    "paragraph_title",    # 17 段落标题，有别与文章标题
-    "reference",          # 18 参考文献，list外框
-    "reference_content",  # 19 参考文献内容，list item
-    "seal",               # 20 印章
-    "table",              # 21 表格
-    "text",               # 22 一般文本
-    "vertical_text",      # 23 竖排文本
-    "vision_footnote",    # 24 image/chart/table的footnote
+    "abstract",           # Implementation detail.
+    "algorithm",          # Implementation detail.
+    "aside_text",         # Process text content.
+    "chart",              # Implementation detail.
+    "content",            # Process the file path.
+    "display_formula",    # Process formula content.
+    "doc_title",          # Implementation detail.
+    "figure_title",       # Implementation detail.
+    "footer",             # Process text content.
+    "footer_image",       # Process image content.
+    "footnote",           # Implementation detail.
+    "formula_number",     # Sort items into the required order.
+    "header",             # Process text content.
+    "header_image",       # Process image content.
+    "image",              # Process image content.
+    "inline_formula",     # Process formula content.
+    "number",             # Implementation detail.
+    "paragraph_title",    # Implementation detail.
+    "reference",          # Implementation detail.
+    "reference_content",  # Implementation detail.
+    "seal",               # Implementation detail.
+    "table",              # Process table content.
+    "text",               # Process text content.
+    "vertical_text",      # Process text content.
+    "vision_footnote",    # Implementation detail.
 ]
 
 PP_DOCLAYOUT_V2_LABEL_TO_ID = {label: index for index, label in enumerate(PP_DOCLAYOUT_V2_LABELS)}
@@ -1083,7 +1083,7 @@ class PPDocLayoutV2LayoutModel:
 
     @staticmethod
     def _calculate_x_overlap_ratio(box1: Sequence[float], box2: Sequence[float]) -> float:
-        """计算两个 bbox 在横向上的重叠比例，用于判断是否属于同一栏。"""
+        """Validate the current value."""
         box1_xmin, _, box1_xmax, _ = [float(v) for v in box1]
         box2_xmin, _, box2_xmax, _ = [float(v) for v in box2]
         box1_width = max(0.0, box1_xmax - box1_xmin)
@@ -1096,7 +1096,7 @@ class PPDocLayoutV2LayoutModel:
 
     @staticmethod
     def _calculate_x_cover_ratio(anchor_box: Sequence[float], candidate_box: Sequence[float]) -> float:
-        """计算 anchor 在横向上覆盖 candidate 的比例。"""
+        """Calculate the result."""
         anchor_xmin, _, anchor_xmax, _ = [float(v) for v in anchor_box]
         candidate_xmin, _, candidate_xmax, _ = [float(v) for v in candidate_box]
         candidate_width = max(0.0, candidate_xmax - candidate_xmin)
@@ -1117,7 +1117,7 @@ class PPDocLayoutV2LayoutModel:
         full_width_threshold: float = 0.7,
         x_overlap_threshold: float = 0.3,
     ) -> bool:
-        """判断候选块是否在页脚文本锚点的横向作用范围内。"""
+        """Validate the current value."""
         anchor_bbox = anchor_box.get("bbox")
         candidate_bbox = candidate_box.get("bbox")
         if not anchor_bbox or not candidate_bbox:
@@ -1138,7 +1138,7 @@ class PPDocLayoutV2LayoutModel:
         candidate_box: Dict,
         x_cover_threshold: float = 0.7,
     ) -> bool:
-        """判断候选块是否位于 footnote 区域内或其下方，并被其横向覆盖。"""
+        """Validate the current value."""
         footnote_bbox = footnote_box.get("bbox")
         candidate_bbox = candidate_box.get("bbox")
         if not footnote_bbox or not candidate_bbox:
@@ -1149,7 +1149,7 @@ class PPDocLayoutV2LayoutModel:
 
     @classmethod
     def _is_header_footer_boundary_candidate(cls, box: Dict, anchor_labels: set[str]) -> bool:
-        """判断普通块是否可被页眉/页脚/页码边界规则改标。"""
+        """Validate the current value."""
         label = box.get("label")
         if label in cls.HEADER_FOOTER_BOUNDARY_EXEMPT_LABELS:
             return False
@@ -1157,7 +1157,7 @@ class PPDocLayoutV2LayoutModel:
 
     @classmethod
     def _is_footnote_relabel_candidate(cls, box: Dict) -> bool:
-        """排除页眉、页脚、页码、页边注等非正文区域块，保留正文内容块。"""
+        """Implementation detail."""
         return box.get("label") not in cls.PAGE_REGION_LABELS
 
     @staticmethod
@@ -1185,7 +1185,7 @@ class PPDocLayoutV2LayoutModel:
 
     @staticmethod
     def _set_box_label(box: Dict, label: str) -> None:
-        """统一同步设置 layout 检测框的标签名和类别编号。"""
+        """Implementation detail."""
         if label not in PP_DOCLAYOUT_V2_LABEL_TO_ID:
             raise ValueError(f"Unsupported PP-DocLayoutV2 label: {label}")
         box["label"] = label
@@ -1199,14 +1199,14 @@ class PPDocLayoutV2LayoutModel:
 
     @staticmethod
     def _set_header_footer_label(box: Dict, label: str) -> None:
-        """同步设置页眉/页脚相关标签及其类别编号。"""
+        """Implementation detail."""
         if label not in {"footer", "footer_image", "header", "header_image"}:
             raise ValueError(f"Unsupported header/footer label: {label}")
         PPDocLayoutV2LayoutModel._set_box_label(box, label)
 
     @staticmethod
     def _set_footnote_label(box: Dict) -> None:
-        """同步设置 page footnote 标签及其类别编号。"""
+        """Implementation detail."""
         PPDocLayoutV2LayoutModel._set_box_label(box, "footnote")
 
     @classmethod
@@ -1215,7 +1215,7 @@ class PPDocLayoutV2LayoutModel:
         boxes: List[Dict],
         image_size: Optional[Tuple[int, int]],
     ) -> List[Dict]:
-        """按页面上下半区重新校正页眉/页脚锚点，避免跨半页误触发边界规则。"""
+        """Implementation detail."""
         if image_size is None:
             return boxes
 
@@ -1375,7 +1375,7 @@ class PPDocLayoutV2LayoutModel:
         boxes: List[Dict],
         image_size: Optional[Tuple[int, int]] = None,
     ) -> List[Dict]:
-        """按视觉坐标用页眉/页脚锚点修正边界区域的普通块标签。"""
+        """Implementation detail."""
         if len(boxes) <= 1:
             return boxes
 
@@ -1403,7 +1403,7 @@ class PPDocLayoutV2LayoutModel:
             default=None,
         )
 
-        # 先按最后一个页眉锚点的下边界修正，后续页脚修正可覆盖重叠区间。
+        # Implementation detail.
         if header_anchor is not None:
             header_boundary = header_anchor["bbox"][3]
             for box in ordered_boxes:
@@ -1464,7 +1464,7 @@ class PPDocLayoutV2LayoutModel:
             default=None,
         )
 
-        # number 自身不改标签，仅用上下 30% 区域中的 number 作为辅助分割线。
+        # Implementation detail.
         if top_number_anchor is not None:
             header_boundary = top_number_anchor["bbox"][1]
             for box in ordered_boxes:

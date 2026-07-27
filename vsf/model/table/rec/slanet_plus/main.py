@@ -56,12 +56,12 @@ class PaddleTable:
             copy.deepcopy(img)
         )
 
-        # 适配slanet-plus模型输出的box缩放还原
+        # Configure the model.
         cell_bboxes = self.adapt_slanet_plus(img, cell_bboxes)
 
         pred_html = self.table_matcher(pred_structures, cell_bboxes, dt_boxes, rec_res)
 
-        # 过滤掉占位的bbox
+        # Remove invalid or unnecessary data.
         mask = ~np.all(cell_bboxes == 0, axis=1)
         cell_bboxes = cell_bboxes[mask]
 
@@ -75,7 +75,7 @@ class PaddleTable:
         ocr_results: List[List[Union[List[List[float]], str, str]]],
         batch_size: int = 4,
     ) -> List[PaddleTableOutput]:
-        """批量处理图像"""
+        """Process image content."""
         s = time.perf_counter()
 
         batch_dt_boxes = []
@@ -87,19 +87,19 @@ class PaddleTable:
             batch_dt_boxes.append(dt_boxes)
             batch_rec_res.append(rec_res)
 
-        # 批量表格结构识别
+        # Process table content.
         batch_results = self.table_structure.batch_process(images)
 
         output_results = []
         for i, (img, ocr_result, (pred_structures, cell_bboxes, _)) in enumerate(
             zip(images, ocr_results, batch_results)
         ):
-            # 适配slanet-plus模型输出的box缩放还原
+            # Configure the model.
             cell_bboxes = self.adapt_slanet_plus(img, cell_bboxes)
             pred_html = self.table_matcher(
                 pred_structures, cell_bboxes, batch_dt_boxes[i], batch_rec_res[i]
             )
-            # 过滤掉占位的bbox
+            # Remove invalid or unnecessary data.
             mask = ~np.all(cell_bboxes == 0, axis=1)
             cell_bboxes = cell_bboxes[mask]
 
@@ -187,7 +187,7 @@ class PaddleTableModel(object):
         return None, None, None, None
 
     def batch_predict(self, table_res_list: List[Dict], batch_size: int = 4) -> None:
-        """对传入的字典列表进行批量预测，无返回值"""
+        """Prepare the output value."""
 
         with tqdm(total=len(table_res_list), desc="Table-wireless Predict") as pbar:
             for index in range(0, len(table_res_list), batch_size):
@@ -209,5 +209,5 @@ class PaddleTableModel(object):
                     if result.pred_html is not None:
                         table_res['table_res']['html'] = result.pred_html
 
-                # 更新进度条
+                # Implementation detail.
                 pbar.update(len(results))

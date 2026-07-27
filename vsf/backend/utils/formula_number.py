@@ -14,7 +14,7 @@ Block = dict[str, Any]
 
 
 def formula_number_max_overlap_ratio(span: Block, block_bbox: Sequence[float]) -> float:
-    """取公式编号span与block的两种重叠比例最大值，兼容block窄于span的情况。"""
+    """Process formula content."""
     return max(
         calculate_overlap_area_in_bbox1_area_ratio(span["bbox"], block_bbox),
         calculate_overlap_area_2_minbox_area_ratio(span["bbox"], block_bbox),
@@ -22,7 +22,7 @@ def formula_number_max_overlap_ratio(span: Block, block_bbox: Sequence[float]) -
 
 
 def extract_formula_number_text(block: Block) -> str:
-    """从公式编号块中提取文本，优先使用VLM直接返回的content。"""
+    """Extract the required value."""
     content = block.get("content")
     if isinstance(content, str) and content.strip():
         return content.strip()
@@ -36,7 +36,7 @@ def extract_formula_number_text(block: Block) -> str:
 
 
 def normalize_formula_tag_content(tag_content: str) -> str:
-    """归一化公式编号文本，去掉外层括号并转换全角字符。"""
+    """Convert the value to the required format."""
     tag_content = full_to_half(tag_content.strip())
     if tag_content.startswith("("):
         tag_content = tag_content[1:].strip()
@@ -46,7 +46,7 @@ def normalize_formula_tag_content(tag_content: str) -> str:
 
 
 def _normalize_formula_content_for_tag(formula_content: str) -> str:
-    """归一化待合并编号的公式正文，去掉VLM可能携带的展示公式分隔符。"""
+    """Merge the related values."""
     return isolated_formula_clean(formula_content or "")
 
 
@@ -54,7 +54,7 @@ def build_tagged_formula_content(
     formula_content: str,
     formula_number_block: Block,
 ) -> str | None:
-    """将非空公式正文和公式编号合成带LaTeX tag的公式内容，空公式返回None。"""
+    """Process formula content."""
     formula_content = _normalize_formula_content_for_tag(formula_content)
     if not formula_content:
         return None
@@ -65,7 +65,7 @@ def build_tagged_formula_content(
 
 
 def get_interline_equation_span(block: Block) -> Block | None:
-    """查找行间公式块中的公式span。"""
+    """Match the expected pattern."""
     for line in block.get("lines", []):
         for span in line.get("spans", []):
             if span.get("type") == ContentType.INTERLINE_EQUATION:
@@ -77,7 +77,7 @@ def append_formula_number_tag(
     equation_block: Block,
     formula_number_block: Block,
 ) -> bool:
-    """将公式编号写入pipeline middle-json行间公式span，返回是否成功合并。"""
+    """Merge the related values."""
     equation_span = get_interline_equation_span(equation_block)
     if equation_span is not None:
         tagged_content = build_tagged_formula_content(
@@ -98,7 +98,7 @@ def _optimize_formula_number_sequence(
     append_tag: Callable[[Block, Block], bool],
     downgrade_block: Callable[[Block], None],
 ) -> list[Block]:
-    """按统一相邻规则优化公式编号序列，调用方负责适配不同block结构。"""
+    """Process formula content."""
     optimized_blocks = []
     for index, block in enumerate(blocks):
         if not is_formula_number(block):
@@ -133,7 +133,7 @@ def _optimize_formula_number_sequence(
 
 
 def _downgrade_formula_number_to_text(block: Block) -> None:
-    """将未匹配公式编号降级为普通文本块。"""
+    """Match the expected pattern."""
     block["type"] = BlockType.TEXT
 
 
@@ -141,7 +141,7 @@ def _append_hybrid_formula_number_tag(
     equation_block: Block,
     formula_number_block: Block,
 ) -> bool:
-    """将公式编号写入Hybrid的VLM行间公式内容，返回是否成功合并。"""
+    """Merge the related values."""
     tagged_content = build_tagged_formula_content(
         equation_block.get("content", ""),
         formula_number_block,
@@ -153,7 +153,7 @@ def _append_hybrid_formula_number_tag(
 
 
 def optimize_formula_number_blocks(pdf_info_list: Iterable[Block]) -> None:
-    """按pipeline规则合并公式编号块，未匹配的编号降级为普通文本。"""
+    """Match the expected pattern."""
     for page_info in pdf_info_list:
         blocks = page_info.get("preproc_blocks", [])
         page_info["preproc_blocks"] = _optimize_formula_number_sequence(
@@ -166,7 +166,7 @@ def optimize_formula_number_blocks(pdf_info_list: Iterable[Block]) -> None:
 
 
 def optimize_hybrid_formula_number_blocks(model_list: Iterable[list[Block]]) -> None:
-    """按统一相邻规则处理Hybrid的VLM公式编号块。"""
+    """Process formula content."""
     for page_model_list in model_list:
         optimized_blocks = _optimize_formula_number_sequence(
             page_model_list or [],

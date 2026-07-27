@@ -33,7 +33,7 @@ SUSPICIOUS_CJK_72XX_END = 0x72DF
 SUSPICIOUS_CJK_72XX_COUNT_THRESHOLD = 30
 SUSPICIOUS_CJK_72XX_CJK_RATIO_THRESHOLD = 0.026
 SUSPICIOUS_CJK_72XX_WHITELIST = set(
-    "犀犁犄犊犒犟犬犯状犷犹狂狄狈狐狗狙狞"
+    "\u7280\u7281\u7284\u728a\u7292\u729f\u72ac\u72af\u72b6\u72b7\u72b9\u72c2\u72c4\u72c8\u72d0\u72d7\u72d9\u72de"
 )
 ASCII_PUNCT_CHARS = set("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")
 ASCII_PUNCT_RUN_MIN_LENGTH = 4
@@ -311,7 +311,7 @@ def get_extreme_aspect_ratio_page_pdfium(
 
 
 def _collect_pdfium_text_sample_from_page(page_index, page):
-    """从单页 PDFium 对象提取纯 Python 文本统计，并在调用方释放子对象。"""
+    """Extract the required value."""
     text_page = None
     try:
         text_page = page.get_textpage()
@@ -381,7 +381,7 @@ def _collect_pdfium_text_sample_from_page(page_index, page):
 
 
 def _collect_pdfium_text_samples(pdf_doc, page_indices):
-    """一次性收集抽样页文本统计，返回纯 Python 数据，避免缓存 PDFium 子对象。"""
+    """Calculate the result."""
     text_samples = []
 
     with pdfium_guard():
@@ -399,7 +399,7 @@ def _collect_pdfium_text_samples(pdf_doc, page_indices):
 
 
 def _get_avg_cleaned_chars_per_page_from_samples(text_samples):
-    """基于已缓存的抽样页文本计算平均有效字符数。"""
+    """Calculate the result."""
     cleaned_total_chars = 0
 
     for text_sample in text_samples:
@@ -416,7 +416,7 @@ def get_avg_cleaned_chars_per_page_pdfium(pdf_doc, page_indices):
 
 
 def _get_text_quality_signal_from_samples(text_samples):
-    """基于已缓存的抽样页字符计数统计异常字符质量信号。"""
+    """Calculate the result."""
     total_chars = 0
     null_char_count = 0
     replacement_char_count = 0
@@ -457,7 +457,7 @@ def get_text_quality_signal_pdfium(pdf_doc, page_indices):
 
 
 def _get_unicode_map_error_signal_from_samples(text_samples):
-    """统计 PDFium 字符级 Unicode 映射失败比例，用于识别无法可靠抽取的乱码文本。"""
+    """Calculate the result."""
     total_chars = 0
     unicode_map_error_count = 0
 
@@ -477,12 +477,12 @@ def _get_unicode_map_error_signal_from_samples(text_samples):
 
 
 def _is_cjk_unicode_code(unicode_code: int) -> bool:
-    """判断 Unicode 码点是否属于分类器认可的 CJK 文本范围。"""
+    """Validate the current value."""
     return any(start <= unicode_code <= end for start, end in CJK_TEXT_RANGES)
 
 
 def _get_cjk_glyph_name_code(glyph_name: str) -> int | None:
-    """解析 uniXXXX/uXXXXX 形式的 CJK glyph name，其他名称返回 None。"""
+    """Parse the input data."""
     match = re.fullmatch(
         r"(?:uni([0-9A-Fa-f]{4,6})|u([0-9A-Fa-f]{4,6}))",
         glyph_name,
@@ -496,7 +496,7 @@ def _get_cjk_glyph_name_code(glyph_name: str) -> int | None:
 
 
 def _get_empty_latin_charset_with_to_unicode_signal() -> dict:
-    """构造未触发的 Type1 Latin CharSet 字体候选信号。"""
+    """Implementation detail."""
     return {
         "triggered": False,
         "charset_glyph_count": 0,
@@ -508,7 +508,7 @@ def _get_empty_latin_charset_with_to_unicode_signal() -> dict:
 
 
 def _get_latin_charset_with_to_unicode_signal(font: object) -> dict:
-    """识别带 ToUnicode 且 CharSet 明显为 Latin 的 Type1 字体候选。"""
+    """Implementation detail."""
     signal = _get_empty_latin_charset_with_to_unicode_signal()
     if str(font.get("/Subtype")) != "/Type1":
         return signal
@@ -559,7 +559,7 @@ def _get_latin_charset_with_to_unicode_signal(font: object) -> dict:
 
 
 def _normalize_pdf_font_name(font_name) -> str:
-    """规范化 PDF 字体名，统一 pypdf 的 NameObject 和 PDFium 返回值格式。"""
+    """Convert the value to the required format."""
     if font_name is None:
         return ""
     normalized_name = str(font_name).strip().lstrip("/")
@@ -567,7 +567,7 @@ def _normalize_pdf_font_name(font_name) -> str:
 
 
 def _get_pdfium_char_font_name(text_page, char_index: int) -> str:
-    """读取 PDFium 字符级字体名，用于统计可疑 CID 字体的实际使用比例。"""
+    """Extract the required value."""
     flags = c_int()
     buffer_length = pdfium_c.FPDFText_GetFontInfo(
         text_page,
@@ -594,7 +594,7 @@ def _get_pdfium_char_font_name(text_page, char_index: int) -> str:
 
 
 def _get_cid_font_usage_signal_from_samples(text_samples, cid_font_signal):
-    """基于 PDFium 字符级字体名统计可疑 CID 字体在抽样页中的真实使用比例。"""
+    """Calculate the result."""
     best_signal = {
         "triggered": False,
         "page_index": None,
@@ -662,7 +662,7 @@ def _get_latin_font_cjk_usage_signal_from_samples(
     usage_ratio_threshold: float,
     cjk_ratio_threshold: float,
 ) -> dict:
-    """按单个 Latin 候选字体统计实际使用量及 PDFium 解码后的 CJK 比例。"""
+    """Calculate the result."""
     best_signal = {
         "triggered": False,
         "page_index": None,
@@ -733,12 +733,12 @@ def _get_latin_font_cjk_usage_signal_from_samples(
 
 
 def _is_cjk_text_char(char: str) -> bool:
-    """判断字符是否属于中文文档中可接受的 CJK 文字范围。"""
+    """Validate the current value."""
     return _is_cjk_unicode_code(ord(char))
 
 
 def _get_cross_script_name(char: str) -> str | None:
-    """识别中文文档乱码中常见的跨脚本字符块名称。"""
+    """Implementation detail."""
     unicode_code = ord(char)
     for start, end, script_name in SUSPICIOUS_CROSS_SCRIPT_RANGES:
         if start <= unicode_code <= end:
@@ -747,7 +747,7 @@ def _get_cross_script_name(char: str) -> str | None:
 
 
 def _get_cross_script_text_signal_from_samples(text_samples):
-    """统计中文文档文本层中大比例跨脚本混入信号，用于识别合法 Unicode 错码。"""
+    """Calculate the result."""
     total_chars = 0
     cjk_chars = 0
     suspicious_chars = 0
@@ -800,7 +800,7 @@ def _get_cross_script_text_signal_from_samples(text_samples):
 
 
 def _get_u72xx_text_signal_from_samples(text_samples):
-    """基于已缓存的抽样页文本统计扣除常用字后的 U+7280-U+72DF 字符占比。"""
+    """Calculate the result."""
     cjk_chars = 0
     u72xx_count = 0
 
@@ -829,13 +829,13 @@ def _get_u72xx_text_signal_from_samples(text_samples):
 
 
 def get_u72xx_text_signal_pdfium(pdf_doc, page_indices):
-    """统计抽样页中扣除常用字后的 U+7280-U+72DF 字符占比，用于识别可疑 ToUnicode 映射。"""
+    """Calculate the result."""
     text_samples = _collect_pdfium_text_samples(pdf_doc, page_indices)
     return _get_u72xx_text_signal_from_samples(text_samples)
 
 
 def _get_ascii_punct_run_signal(text: str) -> tuple[int, set[str]]:
-    """统计长连续 ASCII 标点 run 的字符数和标点类型，用于区分目录点线和乱码。"""
+    """Calculate the result."""
     run_chars = 0
     run_punct_chars = set()
     current_run = 0
@@ -861,14 +861,14 @@ def _get_ascii_punct_run_signal(text: str) -> tuple[int, set[str]]:
 
 
 def _count_ascii_punct_run_chars(text: str) -> int:
-    """统计连续 ASCII 标点字符数，仅累计长度达到阈值的 run。"""
+    """Calculate the result."""
     run_chars, _ = _get_ascii_punct_run_signal(text)
 
     return run_chars
 
 
 def _get_sampled_ascii_punct_signal_from_samples(text_samples):
-    """检查所有抽样页的 ASCII 标点密集度，用于识别无 ToUnicode 的乱码文本。"""
+    """Validate the current value."""
     best_signal = {
         "triggered": False,
         "page_index": None,
@@ -914,7 +914,7 @@ def _get_sampled_ascii_punct_signal_from_samples(text_samples):
             signal["triggered"] = True
             return signal
 
-        # 未触发时保留最可疑的抽样页指标，方便日志扩展和后续排查阈值边界。
+        # Implementation detail.
         if (
             signal["punct_run_ratio"],
             signal["ascii_punct_ratio"],
@@ -930,7 +930,7 @@ def _get_sampled_ascii_punct_signal_from_samples(text_samples):
 
 
 def _get_font_resource_cache_key(font_ref: object, font: object) -> tuple:
-    """为 pypdf 字体资源生成页间可复用的分析缓存键。"""
+    """Parse the input data."""
     idnum = getattr(font_ref, "idnum", None)
     generation = getattr(font_ref, "generation", None)
     if idnum is not None:
@@ -942,7 +942,7 @@ def _get_font_resource_signals_pypdf(
     pdf_bytes: bytes,
     page_indices: list[int],
 ) -> dict:
-    """一次扫描抽样页字体资源，收集 CID 缺映射和 Type1 Latin 候选字体。"""
+    """Implementation detail."""
     reader = PdfReader(BytesIO(pdf_bytes))
     cid_page_fonts = {}
     latin_charset_page_fonts = {}
@@ -958,7 +958,7 @@ def _get_font_resource_signals_pypdf(
         if not fonts:
             continue
 
-        # PDFium 只返回规范化字体名；同名不同资源无法可靠归因到具体字体对象。
+        # Convert the value to the required format.
         page_latin_font_resources = {}
         for font_key, font_ref in fonts.items():
             font = _resolve_pdf_object(font_ref)
@@ -1016,7 +1016,7 @@ def get_cid_font_signal_pypdf(
     pdf_bytes: bytes,
     page_indices: list[int],
 ) -> dict:
-    """兼容旧接口：返回抽样页无 ToUnicode 的 Identity CID 字体资源。"""
+    """Prepare the output value."""
     return _get_font_resource_signals_pypdf(
         pdf_bytes,
         page_indices,
@@ -1027,7 +1027,7 @@ def detect_cid_font_signal_pypdf(
     pdf_bytes: bytes,
     page_indices: list[int],
 ) -> bool:
-    """兼容旧接口：只返回是否存在无 ToUnicode 的 Identity CID 字体资源。"""
+    """Prepare the output value."""
     return get_cid_font_signal_pypdf(pdf_bytes, page_indices)["triggered"]
 
 
@@ -1038,7 +1038,7 @@ def _resolve_pdf_object(obj):
 
 
 def _get_pdfium_page_object_bounds(page_object):
-    """兼容 pypdfium2 4.x/5.x，统一获取页面对象的边界坐标。"""
+    """Extract the required value."""
     get_bounds = getattr(page_object, "get_bounds", None)
     if callable(get_bounds):
         return get_bounds()

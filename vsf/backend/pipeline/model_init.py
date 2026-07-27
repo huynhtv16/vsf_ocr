@@ -20,18 +20,18 @@ from ...utils.models_download_utils import auto_download_and_get_model_root_path
 from ...utils.ocr_language import normalize_ocr_model_lang
 
 PIPELINE_MODEL_INIT_LOCK = threading.RLock()
-# 这些锁保护 pipeline 与 hybrid 共享的 atom model/native 模型推理调用，避免多线程同时进入同一个模型对象。
+# Configure the model.
 PIPELINE_LAYOUT_INFERENCE_LOCK = threading.RLock()
 PIPELINE_MFR_INFERENCE_LOCK = threading.RLock()
 PIPELINE_OCR_INFERENCE_LOCK = threading.RLock()
-# 临时关闭 pipeline/hybrid 共享推理阶段锁；需要回滚实验时可通过环境变量重新打开。
+# Implementation detail.
 PIPELINE_INFERENCE_LOCKS_ENABLED = os.getenv(
     'MINERU_ENABLE_PIPELINE_INFERENCE_LOCKS', 'False'
 ).lower() in ['true', '1', 'yes']
 
 
 def _run_with_inference_lock(inference_lock, inference_callable, *args, **kwargs):
-    """按实验开关决定是否在指定推理锁内执行真实 native 模型调用。"""
+    """Configure the model."""
     if not PIPELINE_INFERENCE_LOCKS_ENABLED:
         return inference_callable(*args, **kwargs)
 
@@ -40,21 +40,21 @@ def _run_with_inference_lock(inference_lock, inference_callable, *args, **kwargs
 
 
 def run_layout_inference(inference_callable, *args, **kwargs):
-    """按实验开关执行共享 Layout 模型调用。"""
+    """Configure the model."""
     return _run_with_inference_lock(
         PIPELINE_LAYOUT_INFERENCE_LOCK, inference_callable, *args, **kwargs
     )
 
 
 def run_mfr_inference(inference_callable, *args, **kwargs):
-    """按实验开关执行共享 MFR 模型调用。"""
+    """Configure the model."""
     return _run_with_inference_lock(
         PIPELINE_MFR_INFERENCE_LOCK, inference_callable, *args, **kwargs
     )
 
 
 def run_ocr_inference(inference_callable, *args, **kwargs):
-    """按实验开关执行共享 OCR native 模型调用。"""
+    """Configure the model."""
     return _run_with_inference_lock(
         PIPELINE_OCR_INFERENCE_LOCK, inference_callable, *args, **kwargs
     )
@@ -242,7 +242,7 @@ class MineruPipelineModel:
         atom_model_manager = AtomModelSingleton()
 
         if self.apply_formula:
-            # 初始化公式解析模型
+            # Parse the input data.
             if MFR_MODEL == "unimernet_small":
                 mfr_model_path = ModelPath.unimernet_small
             elif MFR_MODEL == "pp_formulanet_plus_m":
@@ -257,7 +257,7 @@ class MineruPipelineModel:
                 device=self.device,
             )
 
-        # 初始化layout模型
+        # Configure the model.
         self.layout_model = atom_model_manager.get_atom_model(
             atom_model_name=AtomicModel.Layout,
             pp_doclayout_v2_weights=str(
@@ -265,7 +265,7 @@ class MineruPipelineModel:
             ),
             device=self.device,
         )
-        # 初始化ocr
+        # Initialize the component.
         self.ocr_model = atom_model_manager.get_atom_model(
             atom_model_name=AtomicModel.OCR,
             lang=self.lang
@@ -358,13 +358,13 @@ class MineruHybridModel:
 
         self.atom_model_manager = AtomModelSingleton()
 
-        # 初始化OCR模型
+        # Configure the model.
         self.ocr_model = self.atom_model_manager.get_atom_model(
             atom_model_name=AtomicModel.OCR,
             lang=self.lang
         )
 
-        # 初始化layout模型，用于提供行内公式检测框和Hybrid标题拆分
+        # Process formula content.
         self.layout_model = self.atom_model_manager.get_atom_model(
             atom_model_name=AtomicModel.Layout,
             pp_doclayout_v2_weights=str(
@@ -377,7 +377,7 @@ class MineruHybridModel:
         )
 
         if formula_enable:
-            # 初始化公式解析模型
+            # Parse the input data.
             if MFR_MODEL == "unimernet_small":
                 mfr_model_path = ModelPath.unimernet_small
             elif MFR_MODEL == "pp_formulanet_plus_m":

@@ -72,7 +72,7 @@ def ensure_backend_dependencies(backend: str) -> None:
 
 
 def _load_hybrid_analyze_entrypoint(entrypoint_name: str, backend: str):
-    """加载统一 hybrid analyze 入口，解析强度由公开 effort 参数控制。"""
+    """Parse the input data."""
     ensure_backend_dependencies(backend)
     module_name = "mineru.backend.hybrid.hybrid_analyze"
     try:
@@ -246,7 +246,7 @@ def convert_pdf_bytes_to_bytes(pdf_bytes, start_page_id=0, end_page_id=None):
 
 
 def _prepare_pdf_bytes(pdf_bytes_list, start_page_id, end_page_id):
-    """准备处理PDF字节数据"""
+    """Process the current item."""
     result = []
     for pdf_bytes in pdf_bytes_list:
         new_pdf_bytes = convert_pdf_bytes_to_bytes(pdf_bytes, start_page_id, end_page_id)
@@ -282,7 +282,7 @@ def _process_output(
         make_func = office_union_make
     else:
         raise Exception(f"Unknown process_mode: {process_mode}")
-    """处理输出文件"""
+    """\u5904\u7406\u8f93\u51fa\u6587\u4ef6"""
     if f_draw_layout_bbox:
         try:
             draw_layout_bbox(pdf_info, pdf_bytes, local_md_dir, f"{pdf_file_name}_layout.pdf")
@@ -364,7 +364,7 @@ def _process_pipeline(
         f_make_md_mode,
         client_side_output_generation=False,
 ):
-    """处理pipeline后端逻辑"""
+    """Process the current item."""
     from mineru.backend.pipeline.pipeline_analyze import doc_analyze_streaming as pipeline_doc_analyze_streaming
 
     image_writer_list = []
@@ -437,7 +437,7 @@ async def _async_process_vlm(
         server_url=None,
         **kwargs,
 ):
-    """异步处理VLM后端逻辑"""
+    """Process the current item."""
     parse_method = "vlm"
     f_draw_span_bbox = False
     if not backend.endswith("client"):
@@ -478,7 +478,7 @@ def _process_vlm(
         server_url=None,
         **kwargs,
 ):
-    """同步处理VLM后端逻辑"""
+    """Process the current item."""
     parse_method = "vlm"
     f_draw_span_bbox = False
     if not backend.endswith("client"):
@@ -526,7 +526,7 @@ def _process_hybrid(
         "doc_analyze",
         f"hybrid-{backend}",
     )
-    """同步处理hybrid后端逻辑"""
+    """\u540c\u6b65\u5904\u7406hybrid\u540e\u7aef\u903b\u8f91"""
     if not backend.endswith("client"):
         server_url = None
 
@@ -581,7 +581,7 @@ async def _async_process_hybrid(
         "aio_doc_analyze",
         f"hybrid-{backend}",
     )
-    """异步处理hybrid后端逻辑"""
+    """\u5f02\u6b65\u5904\u7406hybrid\u540e\u7aef\u903b\u8f91"""
     if not backend.endswith("client"):
         server_url = None
 
@@ -706,7 +706,7 @@ def do_parse(
         logger.warning("No valid PDF or image files to process.")
         return
 
-    # 预处理PDF字节数据
+    # Process the current item.
     pdf_bytes_list = _prepare_pdf_bytes(pdf_bytes_list, start_page_id, end_page_id)
 
     if backend == "pipeline":
@@ -779,7 +779,7 @@ async def aio_do_parse(
         **kwargs,
 ):
     backend = normalize_backend(backend)
-    # Office 解析是同步且可能耗时的操作，异步入口需要放到线程中避免阻塞事件循环。
+    # Iterate over the available items.
     need_remove_index = await asyncio.to_thread(
         _process_office_doc,
         output_dir,
@@ -800,11 +800,11 @@ async def aio_do_parse(
         logger.warning("No valid PDF or image files to process.")
         return
 
-    # 预处理PDF字节数据
+    # Process the current item.
     pdf_bytes_list = _prepare_pdf_bytes(pdf_bytes_list, start_page_id, end_page_id)
 
     if backend == "pipeline":
-        # pipeline模式暂不支持异步，使用同步处理方式
+        # Process the current item.
         _process_pipeline(
             output_dir, pdf_file_names, pdf_bytes_list, p_lang_list,
             parse_method, formula_enable, table_enable,

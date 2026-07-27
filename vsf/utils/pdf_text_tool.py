@@ -45,7 +45,7 @@ def get_page(
 
 
 def _get_char_bbox_coords(char: dict[str, Any]) -> tuple[float, ...]:
-    """统一提取字符 bbox 坐标，兼容 pdftext Bbox 对象和普通 list。"""
+    """Extract the required value."""
     bbox = char.get("bbox")
     bbox_coords = getattr(bbox, "bbox", bbox)
     return tuple(float(coord) for coord in bbox_coords)
@@ -54,7 +54,7 @@ def _get_char_bbox_coords(char: dict[str, Any]) -> tuple[float, ...]:
 def _get_visible_char_signature(
     char: dict[str, Any],
 ) -> tuple[str, tuple[Any, Any, Any, Any], float]:
-    """生成可见字符去重签名，不把 bbox 放入签名以便单独做近重合判断。"""
+    """Validate the current value."""
     font = char.get("font") or {}
     font_key = (
         font.get("name"),
@@ -70,7 +70,7 @@ def _is_near_identical_bbox(
     bbox_a: tuple[float, ...],
     bbox_b: tuple[float, ...],
 ) -> bool:
-    """判断两个字符 bbox 是否属于同一视觉位置的一点内抖动。"""
+    """Validate the current value."""
     return all(
         abs(coord_a - coord_b) <= NEAR_IDENTICAL_CHAR_BBOX_TOLERANCE
         for coord_a, coord_b in zip(bbox_a, bbox_b)
@@ -81,7 +81,7 @@ def _calculate_bbox_overlap_in_smaller_area(
     bbox_a: tuple[float, ...],
     bbox_b: tuple[float, ...],
 ) -> float:
-    """计算两个字符框交集占较小字符框面积的比例。"""
+    """Calculate the result."""
     intersection_width = max(
         0.0,
         min(bbox_a[2], bbox_b[2]) - max(bbox_a[0], bbox_b[0]),
@@ -108,7 +108,7 @@ def _is_adjacent_offset_duplicate_char(
     previous_char: dict[str, Any],
     current_char: dict[str, Any],
 ) -> bool:
-    """识别相邻字符中由对角平移阴影产生的第二个重复字符。"""
+    """Implementation detail."""
     if _get_visible_char_signature(previous_char) != _get_visible_char_signature(
         current_char
     ):
@@ -121,7 +121,7 @@ def _is_adjacent_offset_duplicate_char(
     x_end_offset = current_bbox[2] - previous_bbox[2]
     y_end_offset = current_bbox[3] - previous_bbox[3]
 
-    # 阴影层应是同一字符框的刚性平移，避免把大小不同的相邻同字误判为重复。
+    # Implementation detail.
     if (
         abs(x_start_offset - x_end_offset)
         > OFFSET_DUPLICATE_TRANSLATION_TOLERANCE
@@ -149,7 +149,7 @@ def _is_adjacent_offset_duplicate_char(
 def _get_near_identical_bbox_bucket_key(
     bbox_coords: tuple[float, ...],
 ) -> tuple[int, int]:
-    """按字符 bbox 左上角生成空间桶 key，缩小近重合判断的候选范围。"""
+    """Validate the current value."""
     return (
         math.floor(bbox_coords[0] / NEAR_IDENTICAL_CHAR_BBOX_TOLERANCE),
         math.floor(bbox_coords[1] / NEAR_IDENTICAL_CHAR_BBOX_TOLERANCE),
@@ -159,7 +159,7 @@ def _get_near_identical_bbox_bucket_key(
 def _iter_neighbor_bbox_bucket_keys(
     bucket_key: tuple[int, int],
 ):
-    """遍历当前桶及周围 8 个邻近桶，覆盖 bbox 容差范围内的候选字符。"""
+    """Iterate over the available items."""
     bucket_x, bucket_y = bucket_key
     for offset_x in (-1, 0, 1):
         for offset_y in (-1, 0, 1):
@@ -167,12 +167,12 @@ def _iter_neighbor_bbox_bucket_keys(
 
 
 def _is_pdftext_page_chars(chars: Any) -> bool:
-    """判断对象是否为 pdftext 0.7 引入的 PageChars 列式字符容器。"""
+    """Validate the current value."""
     return PageChars is not None and isinstance(chars, PageChars)
 
 
 def _materialize_page_chars(chars) -> list[dict[str, Any]]:
-    """将 pdftext 0.7 的 PageChars 物化为 MinerU 既有 char dict 列表。"""
+    """Implementation detail."""
     boxes = chars.boxes.tolist()
     rotations = chars.rotations.tolist()
     font_ids = chars.font_ids.tolist()
@@ -191,14 +191,14 @@ def _materialize_page_chars(chars) -> list[dict[str, Any]]:
 
 
 def _ensure_legacy_chars(chars) -> list[dict[str, Any]]:
-    """统一输出旧版 char dict 列表，隔离 pdftext 0.7 的返回结构变化。"""
+    """Prepare the output value."""
     if _is_pdftext_page_chars(chars):
         return _materialize_page_chars(chars)
     return chars
 
 
 def _get_single_char_text(char: dict[str, Any]) -> str:
-    """提取单个 PDF 字符文本，异常空值用替换符保证 PageChars 长度一致。"""
+    """Extract the required value."""
     text = char.get("char", "")
     if len(text) == 1:
         return text
@@ -210,7 +210,7 @@ def _get_char_font_id(
     fonts: list[dict[str, Any]],
     font_cache: dict[tuple[Any, Any, Any, Any], int],
 ) -> int:
-    """为旧版字符 font 生成 PageChars 需要的页内 font id。"""
+    """Build the required output."""
     font = char.get("font") or {}
     font_key = (
         font.get("name"),
@@ -234,7 +234,7 @@ def _get_char_font_id(
 
 
 def _get_char_index(char: dict[str, Any], fallback_idx: int) -> int:
-    """提取旧版字符索引，缺失或为空时回退到当前列表位置。"""
+    """Extract the required value."""
     char_idx = char.get("char_idx")
     if char_idx is None:
         char_idx = fallback_idx
@@ -242,7 +242,7 @@ def _get_char_index(char: dict[str, Any], fallback_idx: int) -> int:
 
 
 def _legacy_chars_to_page_chars(chars):
-    """将旧版 char dict 列表打包回 pdftext 0.7 get_spans 所需的 PageChars。"""
+    """Implementation detail."""
     if PageChars is None or _is_pdftext_page_chars(chars):
         return chars
 
@@ -278,7 +278,7 @@ def _legacy_chars_to_page_chars(chars):
 def _deduplicate_near_identical_chars(
     chars: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """清理 PDFium 文本层边界处同字符、同位置的重复可见字符。"""
+    """Remove invalid or unnecessary data."""
     seen_visible_char_bboxes = {}
     deduplicated_chars = []
 
@@ -320,7 +320,7 @@ def get_page_chars(
     quote_loosebox: bool = True,
     page_char_count: int | None = None,
 ) -> dict:
-    """轻量读取页面字符坐标，供只需要 char 级信息的路径复用。"""
+    """Extract the required value."""
     owns_textpage = textpage is None
     try:
         with pdfium_guard():
@@ -363,7 +363,7 @@ def get_lines_from_chars(
     superscript_height_threshold: float = 0.7,
     line_distance_threshold: float = 0.1,
 ):
-    """从已提取的字符构建 pdftext lines，避免重复读取 PDFium textpage。"""
+    """Build the required output."""
     chars = _legacy_chars_to_page_chars(chars)
     spans = get_spans(
         chars,

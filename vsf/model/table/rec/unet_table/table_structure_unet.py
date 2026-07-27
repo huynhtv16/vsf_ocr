@@ -90,22 +90,22 @@ class TSRUnet:
         enhance_box_line = kwargs.get("enhance_box_line", True) if kwargs else True
         morph_close = (
             kwargs.get("morph_close", enhance_box_line) if kwargs else enhance_box_line
-        )  # 是否进行闭合运算以找到更多小的框
+        )  # Implementation detail.
         more_h_lines = (
             kwargs.get("more_h_lines", enhance_box_line) if kwargs else enhance_box_line
-        )  # 是否调整以找到更多的横线
+        )  # Implementation detail.
         more_v_lines = (
             kwargs.get("more_v_lines", enhance_box_line) if kwargs else enhance_box_line
-        )  # 是否调整以找到更多的横线
+        )  # Implementation detail.
         extend_line = (
             kwargs.get("extend_line", enhance_box_line) if kwargs else enhance_box_line
-        )  # 是否进行线段延长使得端点连接
-        # 是否进行旋转修正
+        )  # Merge the related values.
+        # Implementation detail.
         rotated_fix = kwargs.get("rotated_fix") if kwargs else True
         ori_shape = img.shape
         pred = np.uint8(pred)
-        hpred = copy.deepcopy(pred)  # 横线
-        vpred = copy.deepcopy(pred)  # 竖线
+        hpred = copy.deepcopy(pred)  # Implementation detail.
+        vpred = copy.deepcopy(pred)  # Implementation detail.
         whereh = np.where(hpred == 1)
         wherev = np.where(vpred == 2)
         hpred[wherev] = 0
@@ -121,11 +121,11 @@ class TSRUnet:
         vkernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, vert_k))
         vpred = cv2.morphologyEx(
             vpred, cv2.MORPH_CLOSE, vkernel, iterations=1
-        )  # 先膨胀后腐蚀的过程
+        )  # Implementation detail.
         if morph_close:
             hpred = cv2.morphologyEx(hpred, cv2.MORPH_CLOSE, hkernel, iterations=1)
-        colboxes = get_table_line(vpred, axis=1, lineW=col)  # 竖线
-        rowboxes = get_table_line(hpred, axis=0, lineW=row)  # 横线
+        colboxes = get_table_line(vpred, axis=1, lineW=col)  # Implementation detail.
+        rowboxes = get_table_line(hpred, axis=0, lineW=row)  # Implementation detail.
         rboxes_row_, rboxes_col_ = [], []
         if more_h_lines:
             rboxes_row_ = adjust_lines(rowboxes, alph=h_lines_threshold, angle=angle)
@@ -150,7 +150,7 @@ class TSRUnet:
         return polygons, rotated_polygons
 
     def cal_region_boxes(self, tmp):
-        components = _iter_connected_component_coords(tmp < 255)  # 8连通区域标记
+        components = _iter_connected_component_coords(tmp < 255)  # Implementation detail.
         ceilboxes = min_area_rect_box_from_components(
             components,
             False,
@@ -158,17 +158,17 @@ class TSRUnet:
             tmp.shape[0],
             filtersmall=True,
             adjust_box=False,
-        )  # 最后一个参数改为False
+        )  # Implementation detail.
         return np.array(ceilboxes)
 
     def cal_rotate_angle(self, tmp):
-        # 计算最外侧的旋转框
+        # Calculate the result.
         contours, _ = cv2.findContours(tmp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
             return 0
         largest_contour = max(contours, key=cv2.contourArea)
         rect = cv2.minAreaRect(largest_contour)
-        # 计算旋转角度
+        # Calculate the result.
         angle = rect[2]
         if angle < -45:
             angle += 90
@@ -177,14 +177,14 @@ class TSRUnet:
         return angle
 
     def rotate_image(self, image, angle):
-        # 获取图像的中心点
+        # Extract the required value.
         (h, w) = image.shape[:2]
         center = (w // 2, h // 2)
 
-        # 计算旋转矩阵
+        # Calculate the result.
         M = cv2.getRotationMatrix2D(center, angle, 1.0)
 
-        # 进行旋转
+        # Implementation detail.
         rotated_image = cv2.warpAffine(
             image, M, (w, h), flags=cv2.INTER_NEAREST, borderMode=cv2.BORDER_REPLICATE
         )
@@ -194,18 +194,18 @@ class TSRUnet:
     def unrotate_polygons(
         self, polygons: np.ndarray, angle: float, img_shape: tuple
     ) -> np.ndarray:
-        # 将多边形旋转回原始位置
+        # Implementation detail.
         (h, w) = img_shape
         center = (w // 2, h // 2)
         M_inv = cv2.getRotationMatrix2D(center, -angle, 1.0)
 
-        # 将 (N, 8) 转换为 (N, 4, 2)
+        # Convert the value to the required format.
         polygons_reshaped = polygons.reshape(-1, 4, 2)
 
-        # 批量逆旋转
+        # Implementation detail.
         unrotated_polygons = cv2.transform(polygons_reshaped, M_inv)
 
-        # 将 (N, 4, 2) 转换回 (N, 8)
+        # Convert the value to the required format.
         unrotated_polygons = unrotated_polygons.reshape(-1, 8)
 
         return unrotated_polygons

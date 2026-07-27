@@ -8,7 +8,7 @@ from mineru.utils.enum_class import BlockType
 from mineru.version import __version__
 
 def blocks_to_page_info(page_blocks, image_writer, page_index) -> dict:
-    """将blocks转换为页面信息"""
+    """Convert the value to the required format."""
 
     magic_model = MagicModel(page_blocks)
     image_blocks = magic_model.get_image_blocks()
@@ -57,7 +57,7 @@ def blocks_to_page_info(page_blocks, image_writer, page_index) -> dict:
         *list_blocks,
         *index_blocks,
     ])
-    # 对page_blocks根据index的值进行排序
+    # Sort items into the required order.
     page_blocks.sort(key=lambda x: x["index"])
 
     page_info = {"para_blocks": page_blocks, "discarded_blocks": discarded_blocks, "page_idx": page_index}
@@ -69,8 +69,8 @@ def _extract_section_parts_from_content(content: str, level: int):
 
     Returns a list of ints [n1, n2, ..., nL] when the number of parts equals
     `level`, otherwise None.  Handles formats like:
-        '1心肌特异性...'       (no separator)
-        '1.2.1建立...'         (Chinese text immediately after number)
+        Implementation detail.
+        Implementation detail.
         '2.2.1 ALKBH5 ...'    (space separator)
     """
     match = re.match(r'^(\d+(?:\.\d+)*)', content.strip())

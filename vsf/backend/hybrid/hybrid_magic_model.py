@@ -100,7 +100,7 @@ class MagicModel:
             )
         span_matcher = SpanBlockMatcher(page_text_inline_formula_spans)
 
-        # 解析每个块
+        # Parse the input data.
         for index, block_info in enumerate(self.page_blocks):
             try:
                 block_bbox = self.cal_real_bbox(block_info["bbox"])
@@ -114,7 +114,7 @@ class MagicModel:
                     else None
                 )
             except Exception as e:
-                # 如果解析失败，可能是因为格式不正确，跳过这个块
+                # Parse the input data.
                 logger.warning(f"Invalid block format: {block_info}, error: {e}")
                 continue
 
@@ -167,10 +167,10 @@ class MagicModel:
                 span_type = ContentType.INTERLINE_EQUATION
 
             if span_type == ContentType.TEXT and block_content is None:
-                # 文本类块缺失 content 时按空文本处理，避免 VLM mkcontent 渲染阶段遇到 None。
+                # Process text content.
                 block_content = ""
 
-            # code 和 algorithm 类型的块，如果内容中包含行内公式，则需要将块类型切换为 algorithm
+            # Process formula content.
             switch_code_to_algorithm = False
 
             span = None
@@ -190,8 +190,8 @@ class MagicModel:
                     "content": isolated_formula_clean(block_content),
                 }
             elif _ocr_enable or block_type not in not_extract_list:
-                # OCR 模式下，所有文本块都直接使用 VLM block 内容。
-                # 非 OCR 模式下，非提取块仍沿用直接内容模式。
+                # Process text content.
+                # Extract the required value.
                 if block_content:
                     block_content = clean_content(block_content)
 
@@ -320,7 +320,7 @@ class MagicModel:
                 _copy_raw_text_block_metadata(raw_block_type, block_info, block)
 
             if block["type"] == BlockType.INDEX:
-                # index 仅用于 Hybrid medium content 强制走 VLM-OCR，输出前统一还原为正文。
+                # Prepare the output value.
                 block["type"] = BlockType.TEXT
 
             blocks.append(block)
@@ -416,12 +416,12 @@ class MagicModel:
 
     @staticmethod
     def _supports_ocr_det_lines(block_type):
-        """判断当前块类型是否需要保留 OCR det 行提示供 Hybrid 段落合并使用。"""
+        """Validate the current value."""
         return block_type in OCR_DET_LINE_BLOCK_TYPES
 
     @staticmethod
     def _build_ocr_det_lines(block_spans):
-        """将 OCR det span 聚合成 line，但不改变 VLM-OCR 的 canonical 文本内容。"""
+        """Process text content."""
         if not block_spans:
             return []
 

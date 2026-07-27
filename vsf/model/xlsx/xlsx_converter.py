@@ -37,7 +37,7 @@ AUTO_GAP_TOLERANCE_PREFERENCE_MARGIN = 0.15
 
 @dataclass
 class DataRegion:
-    """表示工作表中非空单元格的边界矩形区域。"""
+    """Implementation detail."""
 
     min_row: Annotated[
         PositiveInt, Field(description="Smallest row index (1-based index).")
@@ -53,23 +53,23 @@ class DataRegion:
     ]
 
     def width(self) -> PositiveInt:
-        """返回数据区域的列数。"""
+        """Prepare the output value."""
         return self.max_col - self.min_col + 1
 
     def height(self) -> PositiveInt:
-        """返回数据区域的行数。"""
+        """Prepare the output value."""
         return self.max_row - self.min_row + 1
 
 
 class ExcelCell(BaseModel):
-    """表示一个 Excel 单元格。
+    """Implementation detail.
 
-    属性：
-        row: 单元格的行号。
-        col: 单元格的列号。
-        text: 单元格的文本内容。
-        row_span: 单元格跨越的行数。
-        col_span: 单元格跨越的列数。
+    Implementation detail.
+        Implementation detail.
+        Implementation detail.
+        Process text content.
+        Implementation detail.
+        Implementation detail.
     """
 
     row: int
@@ -85,13 +85,13 @@ class ExcelCell(BaseModel):
 
 
 class ExcelTable(BaseModel):
-    """表示工作表上的一个 Excel 表格。
+    """Process table content.
 
-    属性：
-        anchor: 表格左上角单元格的列和行索引（从0开始）。
-        num_rows: 表格的行数。
-        num_cols: 表格的列数。
-        data: 表格数据，以 ExcelCell 对象列表的形式表示。
+    Implementation detail.
+        Process table content.
+        Process table content.
+        Process table content.
+        Process table content.
     """
 
     anchor: tuple[NonNegativeInt, NonNegativeInt]
@@ -101,10 +101,10 @@ class ExcelTable(BaseModel):
 
 
 class _MergedCellLookup:
-    """按行缓存合并单元格范围，避免解析时反复扫描 openpyxl 合并区域。"""
+    """Parse the input data."""
 
     def __init__(self, sheet: Worksheet):
-        """从工作表合并区域构建 0-based 坐标索引。"""
+        """Build the required output."""
         self._merged_row_intervals: dict[int, list[tuple[int, int]]] = (
             collections.defaultdict(list)
         )
@@ -143,7 +143,7 @@ class _MergedCellLookup:
         row: int,
         col: int,
     ) -> bool:
-        """判断 0-based 坐标是否落入指定行的任一列区间。"""
+        """Validate the current value."""
         for start_col, end_col in row_intervals.get(row, []):
             if start_col <= col <= end_col:
                 return True
@@ -152,15 +152,15 @@ class _MergedCellLookup:
         return False
 
     def contains_merged_cell(self, row: int, col: int) -> bool:
-        """判断 0-based 坐标是否属于任一合并区域。"""
+        """Validate the current value."""
         return self._contains_interval(self._merged_row_intervals, row, col)
 
     def is_hidden_merged_cell(self, row: int, col: int) -> bool:
-        """判断 0-based 坐标是否为合并区域内非左上角的隐藏格。"""
+        """Validate the current value."""
         return self._contains_interval(self._hidden_row_intervals, row, col)
 
     def get_anchor_span(self, row: int, col: int) -> tuple[int, int]:
-        """返回合并区域左上角坐标对应的 rowspan/colspan，非合并锚点返回 1x1。"""
+        """Merge the related values."""
         return self._anchor_spans.get((row, col), (1, 1))
 
 
@@ -184,7 +184,7 @@ class XlsxConverter:
         self.table_image_map = {}
         self.math_map = {}
         self._merged_cell_lookup_cache = {}
-        self.equation_bookends: str = "<eq>{EQ}</eq>"  # 公式标记格式
+        self.equation_bookends: str = "<eq>{EQ}</eq>"  # Process formula content.
 
     def convert(
         self,
@@ -206,7 +206,7 @@ class XlsxConverter:
             self._retry_convert_package_bytes_after_normalization(file_bytes, exc)
 
     def _reset_state(self) -> None:
-        """重置解析状态，确保失败重试时不会残留上一次半解析结果。"""
+        """Parse the input data."""
         if self.zf:
             self.zf.close()
         self.workbook = None
@@ -221,11 +221,11 @@ class XlsxConverter:
         self._merged_cell_lookup_cache = {}
 
     def _convert_package_bytes(self, file_bytes: bytes) -> None:
-        """用独立字节流解析 XLSX 包，便于原始包失败后用规范化包重试。"""
+        """Convert the value to the required format."""
         self._convert_package_stream(BytesIO(file_bytes))
 
     def _convert_package_stream(self, file_stream: BinaryIO) -> None:
-        """直接使用可复位的 XLSX 流解析正常路径，避免提前复制完整包字节。"""
+        """Parse the input data."""
         self._reset_state()
         try:
             self.zf = zipfile.ZipFile(file_stream)
@@ -241,10 +241,10 @@ class XlsxConverter:
                 rich_text=True,
             )
             if self.workbook is not None:
-                # 遍历需要参与转换的工作表，避免为隐藏表或尾部空页生成无效页面。
+                # Iterate over the available items.
                 sheet_pages = []
                 for idx, sheet in enumerate(self._iter_sheets_to_convert(), start=1):
-                    logger.debug(f"正在处理第 {idx} 个工作表：{sheet.title}")
+                    logger.debug(f"\u6b63\u5728\u5904\u7406\u7b2c {idx} \u4e2a\u5de5\u4f5c\u8868\uff1a{sheet.title}")
                     self.cur_page = []
                     self._convert_sheet(sheet)
                     sheet_pages.append((sheet.title, self.cur_page))
@@ -254,7 +254,7 @@ class XlsxConverter:
                     self._prepend_sheet_titles(sheet_pages)
                 self.pages.extend(page for _, page in sheet_pages)
             else:
-                logger.error("工作簿未初始化。")
+                logger.error("\u5de5\u4f5c\u7c3f\u672a\u521d\u59cb\u5316\u3002")
         finally:
             if self.zf:
                 self.zf.close()
@@ -265,7 +265,7 @@ class XlsxConverter:
         file_bytes: bytes,
         exc: Exception,
     ) -> None:
-        """首次解析失败后，仅在包规范化确实产生变化时使用规范化字节重试。"""
+        """Convert the value to the required format."""
         normalized_bytes = normalize_xlsx_package(file_bytes)
         if normalized_bytes == file_bytes:
             raise exc
@@ -281,13 +281,13 @@ class XlsxConverter:
                 not self.include_hidden_sheets
                 and sheet.sheet_state != Worksheet.SHEETSTATE_VISIBLE
             ):
-                logger.debug(f"跳过隐藏工作表：{sheet.title}")
+                logger.debug(f"\u8df3\u8fc7\u9690\u85cf\u5de5\u4f5c\u8868\uff1a{sheet.title}")
                 continue
             yield sheet
 
     @staticmethod
     def _build_sheet_title_block(sheet_title: str) -> dict:
-        """构造工作表标题块，复用 Office 标题渲染链路输出 Markdown 标题。"""
+        """Prepare the output value."""
         return {
             "type": BlockType.TITLE,
             "content": sheet_title,
@@ -295,11 +295,11 @@ class XlsxConverter:
 
     @staticmethod
     def _should_emit_sheet_titles(pages: list[list[dict]]) -> bool:
-        """仅当存在多个非空输出 sheet 时才添加标题，避免单表或空表噪声。"""
+        """Add the value to the result."""
         return sum(1 for page in pages if page) > 1
 
     def _prepend_sheet_titles(self, sheet_pages: list[tuple[str, list[dict]]]) -> None:
-        """将 sheet 标题插入每个非空 page 开头，不参与表格/图表视觉排序。"""
+        """Sort items into the required order."""
         for sheet_title, page in sheet_pages:
             if not page:
                 continue
@@ -326,7 +326,7 @@ class XlsxConverter:
                 key=lambda item: (item[0][0], item[0][1], item[1]),
             ):
                 self.cur_page.append(block)
-            self._find_images_in_sheet(used_cells)  # 提取图片
+            self._find_images_in_sheet(used_cells)  # Extract the required value.
 
     @staticmethod
     def _serialize_sheet_image(image: XlsImage) -> str:
@@ -354,7 +354,7 @@ class XlsxConverter:
                     }
                 )
             except Exception as e:
-                logger.error(f"无法从 Excel 工作表中提取图片，错误信息：{e}")
+                logger.error(f"\u65e0\u6cd5\u4ece Excel \u5de5\u4f5c\u8868\u4e2d\u63d0\u53d6\u56fe\u7247\uff0c\u9519\u8bef\u4fe1\u606f\uff1a{e}")
 
         return images
 
@@ -478,8 +478,8 @@ class XlsxConverter:
         used_cells = set()
         visual_artifacts = []
         if self.workbook is not None:
-            content_layer = self._get_sheet_content_layer(sheet)  # 检测工作表的可见性
-            tables = self._find_data_tables(sheet)  # 检测工作表中的所有数据表格
+            content_layer = self._get_sheet_content_layer(sheet)  # Implementation detail.
+            tables = self._find_data_tables(sheet)  # Process table content.
 
             for order, excel_table in enumerate(tables):
                 # Record used cells
@@ -987,60 +987,60 @@ class XlsxConverter:
 
     def excel_table_to_html(self, excel_table) -> str:
         """
-        将 ExcelTable 转换为 HTML 表格字符串，保留合并单元格结构。
+        Convert the value to the required format.
         """
-        # 1. 创建坐标到单元格的映射，方便快速查找
+        # Build the required output.
         cell_map = {(c.row, c.col): c for c in excel_table.data}
         table_anchor = excel_table.anchor
 
-        # 2. 用于记录已被合并单元格占据的位置，避免重复生成 td
+        # Build the required output.
         covered_cells = set()
 
-        # 开始构建 HTML
-        lines = ["<table>"]  # 可以根据需要添加样式类或属性
+        # Build the required output.
+        lines = ["<table>"]  # Add the value to the result.
 
         for r in range(excel_table.num_rows):
             lines.append("  <tr>")
             for c in range(excel_table.num_cols):
-                # 如果当前位置已被之前的合并单元格占据，则跳过
+                # Remove invalid or unnecessary data.
                 if (r, c) in covered_cells:
                     continue
 
-                # 获取当前位置的单元格
+                # Extract the required value.
                 cell = cell_map.get((r, c))
 
                 if cell:
-                    # 确定标签类型：第一行通常作为表头
+                    # Implementation detail.
                     tag = "th" if cell.row == 0 else "td"
 
-                    # 构建属性列表 (rowspan, colspan)
+                    # Build the required output.
                     attrs = []
                     if cell.row_span > 1:
                         attrs.append(f'rowspan="{cell.row_span}"')
                     if cell.col_span > 1:
                         attrs.append(f'colspan="{cell.col_span}"')
 
-                    # 标记该单元格覆盖的所有位置为已占用
+                    # Implementation detail.
                     for ir in range(cell.row_span):
                         for ic in range(cell.col_span):
                             covered_cells.add((r + ir, c + ic))
 
-                    # 拼接属性字符串
+                    # Merge the related values.
                     attr_str = " " + " ".join(attrs) if attrs else ""
 
-                    # 生成 HTML 单元格，富文本片段避免二次转义
+                    # Build the required output.
                     text_content = ""
                     if cell.text:
                         text_content = cell.text if cell.text_is_html else html.escape(cell.text)
 
-                    # 添加媒体内容 (Images)
+                    # Add the value to the result.
                     if cell.media:
                         media_content = "<br>".join(cell.media)
                         if text_content:
                             text_content += "<br>" + media_content
                         else:
                             text_content = media_content
-                    # 添加公式
+                    # Add the value to the result.
                     for formula in self._get_cell_math_formulas(
                         table_anchor,
                         excel_cell=cell,
@@ -1053,7 +1053,7 @@ class XlsxConverter:
                     )
                     lines.append(f"    <{tag}{attr_str}>{inner_html}</{tag}>")
                 else:
-                    # 如果既没被覆盖，又没有数据对象（理论上 _find_table_bounds 逻辑应避免此情况），生成空单元格
+                    # Build the required output.
                     lines.append("    <td></td>")
 
             lines.append("  </tr>")
@@ -1083,13 +1083,13 @@ class XlsxConverter:
         return
 
     def _find_data_tables(self, sheet: Worksheet) -> list[ExcelTable]:
-        """在 Excel 工作表中查找所有紧凑的矩形数据表格。
+        """Match the expected pattern.
 
-        参数：
-            sheet: 待解析的 Excel 工作表。
+        Implementation detail.
+            Parse the input data.
 
-        返回：
-            表示所有数据表格的 ExcelTable 对象列表。
+        Prepare the output value.
+            Process table content.
         """
         if self.gap_tolerance is None:
             return self._select_best_tables(sheet)
@@ -1105,18 +1105,18 @@ class XlsxConverter:
     def _find_data_tables_with_gap_raw(
         self, sheet: Worksheet, gap_tolerance: int
     ) -> list[ExcelTable]:
-        """在固定 gap_tolerance 下查找工作表中的所有数据表格。"""
-        bounds: DataRegion = self._find_true_data_bounds(sheet)  # 获取真实数据边界
-        tables: list[ExcelTable] = []  # 存储已发现的表格
-        visited: set[tuple[int, int]] = set()  # 记录已访问的单元格
+        """Match the expected pattern."""
+        bounds: DataRegion = self._find_true_data_bounds(sheet)  # Extract the required value.
+        tables: list[ExcelTable] = []  # Process table content.
+        visited: set[tuple[int, int]] = set()  # Implementation detail.
 
-        # 仅遍历已存在且有值的单元格，避免 iter_rows 在稀疏大表上创建大量空单元格。
+        # Iterate over the available items.
         for ri, rj in self._get_non_empty_cell_positions(sheet, bounds):
-            # 跳过已访问的单元格
+            # Remove invalid or unnecessary data.
             if (ri, rj) in visited:
                 continue
 
-            # 从当前单元格出发，通过洪水填充算法确定所属表格的边界
+            # Add the value to the result.
             table_bounds, visited_cells = self._find_table_bounds(
                 sheet,
                 ri,
@@ -1125,7 +1125,7 @@ class XlsxConverter:
                 bounds.max_col,
                 gap_tolerance,
             )
-            visited.update(visited_cells)  # 将已访问单元格加入全局记录
+            visited.update(visited_cells)  # Implementation detail.
             tables.append(table_bounds)
 
         return tables
@@ -1135,7 +1135,7 @@ class XlsxConverter:
         sheet: Worksheet,
         bounds: DataRegion,
     ) -> list[tuple[int, int]]:
-        """按行列顺序返回真实边界内已有值单元格的 0-based 坐标。"""
+        """Sort items into the required order."""
         positions = []
         for cell in sheet._cells.values():
             if cell.value is None:
@@ -1149,22 +1149,22 @@ class XlsxConverter:
         return sorted(positions)
 
     def _find_true_data_bounds(self, sheet: Worksheet) -> DataRegion:
-        """查找工作表中真实的数据边界（最小/最大行列）。
+        """Match the expected pattern.
 
-        该函数扫描所有单元格，找到包含所有非空单元格或合并单元格区域的
-        最小矩形范围，返回边界的行列索引。
+        Merge the related values.
+        Prepare the output value.
 
-        参数：
-            sheet: 待分析的工作表。
+        Implementation detail.
+            Parse the input data.
 
-        返回：
-            覆盖所有数据和合并单元格的最小矩形区域 DataRegion。
-            若工作表为空，则默认返回 (1, 1, 1, 1)。
+        Prepare the output value.
+            Merge the related values.
+            Prepare the output value.
         """
         min_row, min_col = None, None
         max_row, max_col = 0, 0
 
-        # 遍历所有有值的单元格，动态更新边界
+        # Iterate over the available items.
         for cell in sheet._cells.values():
             if cell.value is not None:
                 r, c = cell.row, cell.column
@@ -1173,7 +1173,7 @@ class XlsxConverter:
                 max_row = max(max_row, r)
                 max_col = max(max_col, c)
 
-        # 将合并单元格的范围也纳入边界计算
+        # Calculate the result.
         for merged in sheet.merged_cells.ranges:
             min_row = (
                 merged.min_row if min_row is None else min(min_row, merged.min_row)
@@ -1184,7 +1184,7 @@ class XlsxConverter:
             max_row = max(max_row, merged.max_row)
             max_col = max(max_col, merged.max_col)
 
-        # 若工作表中没有任何数据，默认返回 (1, 1, 1, 1)
+        # Prepare the output value.
         if min_row is None or min_col is None:
             min_row = min_col = max_row = max_col = 1
 
@@ -1199,111 +1199,111 @@ class XlsxConverter:
         max_col: int,
         gap_tolerance: int,
     ) -> tuple[ExcelTable, set[tuple[int, int]]]:
-        """使用洪水填充（BFS）策略确定表格边界。
+        """Add the value to the result.
 
-        该方法通过广度优先搜索（BFS）算法识别 Excel 工作表中连续的非空单元格区域，
-        能够准确检测非矩形表格（如 L 形、错位列等），并支持通过间隔容忍度
-        连接相邻但不直接相连的单元格。
+        Match the expected pattern.
+        Process table content.
+        Merge the related values.
 
-        算法分两个阶段执行：
-        1. 洪水填充阶段：使用 BFS 从给定位置出发，找出所有相连的单元格。
-        2. 数据提取阶段：构建矩形边界框并提取单元格数据，正确处理合并单元格。
+        Implementation detail.
+        Add the value to the result.
+        Build the required output.
 
-        参数：
-            sheet: 待分析的 Excel 工作表。
-            start_row: 洪水填充起始行索引（从0开始）。
-            start_col: 洪水填充起始列索引（从0开始）。
-            max_row: 工作表中可考虑的最大行索引（从0开始）。
-            max_col: 工作表中可考虑的最大列索引（从0开始）。
-            gap_tolerance: 允许跨越空白单元格查找邻居的最大间隔。
+        Implementation detail.
+            Parse the input data.
+            Add the value to the result.
+            Add the value to the result.
+            Implementation detail.
+            Implementation detail.
+            Match the expected pattern.
 
-        返回：
-            一个元组，包含：
-                - ExcelTable：表示检测到的表格对象，含锚点位置、尺寸和单元格数据。
-                - set[tuple[int, int]]：洪水填充期间访问的所有 (行, 列) 元组集合，
-                  用于防止重复扫描。
+        Prepare the output value.
+            Implementation detail.
+                Process table content.
+                Add the value to the result.
+                  Implementation detail.
 
-        说明：
-            该方法遵循 GAP_TOLERANCE 选项，允许在容忍距离内将被空单元格隔开的
-            单元格视为同一表格的一部分。
+        Implementation detail.
+            Implementation detail.
+            Process table content.
         """
 
-        # BFS 队列，存储待处理的 (行, 列) 坐标
+        # Process the current item.
         queue = collections.deque([(start_row, start_col)])
 
-        # 记录当前表格内已访问的单元格（避免重复加入队列）
-        # 调用方维护全局 visited 集合，防止重复启动新表格
+        # Process table content.
+        # Process table content.
         table_cells: set[tuple[int, int]] = set()
         table_cells.add((start_row, start_col))
 
-        # 动态记录当前表格的行列边界
+        # Process table content.
         min_r, max_r = start_row, start_row
         min_c, max_c = start_col, start_col
         merged_lookup = self._get_merged_cell_lookup(sheet)
 
         def has_content(r, c):
-            """检查指定单元格（0-based索引）是否有内容（有值或属于合并区域）。"""
+            """Validate the current value."""
             if r < 0 or c < 0 or r > max_row or c > max_col:
                 return False
 
-            # 1. 检查单元格直接值
+            # Validate the current value.
             cell = sheet._cells.get((r + 1, c + 1))
             if cell is not None and cell.value is not None:
                 return True
 
-            # 2. 检查是否属于某个合并单元格区域
+            # Validate the current value.
             return merged_lookup.contains_merged_cell(r, c)
 
-        # --- 第一阶段：洪水填充（连通性检测）---
+        # Add the value to the result.
         while queue:
             curr_r, curr_c = queue.popleft()
 
-            # 动态更新表格边界
+            # Process table content.
             min_r = min(min_r, curr_r)
             max_r = max(max_r, curr_r)
             min_c = min(min_c, curr_c)
             max_c = max(max_c, curr_c)
 
-            # 四个方向（上、下、左、右）的邻居检测
+            # Implementation detail.
             directions = [
-                (0, 1),  # 右
-                (0, -1),  # 左
-                (1, 0),  # 下
-                (-1, 0),  # 上
+                (0, 1),  # Implementation detail.
+                (0, -1),  # Implementation detail.
+                (1, 0),  # Implementation detail.
+                (-1, 0),  # Implementation detail.
             ]
 
             for dr, dc in directions:
-                # 在容忍距离范围内逐步检查邻居（优先检查最近的）
+                # Validate the current value.
                 for step in range(1, gap_tolerance + 2):
                     nr, nc = curr_r + (dr * step), curr_c + (dc * step)
 
                     if (nr, nc) in table_cells:
-                        break  # 已属于当前表格，不跨越继续查找
+                        break  # Match the expected pattern.
 
                     if has_content(nr, nc):
                         table_cells.add((nr, nc))
                         queue.append((nr, nc))
-                        # 在该方向找到连接点，停止扩展间隔
+                        # Merge the related values.
                         break
 
-        # --- 第二阶段：数据提取（语义网格构建）---
+        # Build the required output.
         data = []
 
-        # 遍历发现区域的边界框（bbox内部的空格作为空单元格保留，维持矩形布局）
+        # Iterate over the available items.
         for ri in range(min_r, max_r + 1):
             for rj in range(min_c, max_c + 1):
-                # 跳过被合并单元格遮蔽的单元格（非左上角）
+                # Remove invalid or unnecessary data.
                 if merged_lookup.is_hidden_merged_cell(ri, rj):
                     continue
 
-                # 计算合并跨度（默认为 1x1）
+                # Calculate the result.
                 row_span, col_span = merged_lookup.get_anchor_span(ri, rj)
 
                 data.append(
                     self._build_excel_cell(
                         sheet,
-                        ri - min_r,  # 相对于表格起始行的偏移
-                        rj - min_c,  # 相对于表格起始列的偏移
+                        ri - min_r,  # Process table content.
+                        rj - min_c,  # Process table content.
                         ri,
                         rj,
                         row_span=row_span,
@@ -1311,8 +1311,8 @@ class XlsxConverter:
                     )
                 )
 
-        # 返回给调用方的 visited_cells 严格为包含数据/合并的单元格，
-        # 使主循环不会重复扫描已处理的单元格。
+        # Merge the related values.
+        # Iterate over the available items.
         return (
             ExcelTable(
                 anchor=(min_c, min_r),
@@ -1324,7 +1324,7 @@ class XlsxConverter:
         )
 
     def _get_merged_cell_lookup(self, sheet: Worksheet) -> _MergedCellLookup:
-        """获取工作表合并单元格缓存，同一轮转换内每个 sheet 只构建一次。"""
+        """Convert the value to the required format."""
         cache_key = id(sheet)
         lookup = self._merged_cell_lookup_cache.get(cache_key)
         if lookup is None:
@@ -1338,7 +1338,7 @@ class XlsxConverter:
             image_id = match.group(1)
 
         else:
-            logger.error(f"无法从单元格文本中提取图片 ID，文本内容：{text}")
+            logger.error(f"\u65e0\u6cd5\u4ece\u5355\u5143\u683c\u6587\u672c\u4e2d\u63d0\u53d6\u56fe\u7247 ID\uff0c\u6587\u672c\u5185\u5bb9\uff1a{text}")
             return ""
 
         cell_image_map = self._load_cell_image_mappings()
@@ -1346,7 +1346,7 @@ class XlsxConverter:
         zip_target_path = posixpath.normpath(posixpath.join("xl", cell_image_map.get(image_id, "")))
         if self.zf is None or zip_target_path not in self.zf.namelist():
             logger.warning(
-                f"图片目标文件不存在，image_id={image_id}, target={zip_target_path}"
+                f"\u56fe\u7247\u76ee\u6807\u6587\u4ef6\u4e0d\u5b58\u5728\uff0cimage_id={image_id}, target={zip_target_path}"
             )
             return ""
 
@@ -1366,7 +1366,7 @@ class XlsxConverter:
                 return rf'<img src="{img_base64}" />'
         except Exception as e:
             logger.warning(
-                f"读取单元格图片失败，image_id={image_id}, target={zip_target_path}, error={e}"
+                f"\u8bfb\u53d6\u5355\u5143\u683c\u56fe\u7247\u5931\u8d25\uff0cimage_id={image_id}, target={zip_target_path}, error={e}"
             )
             return ""
 
@@ -1420,13 +1420,13 @@ class XlsxConverter:
                     image_name = cell_image_embed_to_name.get(rel_id)
                     if not image_name:
                         logger.warning(
-                            f"跳过缺少 cellImage 名称映射的关系: {rel_id}"
+                            f"\u8df3\u8fc7\u7f3a\u5c11 cellImage \u540d\u79f0\u6620\u5c04\u7684\u5173\u7cfb: {rel_id}"
                         )
                         continue
                     self.cell_image_map[image_name] = target
 
         except Exception as e:
-            logger.warning(f"解析 cellimages 映射失败: {e}")
+            logger.warning(f"\u89e3\u6790 cellimages \u6620\u5c04\u5931\u8d25: {e}")
             return {}
 
         return self.cell_image_map
@@ -1597,15 +1597,15 @@ class XlsxConverter:
 
     @staticmethod
     def _get_sheet_content_layer(sheet: Worksheet):
-        """根据工作表的可见性返回对应的内容层。
+        """Prepare the output value.
 
-        若工作表可见，返回 None（默认层）；否则返回 INVISIBLE 层。
+        Prepare the output value.
 
-        参数：
-            sheet: 待检查的工作表。
+        Implementation detail.
+            Validate the current value.
 
-        返回：
-            ContentLayer.INVISIBLE 或 None。
+        Prepare the output value.
+            Implementation detail.
         """
         return (
             None if sheet.sheet_state == Worksheet.SHEETSTATE_VISIBLE else "INVISIBLE"

@@ -374,7 +374,7 @@ class CropByPolys:
 
         points_sample = self.sample_points_on_bbox(points)
         points_sample = points_sample.astype(np.int32)
-        # 印章检测在极小噪声框上可能只采样出少于4个有效点，回退到外接矩形裁剪避免中断整篇解析。
+        # Parse the input data.
         if (
             points_sample.ndim != 2
             or points_sample.shape[0] < 4

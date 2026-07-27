@@ -29,7 +29,7 @@ SWAGGER_UI_FILE_ARRAY_SCHEMA_EXTRA = {
 
 @dataclass
 class ParseRequestOptions:
-    """保存公开解析接口共用的表单参数，供 API 与 Router 复用。"""
+    """Parse the input data."""
 
     files: list[UploadFile]
     lang_list: list[str]
@@ -53,7 +53,7 @@ class ParseRequestOptions:
 
 
 def validate_parse_method(parse_method: str) -> str:
-    """校验公开 API 允许的 PDF 解析方式，避免各入口维护不同规则。"""
+    """Validate the current value."""
     if parse_method not in ALLOWED_PARSE_METHODS:
         raise HTTPException(
             status_code=400,
@@ -66,7 +66,7 @@ def validate_parse_method(parse_method: str) -> str:
 
 
 def validate_parse_backend(backend: str) -> str:
-    """校验公开 API 允许的解析后端，避免旧入口名进入下游执行链路。"""
+    """Validate the current value."""
     try:
         return validate_public_backend(backend)
     except ValueError as exc:
@@ -74,7 +74,7 @@ def validate_parse_backend(backend: str) -> str:
 
 
 def validate_parse_effort(effort: str) -> str:
-    """校验公开 API 允许的 hybrid effort，避免非法值进入解析链路。"""
+    """Validate the current value."""
     try:
         return validate_public_effort(effort)
     except ValueError as exc:
@@ -82,7 +82,7 @@ def validate_parse_effort(effort: str) -> str:
 
 
 def validate_parse_lang_list(lang_list: list[str]) -> list[str]:
-    """校验公开 API 允许的 OCR 语言列表，避免旧语言入口进入解析链路。"""
+    """Validate the current value."""
     try:
         return validate_public_ocr_lang_list(lang_list)
     except ValueError as exc:
@@ -210,7 +210,7 @@ async def parse_request_form(
         Form(description="The ending page for PDF parsing, beginning from 0"),
     ] = 99999,
 ) -> ParseRequestOptions:
-    """解析 API/Router 共用的 multipart 表单，并保持 Swagger 参数同源。"""
+    """Parse the input data."""
     backend = validate_parse_backend(backend)
     effort = validate_parse_effort(effort)
     validate_public_http_client_request(

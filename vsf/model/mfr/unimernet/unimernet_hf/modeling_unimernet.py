@@ -145,7 +145,7 @@ class UnimernetModel(VisionEncoderDecoderModel):
         return {"loss": loss}
 
     def _decode_generate_outputs(self, outputs, return_full_result: bool = True):
-        """统一解码生成结果，轻量路径只保留调用方实际消费的公式文本。"""
+        """Build the required output."""
         token_ids = outputs[:, 1:].cpu()
         result_tokens = token_ids.numpy() if return_full_result else token_ids
         pred_str = self.tokenizer.token2str(result_tokens)

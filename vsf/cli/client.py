@@ -99,7 +99,7 @@ def normalize_backend_option(
     param: click.Parameter,
     value: str,
 ) -> str:
-    """将 CLI 输入的旧 backend 名称规范为当前公开名称。"""
+    """Convert the value to the required format."""
     try:
         return normalize_backend(value)
     except ValueError as exc:
@@ -111,7 +111,7 @@ def normalize_effort_option(
     param: click.Parameter,
     value: str,
 ) -> str:
-    """将 CLI 输入的 hybrid effort 参数规范为当前公开名称。"""
+    """Convert the value to the required format."""
     try:
         return validate_effort(value)
     except ValueError as exc:
@@ -123,7 +123,7 @@ def normalize_ocr_lang_option(
     param: click.Parameter,
     value: str,
 ) -> str:
-    """校验 CLI OCR 语言参数，并将兼容别名归一到实际模型语言。"""
+    """Validate the current value."""
     try:
         return validate_public_ocr_lang(value)
     except ValueError as exc:
@@ -677,7 +677,7 @@ def build_request_form_data(
     client_side_output_generation: bool = False,
     effort: str = DEFAULT_HYBRID_EFFORT,
 ) -> dict[str, str | list[str]]:
-    # 开启客户端输出生成时，只关闭客户端会重建的最终产物。
+    # Build the required output.
     return_md = not client_side_output_generation
     return_content_list = not client_side_output_generation
     return _api_client.build_parse_request_form_data(
@@ -863,7 +863,7 @@ async def run_planned_task(
         zip_path.unlink(missing_ok=True)
     if client_side_output_generation:
         for document in planned_task.documents:
-            # 解压后按现有 parse_dir 结构覆盖重生客户端最终输出产物。
+            # Prepare the output value.
             parse_dir = resolve_parse_dir(
                 output_dir,
                 document.stem,

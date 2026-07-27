@@ -10,7 +10,7 @@ OCR_DET_PADDING = 50
 
 
 def get_ch_ocr_det_model():
-    """获取默认中文 OCR 检测模型，当前 ch 已对应轻量 PP-OCRv6 配置。"""
+    """Extract the required value."""
     try:
         from mineru.backend.pipeline.model_init import AtomModelSingleton
     except Exception as e:

@@ -80,14 +80,14 @@ def pdf_page_to_image(
 def _load_images_from_pdf_worker(
     pdf_bytes, dpi, start_page_id, end_page_id, image_type
 ):
-    """用于进程池的包装函数"""
+    """Implementation detail."""
     return load_images_from_pdf_core(
         pdf_bytes, dpi, start_page_id, end_page_id, image_type
     )
 
 
 def _close_image_dicts(images_list) -> None:
-    """关闭 image dict 中的 PIL 图片，供异常清理路径释放已生成的图像资源。"""
+    """Build the required output."""
     for image_dict in images_list or []:
         pil_img = image_dict.get("img_pil")
         if pil_img is None:
@@ -171,7 +171,7 @@ def _create_pdf_render_executor(max_workers: int) -> ProcessPoolExecutor:
 
 
 def _is_pdf_render_pool_still_spawning_workers(executor: ProcessPoolExecutor) -> bool:
-    """判断渲染进程池是否还可能因为 submit 而继续创建新的 worker。"""
+    """Validate the current value."""
     max_workers = getattr(executor, "_max_workers", None)
     if max_workers is None or max_workers <= 1:
         return False
@@ -187,7 +187,7 @@ def _submit_pdf_render_task(
     *args,
     **kwargs,
 ):
-    """提交 PDF 渲染任务；冷启动补 worker 时串行 submit 并错开 100ms。"""
+    """Implementation detail."""
     global _pdf_render_spawn_submit_executor_id, _pdf_render_spawn_submit_count
 
     with _pdf_render_spawn_submit_lock:
@@ -370,8 +370,8 @@ async def aio_load_images_from_pdf_bytes_range(
 
 
 def _terminate_executor_processes(executor):
-    """强制终止 ProcessPoolExecutor 中的所有子进程"""
-    # executor.shutdown() 后 _processes 会被置空，重复回收时直接视为无进程。
+    """Implementation detail."""
+    # Implementation detail.
     process_map = getattr(executor, "_processes", None) or {}
     processes = list(process_map.values())
     if not processes:
@@ -492,17 +492,17 @@ def cut_image(
     image_writer: FileBasedDataWriter,
     scale=2,
 ):
-    """从第page_num页的page中，根据bbox进行裁剪出一张jpg图片，返回图片路径 save_path：需要同时支持s3和本地,
-    图片存放在save_path下，文件名是:
-    {page_num}_{bbox[0]}_{bbox[1]}_{bbox[2]}_{bbox[3]}.jpg , bbox内数字取整。"""
+    """Process image content.
+    Process image content.
+    Implementation detail."""
 
-    # 拼接文件名
+    # Merge the related values.
     filename = f"{page_num}_{int(bbox[0])}_{int(bbox[1])}_{int(bbox[2])}_{int(bbox[3])}"
 
-    # 老版本返回不带bucket的路径
+    # Process the file path.
     img_path = f"{return_path}_{filename}" if return_path is not None else None
 
-    # 新版本生成平铺路径
+    # Build the required output.
     img_hash256_path = f"{str_sha256(img_path)}.jpg"
     # img_hash256_path = f'{img_path}.jpg'
 
@@ -541,18 +541,18 @@ def get_crop_np_img(bbox: tuple, input_img, scale=2):
 
 
 def images_bytes_to_pdf_bytes(image_bytes):
-    # 内存缓冲区
+    # Implementation detail.
     pdf_buffer = BytesIO()
 
-    # 载入并转换所有图像为 RGB 模式
+    # Convert the value to the required format.
     image = Image.open(BytesIO(image_bytes))
-    # 根据 EXIF 信息自动转正（处理手机拍摄的带 Orientation 标记的图片）
+    # Process image content.
     image = ImageOps.exif_transpose(image) or image
-    # 只在必要时转换
+    # Convert the value to the required format.
     if image.mode != "RGB":
         image = image.convert("RGB")
 
-    # 第一张图保存为 PDF，其余追加
+    # Add the value to the result.
     image.save(
         pdf_buffer,
         format="PDF",
@@ -561,7 +561,7 @@ def images_bytes_to_pdf_bytes(image_bytes):
         subsampling=0,
     )
 
-    # 获取 PDF bytes 并重置指针（可选）
+    # Extract the required value.
     pdf_bytes = pdf_buffer.getvalue()
     pdf_buffer.close()
     return pdf_bytes

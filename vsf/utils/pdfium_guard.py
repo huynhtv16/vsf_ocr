@@ -42,7 +42,7 @@ def close_pdfium_document(pdf_doc) -> None:
 
 
 def close_pdfium_child(pdfium_obj) -> None:
-    """显式关闭 PDFium 子对象，避免依赖 weakref/finalizer 延迟释放 native 资源。"""
+    """Implementation detail."""
     if pdfium_obj is None:
         return
     close = getattr(pdfium_obj, "close", None)
@@ -52,7 +52,7 @@ def close_pdfium_child(pdfium_obj) -> None:
 
 
 def close_pdfium_objects_safely(*pdfium_objs, owner: str = "pdfium cleanup") -> None:
-    """清理多个 PDFium 对象时逐个尝试关闭，避免前一个关闭失败阻断后续对象释放。"""
+    """Remove invalid or unnecessary data."""
     for pdfium_obj in pdfium_objs:
         if pdfium_obj is None:
             continue
@@ -67,7 +67,7 @@ def get_loadable_pdfium_page_indices(
     start_page_id: int = 0,
     end_page_id: int | None = None,
 ) -> tuple[list[int], list[int]]:
-    """逐页探测 PDFium 可加载页面，返回可保留页和损坏页的 0-based 索引。"""
+    """Prepare the output value."""
     import pypdfium2 as pdfium
 
     loadable_page_indices = []

@@ -6,14 +6,14 @@ from bs4 import BeautifulSoup
 import shutil
 def get_covrage():
     """get covrage"""
-    # 发送请求获取网页内容
+    # Extract the required value.
     html_content = open("htmlcov/index.html", "r", encoding="utf-8").read()
     soup = BeautifulSoup(html_content, 'html.parser')
 
-    # 查找包含"pc_cov"的span标签
+    # Match the expected pattern.
     pc_cov_span = soup.find('span', class_='pc_cov')
 
-    # 提取百分比值
+    # Extract the required value.
     percentage_value = pc_cov_span.text.strip()
     percentage_float = float(percentage_value.rstrip('%'))
     print ("percentage_float:", percentage_float)

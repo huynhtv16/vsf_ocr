@@ -92,7 +92,7 @@ FILE_PARSE_TASK_RESULT_URL_HEADER = "X-MinerU-Task-Result-Url"
 MINERU_API_PUBLIC_BIND_EXPOSED_ENV = "MINERU_API_PUBLIC_BIND_EXPOSED"
 MINERU_API_ALLOW_PUBLIC_HTTP_CLIENT_ENV = "MINERU_API_ALLOW_PUBLIC_HTTP_CLIENT"
 
-# 并发控制器
+# Implementation detail.
 _request_semaphore: Optional[asyncio.Semaphore] = None
 _configured_max_concurrent_requests = 1
 
@@ -349,7 +349,7 @@ def warn_if_public_http_client_policy(host: str, allow_public_http_client: bool)
 
 
 def cleanup_file(file_path: str) -> None:
-    """清理临时文件或目录"""
+    """Remove invalid or unnecessary data."""
     try:
         if os.path.exists(file_path):
             if os.path.isfile(file_path):
@@ -403,7 +403,7 @@ def get_image_mime_type(image_path: str) -> str:
 def get_infer_result(
     file_suffix_identifier: str, pdf_name: str, parse_dir: str
 ) -> Optional[str]:
-    """从结果文件中读取推理结果"""
+    """Extract the required value."""
     result_file_path = os.path.join(parse_dir, f"{pdf_name}{file_suffix_identifier}")
     if os.path.exists(result_file_path):
         with open(result_file_path, "r", encoding="utf-8") as fp:

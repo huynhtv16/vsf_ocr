@@ -286,10 +286,10 @@ class RSEFPN(nn.Module):
 
 
 class RepLKFPNSqueezeExcitationModule(nn.Module):
-    """PP-OCRv6 RepLKFPN 使用的轻量 SE 模块，命名对齐 safetensors。"""
+    """Implementation detail."""
 
     def __init__(self, in_channels, reduction, activation="relu"):
-        """初始化通道压缩与恢复卷积。"""
+        """Initialize the component."""
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(output_size=1)
         self.conv1 = nn.Conv2d(in_channels, in_channels // reduction, kernel_size=1, stride=1, padding=0)
@@ -300,7 +300,7 @@ class RepLKFPNSqueezeExcitationModule(nn.Module):
             raise ValueError(f"Unsupported RepLKFPN SE activation: {activation}")
 
     def forward(self, hidden_states):
-        """计算 SE 权重并缩放输入特征。"""
+        """Calculate the result."""
         residual = hidden_states
         hidden_states = self.avg_pool(hidden_states)
         hidden_states = self.conv2(self.act_fn(self.conv1(hidden_states)))
@@ -309,10 +309,10 @@ class RepLKFPNSqueezeExcitationModule(nn.Module):
 
 
 class RepLKFPNDepthwiseSeparableConvLayer(nn.Module):
-    """RepLKFPN 的大核深度卷积 + point-wise 压缩分支。"""
+    """Implementation detail."""
 
     def __init__(self, in_channels, out_channels, kernel_size, reduction):
-        """初始化 depthwise、pointwise 和 SE 子层。"""
+        """Initialize the component."""
         super().__init__()
         self.depthwise_convolution = nn.Conv2d(
             in_channels=in_channels,
@@ -332,7 +332,7 @@ class RepLKFPNDepthwiseSeparableConvLayer(nn.Module):
         )
 
     def forward(self, hidden_states):
-        """执行大核 DW 卷积、PW 压缩和 SE 残差增强。"""
+        """Implementation detail."""
         hidden_states = self.depthwise_convolution(hidden_states)
         hidden_states = self.pointwise_convolution(hidden_states)
         hidden_states = hidden_states + self.squeeze_excitation_module(hidden_states)
@@ -340,10 +340,10 @@ class RepLKFPNDepthwiseSeparableConvLayer(nn.Module):
 
 
 class RepLKFPNResidualSqueezeExcitationLayer(nn.Module):
-    """RepLKFPN 的输入投影层，属性名对齐 `insert_conv.*` 权重。"""
+    """Implementation detail."""
 
     def __init__(self, in_channels, out_channels, kernel_size, reduction, shortcut=True):
-        """初始化输入投影和 SE 分支。"""
+        """Initialize the component."""
         super().__init__()
         self.in_conv = nn.Conv2d(
             in_channels=in_channels,
@@ -356,7 +356,7 @@ class RepLKFPNResidualSqueezeExcitationLayer(nn.Module):
         self.shortcut = shortcut
 
     def forward(self, hidden_states):
-        """执行 1x1 投影并按配置叠加 SE 输出。"""
+        """Prepare the output value."""
         hidden_states = self.in_conv(hidden_states)
         if self.shortcut:
             return hidden_states + self.squeeze_excitation_block(hidden_states)
@@ -364,10 +364,10 @@ class RepLKFPNResidualSqueezeExcitationLayer(nn.Module):
 
 
 class RepLKFPN(nn.Module):
-    """PP-OCRv6 small det 使用的 RepLKFPN neck。"""
+    """Implementation detail."""
 
     def __init__(self, in_channels, out_channels, shortcut=True, dilated_kernel_size=7, reduction=4, **kwargs):
-        """按四级 backbone 通道创建 v6 FPN 投影和大核融合层。"""
+        """Build the required output."""
         super().__init__()
         self.out_channels = out_channels
         self.interpolate_mode = kwargs.get("interpolate_mode", "nearest")
@@ -393,7 +393,7 @@ class RepLKFPN(nn.Module):
             )
 
     def forward(self, feature_maps):
-        """融合四级特征并返回 DBHead 需要的单张特征图。"""
+        """Prepare the output value."""
         fused = []
         for conv, feature in zip(self.insert_conv, feature_maps):
             fused.append(conv(feature))

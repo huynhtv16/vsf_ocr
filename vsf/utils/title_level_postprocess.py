@@ -15,7 +15,7 @@ SUPPORTED_PDF_BACKENDS = {"pipeline", "vlm", "hybrid"}
 
 
 def _resolve_title_aided_config() -> dict[str, Any] | None:
-    """从本地配置解析标题分级开关。"""
+    """Parse the input data."""
     llm_aided_config = get_llm_aided_config()
     title_aided_config = (
         llm_aided_config.get("title_aided")
@@ -44,7 +44,7 @@ def apply_title_leveling_to_pdf_info(pdf_info: list[dict[str, Any]]):
 
 
 def finalize_client_side_middle_json(middle_json: dict[str, Any]) -> dict[str, Any]:
-    """根据 staged middle json 的后端类型，在客户端执行完整 finalize。"""
+    """Implementation detail."""
     if not isinstance(middle_json, dict):
         raise ValueError("middle_json must be a dict.")
 

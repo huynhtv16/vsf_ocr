@@ -7,7 +7,7 @@ __all__ = ['IOReader', 'IOWriter', 'HttpReader', 'HttpWriter', 'S3Reader', 'S3Wr
 
 
 def __getattr__(name):
-    """按需加载 S3 IO 类，避免默认安装场景强制依赖 boto3。"""
+    """Implementation detail."""
     if name in {'S3Reader', 'S3Writer'}:
         from .s3 import S3Reader, S3Writer
 

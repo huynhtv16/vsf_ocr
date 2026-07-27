@@ -90,7 +90,7 @@ def html_table_from_excel_bytes(excel_bytes: bytes) -> str:
 
 
 def _extract_non_empty_worksheet_rows(worksheet) -> list[list[str]]:
-    """提取工作表中首尾有内容的行，避免空 sheet 或尾部空列撑大兜底表格。"""
+    """Extract the required value."""
     raw_rows: list[list[str]] = []
     for row in worksheet.iter_rows(values_only=True):
         stringified_row = [_stringify_cell_value(value) for value in row]
@@ -111,7 +111,7 @@ def _extract_non_empty_worksheet_rows(worksheet) -> list[list[str]]:
 
 
 def _trim_trailing_empty_values(values: list[str]) -> list[str]:
-    """移除行尾空值，保留中间空单元格的位置。"""
+    """Remove invalid or unnecessary data."""
     end = len(values)
     while end > 0 and values[end - 1] == "":
         end -= 1
@@ -119,7 +119,7 @@ def _trim_trailing_empty_values(values: list[str]) -> list[str]:
 
 
 def _find_first_non_empty_row(rows: list[list[str]]) -> int | None:
-    """返回第一行非空行的索引，未找到时返回 None。"""
+    """Prepare the output value."""
     for idx, row in enumerate(rows):
         if any(value != "" for value in row):
             return idx
@@ -127,7 +127,7 @@ def _find_first_non_empty_row(rows: list[list[str]]) -> int | None:
 
 
 def _find_last_non_empty_row(rows: list[list[str]]) -> int | None:
-    """返回最后一行非空行的索引。"""
+    """Prepare the output value."""
     for idx in range(len(rows) - 1, -1, -1):
         if any(value != "" for value in rows[idx]):
             return idx
@@ -135,7 +135,7 @@ def _find_last_non_empty_row(rows: list[list[str]]) -> int | None:
 
 
 def _render_embedded_workbook_table(rows: list[list[str]]) -> str:
-    """将嵌入 workbook 的二维数据渲染为紧凑 HTML 表格，首行作为表头。"""
+    """Process table content."""
     if not rows:
         return ""
 

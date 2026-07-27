@@ -7,7 +7,7 @@ import numpy as np
 
 
 class ConnectedComponent:
-    """保存连通域的 bbox、bbox 面积和懒加载坐标，字段语义对齐旧版 regionprops。"""
+    """Add the value to the result."""
 
     def __init__(
         self,
@@ -16,7 +16,7 @@ class ConnectedComponent:
         bbox: tuple[int, int, int, int],
         bbox_area: int,
     ):
-        """记录组件基础信息，像素坐标延迟到真正参与几何计算时再生成。"""
+        """Build the required output."""
         self._labels = labels
         self._label_id = label_id
         self.bbox = bbox
@@ -25,7 +25,7 @@ class ConnectedComponent:
 
     @property
     def coords(self) -> np.ndarray:
-        """在组件 bbox 内提取 row/col 坐标，保持历史行优先顺序。"""
+        """Sort items into the required order."""
         if self._coords is None:
             min_row, min_col, max_row, max_col = self.bbox
             label_roi = self._labels[min_row:max_row, min_col:max_col]
@@ -35,7 +35,7 @@ class ConnectedComponent:
 
 
 def _iter_connected_component_coords(binary_mask: np.ndarray) -> Iterator[ConnectedComponent]:
-    """用 OpenCV 提取 8 连通域，避免构造旧版 region 对象带来的额外开销。"""
+    """Extract the required value."""
     mask = np.asarray(binary_mask)
     if mask.size == 0:
         return
@@ -127,9 +127,9 @@ def get_3rd_point(a, b):
 
 
 def get_table_line(binimg, axis=0, lineW=10):
-    ##获取表格线
-    ##axis=0 横线
-    ##axis=1 竖线
+    # Extract the required value.
+    # Implementation detail.
+    # Implementation detail.
     components = _iter_connected_component_coords(binimg > 0)
     if axis == 1:
         lineboxes = [
@@ -148,7 +148,7 @@ def get_table_line(binimg, axis=0, lineW=10):
 
 def min_area_rect(coords):
     """
-    多边形外接矩形
+    Implementation detail.
     """
     rect = cv2.minAreaRect(coords[:, ::-1])
     box = cv2.boxPoints(rect)
@@ -185,7 +185,7 @@ def image_location_sort_box(box):
 
 def calculate_center_rotate_angle(box):
     """
-    绕 cx,cy点 w,h 旋转 angle 的坐标,能一定程度缓解图片的内部倾斜，但是还是依赖模型稳妥
+    Process image content.
     x = cx-w/2
     y = cy-h/2
     x1-cx = -w/2*cos(angle) +h/2*sin(angle)
@@ -215,14 +215,14 @@ def calculate_center_rotate_angle(box):
 
 
 def _order_points(pts):
-    # 根据x坐标对点进行排序
+    # Sort items into the required order.
     """
     ---------------------
-    本项目中是为了排序后得到[(xmin,ymin),(xmax,ymin),(xmax,ymax),(xmin,ymax)]
-    作者：Tong_T
-    来源：CSDN
-    原文：https://blog.csdn.net/Tong_T/article/details/81907132
-    版权声明：本文为博主原创文章，转载请附上博文链接！
+    Sort items into the required order.
+    Implementation detail.
+    Implementation detail.
+    Implementation detail.
+    Implementation detail.
     """
     x_sorted = pts[np.argsort(pts[:, 0]), :]
 
@@ -253,7 +253,7 @@ def adjust_lines(lines, alph=50, angle=50):
                 cx2, cy2 = (x3 + x4) / 2, (y3 + y4) / 2
                 if (x3 < cx1 < x4 or y3 < cy1 < y4) or (
                     x1 < cx2 < x2 or y1 < cy2 < y2
-                ):  # 判断两个横线在y方向的投影重不重合
+                ):  # Validate the current value.
                     continue
                 else:
                     r = sqrt((x1, y1), (x3, y3))
@@ -310,7 +310,7 @@ def draw_lines(im, bboxes, color=(0, 0, 0), lineW=3):
 
 def line_to_line(points1, points2, alpha=10, angle=30):
     """
-    线段之间的距离
+    Implementation detail.
     """
     x1, y1, x2, y2 = points1
     ox1, oy1, ox2, oy2 = points2
@@ -321,16 +321,16 @@ def line_to_line(points1, points2, alpha=10, angle=30):
     flag1 = point_line_cor(np.array([x1, y1], dtype="float32"), A2, B2, C2)
     flag2 = point_line_cor(np.array([x2, y2], dtype="float32"), A2, B2, C2)
 
-    if (flag1 > 0 and flag2 > 0) or (flag1 < 0 and flag2 < 0):  # 横线或者竖线在竖线或者横线的同一侧
+    if (flag1 > 0 and flag2 > 0) or (flag1 < 0 and flag2 < 0):  # Implementation detail.
         if (A1 * B2 - A2 * B1) != 0:
             x = (B1 * C2 - B2 * C1) / (A1 * B2 - A2 * B1)
             y = (A2 * C1 - A1 * C2) / (A1 * B2 - A2 * B1)
             # x, y = round(x, 2), round(y, 2)
-            p = (x, y)  # 横线与竖线的交点
+            p = (x, y)  # Implementation detail.
             r0 = sqrt(p, (x1, y1))
             r1 = sqrt(p, (x2, y2))
 
-            if min(r0, r1) < alpha:  # 若交点与线起点或者终点的距离小于alpha，则延长线到交点
+            if min(r0, r1) < alpha:  # Implementation detail.
                 if r0 < r1:
                     k = abs((y2 - p[1]) / (x2 - p[0] + 1e-10))
                     a = math.atan(k) * 180 / math.pi
@@ -348,14 +348,14 @@ def min_area_rect_box(
     regions, flag=True, W=0, H=0, filtersmall=False, adjust_box=False
 ):
     """
-    多边形外接矩形
+    Implementation detail.
     """
     boxes = []
     for region in regions:
         region_bbox_area = getattr(region, "bbox_area", None)
         if region_bbox_area is None:
             region_bbox_area = region.area_bbox
-        if region_bbox_area > H * W * 3 / 4:  # 过滤大的单元格
+        if region_bbox_area > H * W * 3 / 4:  # Remove invalid or unnecessary data.
             continue
         rect = cv2.minAreaRect(region.coords[:, ::-1])
 
@@ -378,7 +378,7 @@ def min_area_rect_box(
         if w * h < 0.5 * W * H:
             if filtersmall and (
                 w < 15 or h < 15
-            ):  # or w / h > 30 or h / w > 30): # 过滤小的单元格
+            ):  # Remove invalid or unnecessary data.
                 continue
             boxes.append([x1, y1, x2, y2, x3, y3, x4, y4])
     return boxes
@@ -387,10 +387,10 @@ def min_area_rect_box(
 def min_area_rect_box_from_components(
     components, flag=True, W=0, H=0, filtersmall=False, adjust_box=False
 ):
-    """对 OpenCV 连通域组件执行与 min_area_rect_box 相同的过滤和外接框计算。"""
+    """Remove invalid or unnecessary data."""
     boxes = []
     for component in components:
-        if component.bbox_area > H * W * 3 / 4:  # 过滤大的单元格
+        if component.bbox_area > H * W * 3 / 4:  # Remove invalid or unnecessary data.
             continue
         rect = cv2.minAreaRect(component.coords[:, ::-1])
 
@@ -402,15 +402,15 @@ def min_area_rect_box_from_components(
         if w * h < 0.5 * W * H:
             if filtersmall and (
                 w < 15 or h < 15
-            ):  # or w / h > 30 or h / w > 30): # 过滤小的单元格
+            ):  # Remove invalid or unnecessary data.
                 continue
             boxes.append([x1, y1, x2, y2, x3, y3, x4, y4])
     return boxes
 
 
 def point_line_cor(p, A, B, C):
-    ##判断点与线之间的位置关系
-    # 一般式直线方程(Ax+By+c)=0
+    # Validate the current value.
+    # Implementation detail.
     x, y = p
     r = A * x + B * y + C
     return r
@@ -421,7 +421,7 @@ def fit_line(p):
        B = X1 - X2
        C = X2*Y1 - X1*Y2
        AX+BY+C=0
-    直线一般方程
+    Implementation detail.
     """
     x1, y1 = p[0]
     x2, y2 = p[1]

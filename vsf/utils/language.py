@@ -14,7 +14,7 @@ from fast_langdetect import detect_language
 
 
 def remove_invalid_surrogates(text):
-    # 移除无效的 UTF-16 代理对
+    # Remove invalid or unnecessary data.
     return ''.join(c for c in text if not (0xD800 <= ord(c) <= 0xDFFF))
 
 
@@ -44,6 +44,6 @@ if __name__ == '__main__':
     print(os.getenv("FTLANG_CACHE"))
     print(detect_lang("This is a test."))
     print(detect_lang("<html>This is a test</html>"))
-    print(detect_lang("这个是中文测试。"))
-    print(detect_lang("<html>这个是中文测试。</html>"))
-    print(detect_lang("〖\ud835\udc46\ud835〗这是个包含utf-16的中文测试"))
+    print(detect_lang("\u8fd9\u4e2a\u662f\u4e2d\u6587\u6d4b\u8bd5\u3002"))
+    print(detect_lang("<html>\u8fd9\u4e2a\u662f\u4e2d\u6587\u6d4b\u8bd5\u3002</html>"))
+    print(detect_lang("\u3016\ud835\udc46\ud835\u3017\u8fd9\u662f\u4e2a\u5305\u542butf-16\u7684\u4e2d\u6587\u6d4b\u8bd5"))

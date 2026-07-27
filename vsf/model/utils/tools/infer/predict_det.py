@@ -127,7 +127,7 @@ class TextDetector(BaseOCRV20):
                 module.rep()
 
     def _preprocess_det_image(self, img):
-        """执行 OCR-det 单图预处理，并保留后处理需要的原始尺寸信息。"""
+        """Process the current item."""
         data = {'image': img}
         data = transform(data, self.preprocess_op)
         if data is None:
@@ -140,7 +140,7 @@ class TextDetector(BaseOCRV20):
         return np.ascontiguousarray(img_processed), shape_list, img.shape
 
     def _build_det_preds(self, outputs):
-        """将模型输出统一转换为后处理需要的 float32 numpy 结构。"""
+        """Convert the value to the required format."""
         preds = {}
         if self.det_algorithm == "EAST":
             preds['f_geo'] = outputs['f_geo'].float().cpu().numpy()
@@ -160,7 +160,7 @@ class TextDetector(BaseOCRV20):
         return preds
 
     def _postprocess_det_batch(self, preds, batch_shapes, ori_shapes):
-        """对完整 batch 执行一次 OCR-det 后处理，再逐张裁剪过滤检测框。"""
+        """Remove invalid or unnecessary data."""
         post_results = self.postprocess_op(preds, batch_shapes)
         batch_results = []
         for post_result, ori_shape in zip(post_results, ori_shapes):
@@ -170,7 +170,7 @@ class TextDetector(BaseOCRV20):
         return batch_results
 
     def _batch_process_preprocessed(self, batch_items):
-        """对已经完成预处理且形状一致的图片执行批量推理。"""
+        """Process image content."""
         starttime = time.time()
         if not batch_items:
             return [], 0
@@ -224,14 +224,14 @@ class TextDetector(BaseOCRV20):
 
     def _batch_process_same_size(self, img_list):
         """
-            对相同尺寸的图像进行批处理
+            Process image content.
 
             Args:
-                img_list: 相同尺寸的图像列表
+                Process image content.
 
             Returns:
-                batch_results: 批处理结果列表
-                total_elapse: 总耗时
+                Prepare the output value.
+                Implementation detail.
             """
         starttime = time.time()
 
@@ -255,17 +255,17 @@ class TextDetector(BaseOCRV20):
         tqdm_progress_bar=None,
     ):
         """
-        批处理预测方法，支持多张图像同时检测
+        Process image content.
 
         Args:
-            img_list: 图像列表
-            max_batch_size: 最大批处理大小
-            tqdm_enable: 是否显示内部 OCR-det 进度条
-            tqdm_desc: 内部 OCR-det 进度条描述
-            tqdm_progress_bar: 外部复用进度条，传入时不在本方法内关闭
+            Process image content.
+            Process the current item.
+            Implementation detail.
+            Implementation detail.
+            Implementation detail.
 
         Returns:
-            batch_results: 批处理结果列表，每个元素为(dt_boxes, elapse)
+            Prepare the output value.
         """
         if not img_list:
             return []

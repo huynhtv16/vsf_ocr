@@ -26,7 +26,7 @@
         "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
     };
-    // 只把中文浏览器语言映射为中文；其他所有语言统一降级到英文。
+    // Implementation detail.
     const normalizeMineruLocale = (locale) => {
         const normalized = String(locale || "").toLowerCase();
         if (normalized.startsWith("zh")) {
@@ -35,7 +35,7 @@
         return "en";
     };
 
-    // 以浏览器首选语言为准；非中文语言包括 en/ja/ko/fr 等都统一使用英文文案。
+    // Implementation detail.
     const resolveMineruLocale = () => {
         if (typeof navigator !== "undefined") {
             const languages = Array.from(navigator.languages || []);
@@ -47,7 +47,7 @@
         return normalizeMineruLocale(document.documentElement.getAttribute("lang"));
     };
 
-    // Gradio 只会自动翻译组件属性；header/status 这类自定义 HTML 需要前端按浏览器语言补一次。
+    // Implementation detail.
     const localizeMineruCustomText = () => {
         const locale = resolveMineruLocale();
         document.querySelectorAll("[data-mineru-i18n-key]").forEach((item) => {
@@ -59,7 +59,7 @@
         });
     };
 
-    // 读取浏览器本地偏好时做容错，避免隐私模式禁用 localStorage 影响页面初始化。
+    // Extract the required value.
     const getOfficePreviewNoticeIgnored = () => {
         try {
             return localStorage.getItem(OFFICE_PREVIEW_NOTICE_STORAGE_KEY) === "1";
@@ -68,7 +68,7 @@
         }
     };
 
-    // 保存“不再提示”偏好；失败时仅降级为本次点击隐藏，不阻断预览。
+    // Add the value to the result.
     const setOfficePreviewNoticeIgnored = () => {
         try {
             localStorage.setItem(OFFICE_PREVIEW_NOTICE_STORAGE_KEY, "1");
@@ -81,7 +81,7 @@
     const findOfficePreviewNotices = () =>
         document.querySelectorAll(".office-preview-notice");
 
-    // 根据浏览器持久偏好隐藏新挂载的 Office 预览提示。
+    // Implementation detail.
     const applyOfficePreviewNoticePreference = () => {
         if (!getOfficePreviewNoticeIgnored()) {
             return;
@@ -91,14 +91,14 @@
         });
     };
 
-    // 自定义 HTML 由 Gradio 动态重绘，统一在 DOM 变更后补本地化和忽略状态。
+    // Implementation detail.
     const refreshMineruCustomHtml = () => {
         localizeMineruCustomText();
         applyOfficePreviewNoticePreference();
         refreshMineruOptionVisibility();
     };
 
-    // 兼容 Gradio 将 elem_classes 挂到按钮自身或按钮外层容器的两种 DOM 结构。
+    // Implementation detail.
     const findButton = () => document.querySelector(
         "button.mineru-advanced-open, .mineru-advanced-open button, .mineru-advanced-open"
     );
@@ -110,14 +110,14 @@
     let visibilityTimer = null;
     let hoverHandlersInstalled = false;
 
-    // 读取 Gradio Dropdown 当前值；value 属性比可见文本更稳定，避免中英文文案影响判断。
+    // Validate the current value.
     const getBackendValue = () => {
         const backendRoot = findBackendRoot();
         const backendControl = backendRoot?.querySelector('[role="listbox"]');
         return (backendControl?.value || backendControl?.textContent || "").trim();
     };
 
-    // 读取 Hybrid effort 当前值；控件在非 hybrid 后端会被 Gradio 隐藏，缺失时按空值处理。
+    // Extract the required value.
     const getEffortValue = () => {
         const effortRoot = findEffortRoot();
         const checkedRadio = effortRoot?.querySelector(
@@ -126,7 +126,7 @@
         return (checkedRadio?.value || "").trim();
     };
 
-    // 根据当前 backend/effort 刷新前端状态类，避免依赖 Gradio 重新挂载隐藏组件。
+    // Implementation detail.
     const refreshMineruOptionVisibility = () => {
         const backend = getBackendValue();
         const effort = getEffortValue();
@@ -147,7 +147,7 @@
         }
     };
 
-    // Gradio 控件会异步写回 value，延后一帧再读可以覆盖 Dropdown option 点击和 Radio 切换。
+    // Implementation detail.
     const queueMineruOptionVisibilityRefresh = () => {
         requestAnimationFrame(() => {
             refreshMineruOptionVisibility();
@@ -162,13 +162,13 @@
         return uploadRoot.querySelector('input[type="file"]');
     };
 
-    // 读取上传控件 accept 规则，后续粘贴文件仍复用 gr.File 的支持格式边界。
+    // Extract the required value.
     const getUploadAcceptedTypes = (uploadInput) => {
         const accept = uploadInput?.getAttribute("accept") || "";
         return accept.split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
     };
 
-    // 判断剪贴板文件是否匹配 gr.File 当前支持的扩展名或 MIME 类型。
+    // Validate the current value.
     const fileMatchesAcceptedType = (file, acceptedTypes) => {
         if (!acceptedTypes.length) {
             return true;
@@ -186,7 +186,7 @@
         });
     };
 
-    // 为截图等无文件名剪贴板图片补一个扩展名，确保后端按普通图片文件解析。
+    // Parse the input data.
     const buildClipboardFileName = (file) => {
         const type = (file.type || "").toLowerCase();
         const extension = CLIPBOARD_MIME_EXTENSIONS[type];
@@ -201,7 +201,7 @@
         return `${prefix}-${timestamp}.${extension}`;
     };
 
-    // 保留浏览器暴露的原始文件；仅在文件名缺少扩展名时复制一份并补齐名称。
+    // Process the file path.
     const normalizeClipboardFile = (file) => {
         if (/[.][^.]+$/.test(file.name || "")) {
             return file;
@@ -216,7 +216,7 @@
         });
     };
 
-    // 同时兼容剪贴板 files 与 items，两种入口在不同浏览器里暴露情况不一致。
+    // Implementation detail.
     const collectClipboardFiles = (clipboardData) => {
         const files = Array.from(clipboardData.files || []);
         if (files.length) {
@@ -228,7 +228,7 @@
             .filter(Boolean);
     };
 
-    // 构造只包含目标文件的 FileList；部分浏览器不允许构造 DataTransfer，需要降级处理。
+    // Process the file path.
     const createUploadFileList = (file) => {
         try {
             const transfer = new DataTransfer();
@@ -239,7 +239,7 @@
         }
     };
 
-    // 把文件列表赋值给 gr.File 的原生 input，并触发 Gradio 监听的变更事件。
+    // Process the file path.
     const assignClipboardFileToUpload = (uploadInput, uploadFiles) => {
         if (!uploadFiles) {
             return false;
@@ -254,7 +254,7 @@
         return true;
     };
 
-    // 将剪贴板文件注入现有 gr.File input，避免为图片、PDF、Office 维护第二套上传链路。
+    // Process image content.
     const uploadClipboardFile = (event) => {
         const clipboardData = event.clipboardData;
         const uploadInput = findUploadFileInput();
@@ -283,7 +283,7 @@
         return assignClipboardFileToUpload(uploadInput, uploadFiles);
     };
 
-    // 修正 Gradio Dropdown 在 fixed 浮层里按视口定位导致的下拉列表漂移。
+    // Implementation detail.
     const positionAdvancedDropdowns = () => {
         const popover = findPopover();
         if (!popover || !document.body.classList.contains(POPOVER_OPEN_CLASS)) {
@@ -323,13 +323,13 @@
         });
     };
 
-    // 只在真正支持鼠标悬浮的桌面环境启用 hover 浮窗，触屏设备继续使用点击兜底。
+    // Implementation detail.
     const supportsHoverPopover = () => (
         typeof window.matchMedia === "function"
         && window.matchMedia("(hover: hover) and (pointer: fine)").matches
     );
 
-    // 取消尚未执行的打开/关闭计时，避免鼠标在按钮和气泡之间移动时闪烁。
+    // Implementation detail.
     const cancelPopoverTimers = () => {
         if (openTimer !== null) {
             clearTimeout(openTimer);
@@ -345,14 +345,14 @@
         }
     };
 
-    // 清理旧版 display 开关留下的内联样式，后续统一交给 CSS 的可见性和动画状态控制。
+    // Remove invalid or unnecessary data.
     const clearLegacyPopoverDisplay = (popover) => {
         if (popover) {
             popover.style.removeProperty("display");
         }
     };
 
-    // 用内联 important 同步动画属性，避免 Gradio 自动 scoped CSS 抬高隐藏规则优先级。
+    // Implementation detail.
     const applyOpenPopoverStyle = (popover) => {
         if (!popover) {
             return;
@@ -363,7 +363,7 @@
         popover.style.setProperty("transform", "translateY(0) scale(1)", "important");
     };
 
-    // 关闭时先取消交互并播放淡出，动画结束后再隐藏可见性。
+    // Implementation detail.
     const applyClosedPopoverStyle = (popover) => {
         if (!popover) {
             return;
@@ -379,14 +379,14 @@
         }, ANIMATION_DELAY_MS);
     };
 
-    // 等待 Gradio 完成下拉列表挂载后，再按当前输入框位置校正。
+    // Implementation detail.
     const queueDropdownPosition = () => {
         requestAnimationFrame(() => {
             requestAnimationFrame(positionAdvancedDropdowns);
         });
     };
 
-    // 根据高级选项按钮的位置，把气泡贴在左侧控制栏右侧并限制在视口内。
+    // Implementation detail.
     const positionPopover = () => {
         const button = findButton();
         const popover = findPopover();
@@ -416,7 +416,7 @@
         popover.style.setProperty("--mineru-popover-top", `${top}px`);
     };
 
-    // 打开气泡时保持组件 DOM 挂载，只切换 body 状态类并重新计算位置。
+    // Calculate the result.
     const openPopover = () => {
         const popover = findPopover();
         cancelPopoverTimers();
@@ -429,7 +429,7 @@
         });
     };
 
-    // 收起气泡时不卸载 Gradio 控件，用户已经修改的高级配置会保留在原组件上。
+    // Implementation detail.
     const closePopover = () => {
         const popover = findPopover();
         cancelPopoverTimers();
@@ -438,7 +438,7 @@
         applyClosedPopoverStyle(popover);
     };
 
-    // 鼠标进入按钮后延迟打开，防止只是路过按钮时频繁弹出。
+    // Implementation detail.
     const scheduleHoverOpen = () => {
         if (!supportsHoverPopover()) {
             return;
@@ -450,7 +450,7 @@
         }, OPEN_DELAY_MS);
     };
 
-    // 鼠标离开按钮或气泡后延迟关闭，给用户从按钮移动到气泡留出缓冲时间。
+    // Implementation detail.
     const scheduleHoverClose = () => {
         if (!supportsHoverPopover()) {
             return;
@@ -462,7 +462,7 @@
         }, CLOSE_DELAY_MS);
     };
 
-    // 给真实桌面指针安装 hover 事件；如果 Gradio 稍后才挂载 DOM，就通过观察器重试。
+    // Implementation detail.
     const installHoverPopoverHandlers = () => {
         if (hoverHandlersInstalled || !supportsHoverPopover()) {
             return;

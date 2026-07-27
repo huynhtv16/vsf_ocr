@@ -160,7 +160,7 @@ T = {
     "\u00c5": "\\mathring{A} ",  # Å LATIN CAPITAL LETTER A WITH RING — pylatexenc: \r{A} (text-mode only)
     "\u2103": "\\text{°C}",       # ℃ DEGREE CELSIUS — pylatexenc: \textcelsius (textcomp, not in KaTeX/MathJax)
     # Multiplication/division operators (text-mode pylatexenc mappings overridden to math-mode)
-    "\u00b7": "\\cdot ",   # MIDDLE DOT (·) — common in Chinese scientific notation
+    "\u00b7": "\\cdot ",   # MIDDLE DOT, commonly used in scientific notation
     "\u22c5": "\\cdot ",   # DOT OPERATOR (⋅)
     "\u2219": "\\bullet ", # BULLET OPERATOR (∙)
     "\u00d7": "\\times ",  # MULTIPLICATION SIGN (×)

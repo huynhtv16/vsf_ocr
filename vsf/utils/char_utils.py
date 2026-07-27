@@ -2,8 +2,8 @@
 import re
 
 
-# PDF 文本抽取时，英文跨行断词可能被编码为多种 hyphen 字符。
-# 这里只用于判断“行末英文断词符”，不要扩展到 en/em dash 等普通破折号。
+# Process text content.
+# Validate the current value.
 LINE_END_HYPHEN_CHARS = "-\u00ad\u2010\u2011\u2043"
 LINE_END_HYPHEN_RE = re.compile(
     rf"[A-Za-z]+[{re.escape(LINE_END_HYPHEN_CHARS)}]\s*$"
@@ -11,9 +11,9 @@ LINE_END_HYPHEN_RE = re.compile(
 
 
 def is_hyphen_at_line_end(line):
-    """判断文本行是否以英文单词的跨行断词符结尾。
+    """Validate the current value.
 
-    只识别字母后紧跟行末 hyphen 的断词场景，不处理词内连字符或普通破折号。
+    Process the current item.
     """
     return bool(LINE_END_HYPHEN_RE.search(line))
 

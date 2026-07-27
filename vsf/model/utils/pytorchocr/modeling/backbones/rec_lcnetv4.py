@@ -62,7 +62,7 @@ NET_CONFIG_REC = {
 
 
 def _build_activation(name):
-    """按 PP-OCRv6 配置创建无参数激活层，便于和 safetensors 权重命名保持解耦。"""
+    """Build the required output."""
     if name is None:
         return nn.Identity()
     if name == "relu":
@@ -77,14 +77,14 @@ def _build_activation(name):
 
 
 def _to_stride(stride):
-    """把 Paddle/Transformers 配置里的 stride 统一成 PyTorch 可接受的格式。"""
+    """Implementation detail."""
     if isinstance(stride, list):
         return tuple(stride)
     return stride
 
 
 class PPLCNetV4ConvLayer(nn.Module):
-    """PP-LCNetV4 的 Conv-BN-Act 基础层，属性名对齐 HF 权重。"""
+    """Implementation detail."""
 
     def __init__(
         self,
@@ -95,7 +95,7 @@ class PPLCNetV4ConvLayer(nn.Module):
         groups=1,
         activation="relu",
     ):
-        """初始化卷积、归一化和激活层。"""
+        """Initialize the component."""
         super().__init__()
         self.convolution = nn.Conv2d(
             in_channels,
@@ -110,7 +110,7 @@ class PPLCNetV4ConvLayer(nn.Module):
         self.activation = _build_activation(activation)
 
     def forward(self, hidden_states):
-        """执行 Conv-BN-Act 前向计算。"""
+        """Calculate the result."""
         hidden_states = self.convolution(hidden_states)
         hidden_states = self.normalization(hidden_states)
         hidden_states = self.activation(hidden_states)
@@ -118,10 +118,10 @@ class PPLCNetV4ConvLayer(nn.Module):
 
 
 class PPLCNetV4SqueezeExcitationModule(nn.Module):
-    """PP-LCNetV4 的 SE 模块，保留 `convolutions.0/2` 权重命名。"""
+    """Implementation detail."""
 
     def __init__(self, channel, reduction=4):
-        """初始化全局池化和两层 1x1 卷积。"""
+        """Initialize the component."""
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.convolutions = nn.ModuleList(
@@ -134,7 +134,7 @@ class PPLCNetV4SqueezeExcitationModule(nn.Module):
         )
 
     def forward(self, hidden_states):
-        """根据通道注意力缩放输入特征。"""
+        """Implementation detail."""
         residual = hidden_states
         hidden_states = self.avg_pool(hidden_states)
         for layer in self.convolutions:
@@ -143,10 +143,10 @@ class PPLCNetV4SqueezeExcitationModule(nn.Module):
 
 
 class PPLCNetV4LargeStem(nn.Module):
-    """PP-LCNetV4 branch stem，属性名对齐 `encoder.convolution.stem*`。"""
+    """Implementation detail."""
 
     def __init__(self, stem_channels):
-        """初始化 v6 small/medium 使用的分支 stem。"""
+        """Initialize the component."""
         super().__init__()
         self.stem1 = PPLCNetV4ConvLayer(stem_channels[0], stem_channels[1], kernel_size=3, stride=2)
         self.stem2a = PPLCNetV4ConvLayer(stem_channels[1], stem_channels[1] // 2, kernel_size=2, stride=1)
@@ -156,7 +156,7 @@ class PPLCNetV4LargeStem(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=2, stride=1, ceil_mode=True)
 
     def forward(self, pixel_values):
-        """执行分支 stem 的 pad、pool 和 concat 流程。"""
+        """Implementation detail."""
         embedding = self.stem1(pixel_values)
         embedding = F.pad(embedding, (0, 1, 0, 1))
         emb_stem_2a = self.stem2a(embedding)
@@ -170,7 +170,7 @@ class PPLCNetV4LargeStem(nn.Module):
 
 
 class PPLCNetV4DepthwiseSeparableConvLayer(nn.Module):
-    """PP-LCNetV4 block 中的 token mixer 和 channel mixer。"""
+    """Implementation detail."""
 
     def __init__(
         self,
@@ -181,7 +181,7 @@ class PPLCNetV4DepthwiseSeparableConvLayer(nn.Module):
         use_squeeze_excitation,
         reduction=4,
     ):
-        """按 v6 配置初始化深度卷积、SE 和两层 point-wise 卷积。"""
+        """Initialize the component."""
         super().__init__()
         self.has_residual = in_channels == out_channels and stride == 1
         self.use_rep_dw = stride == 1 and in_channels == out_channels
@@ -224,7 +224,7 @@ class PPLCNetV4DepthwiseSeparableConvLayer(nn.Module):
         )
 
     def forward(self, hidden_states):
-        """执行 token mixing、channel mixing 和可选残差连接。"""
+        """Merge the related values."""
         hidden_states = self.token_conv(hidden_states)
         hidden_states = self.token_squeeze_excitation(hidden_states)
         residual = hidden_states
@@ -237,10 +237,10 @@ class PPLCNetV4DepthwiseSeparableConvLayer(nn.Module):
 
 
 class PPLCNetV4Block(nn.Module):
-    """PP-LCNetV4 的一个 stage，内部包含多个 depthwise separable block。"""
+    """Implementation detail."""
 
     def __init__(self, block_configs):
-        """根据 stage 配置创建 block 列表。"""
+        """Build the required output."""
         super().__init__()
         self.blocks = nn.ModuleList()
         for kernel_size, in_channels, out_channels, stride, use_squeeze_excitation in block_configs:
@@ -255,23 +255,23 @@ class PPLCNetV4Block(nn.Module):
             )
 
     def forward(self, hidden_states):
-        """顺序执行当前 stage 的所有 block。"""
+        """Sort items into the required order."""
         for block in self.blocks:
             hidden_states = block(hidden_states)
         return hidden_states
 
 
 class PPLCNetV4Encoder(nn.Module):
-    """PP-LCNetV4 编码器，保留 `encoder.convolution` 和 `encoder.blocks` 命名。"""
+    """Implementation detail."""
 
     def __init__(self, stem_channels, block_configs):
-        """初始化 stem 和四个 stage。"""
+        """Initialize the component."""
         super().__init__()
         self.convolution = PPLCNetV4LargeStem(stem_channels)
         self.blocks = nn.ModuleList([PPLCNetV4Block(stage_configs) for stage_configs in block_configs])
 
     def forward(self, pixel_values):
-        """返回四个 stage 的输出特征，供 det/rec 上层按需使用。"""
+        """Prepare the output value."""
         hidden_states = self.convolution(pixel_values)
         feature_maps = []
         for block in self.blocks:
@@ -281,10 +281,10 @@ class PPLCNetV4Encoder(nn.Module):
 
 
 class PPLCNetV4(nn.Module):
-    """PP-OCRv6 使用的 PPLCNetV4 backbone，支持 det small 和 rec small/medium。"""
+    """Implementation detail."""
 
     def __init__(self, det=False, model_size="small", in_channels=3, **kwargs):
-        """按 det/rec 模式选择 v6 的固定网络配置。"""
+        """Implementation detail."""
         super().__init__()
         self.det = det
         if in_channels != 3:
@@ -299,7 +299,7 @@ class PPLCNetV4(nn.Module):
         self.out_channels = stage_out_channels if det else stage_out_channels[-1]
 
     def forward(self, x):
-        """det 返回四级特征列表，rec 返回高度池化后的识别特征。"""
+        """Prepare the output value."""
         feature_maps = self.encoder(x)
         if self.det:
             return feature_maps

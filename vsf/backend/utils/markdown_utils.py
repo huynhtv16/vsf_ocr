@@ -54,7 +54,7 @@ def render_algorithm_html_from_lines(
     inline_right_delimiter: str,
     text_normalizer=None,
 ) -> str:
-    """将 algorithm 的行内 span 渲染为 HTML，以同时保留缩进和公式渲染能力。"""
+    """Process formula content."""
     html_parts = []
     previous_span_type = None
     for line in lines or []:

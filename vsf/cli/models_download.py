@@ -19,7 +19,7 @@ REMOTE_MODEL_SOURCES = ('auto', 'huggingface', 'modelscope')
 
 
 def configure_model(model_dir, model_type, model_source):
-    """配置模型"""
+    """Configure the model."""
     config_file = get_tools_config_file_path()
 
     json_mods = {
@@ -34,7 +34,7 @@ def configure_model(model_dir, model_type, model_source):
 
 
 def download_pipeline_models(model_source):
-    """下载Pipeline模型"""
+    """Configure the model."""
     model_paths = [
         ModelPath.pp_doclayout_v2,
         ModelPath.unimernet_small,
@@ -53,14 +53,14 @@ def download_pipeline_models(model_source):
 
 
 def download_vlm_models(model_source):
-    """下载VLM模型"""
+    """Configure the model."""
     download_finish_path = auto_download_and_get_model_root_path("/", repo_mode='vlm')
     logger.info(f"VLM models downloaded successfully to: {download_finish_path}")
     configure_model(download_finish_path, "vlm", model_source)
 
 
 def get_effective_download_model_source(requested_model_source):
-    """获取本次下载命令实际使用的模型源。"""
+    """Extract the required value."""
     current_model_source = os.getenv(MODEL_SOURCE_ENV_VAR)
     if current_model_source == 'local':
         logger.warning(
@@ -78,7 +78,7 @@ def get_effective_download_model_source(requested_model_source):
 
 @contextmanager
 def temporary_model_source(model_source):
-    """在命令执行期间临时设置模型源，并在结束后恢复。"""
+    """Configure the model."""
     original_model_source = os.getenv(MODEL_SOURCE_ENV_VAR)
     os.environ[MODEL_SOURCE_ENV_VAR] = model_source
     try:
@@ -116,7 +116,7 @@ def download_models(model_source, model_type):
 
     Supports downloading pipeline or VLM models from ModelScope or HuggingFace.
     """
-    # 如果未显式指定则交互式输入下载来源
+    # Implementation detail.
     if model_source is None:
         model_source = click.prompt(
             "Please select the model download source: ",
@@ -126,7 +126,7 @@ def download_models(model_source, model_type):
 
     effective_model_source = get_effective_download_model_source(model_source)
 
-    # 如果未显式指定则交互式输入模型类型
+    # Configure the model.
     if model_type is None:
         model_type = click.prompt(
             "Please select the model type to download: ",

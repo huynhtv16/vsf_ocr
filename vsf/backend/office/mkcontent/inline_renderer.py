@@ -61,7 +61,7 @@ STYLE_WRAPPER_CLOSE = {
 
 @dataclass
 class RenderedPart:
-    """保存一个已渲染行内片段及其原始元数据，供段落拼接阶段使用。"""
+    """Add the value to the result."""
 
     span_type: str
     rendered_content: str
@@ -72,14 +72,14 @@ class RenderedPart:
 
 @dataclass
 class StyleRangeToken:
-    """保存 HTML 样式范围合并所需的片段内容和样式集合。"""
+    """Add the value to the result."""
 
     content: str
     style: set[str] = field(default_factory=set)
 
 
 def _apply_markdown_style(content: str, style: list) -> str:
-    """按可枚举 Markdown style key 渲染 wrapper，未知组合保持原文。"""
+    """Implementation detail."""
     if not style or not content:
         return content
 
@@ -91,7 +91,7 @@ def _apply_markdown_style(content: str, style: list) -> str:
 
 
 def _apply_html_style(content: str, style: list) -> str:
-    """用 HTML 标签渲染 Office 行内样式，适配不宜使用 Markdown wrapper 的场景。"""
+    """Implementation detail."""
     if not style or not content:
         return content
 
@@ -119,21 +119,21 @@ def _apply_html_style(content: str, style: list) -> str:
 
 
 def _apply_configured_style(content: str, style: list, inline_syntax: str) -> str:
-    """按 block 级 auto 选择出来的语法渲染行内样式。"""
+    """Implementation detail."""
     if inline_syntax == OFFICE_INLINE_SYNTAX_MARKDOWN:
         return _apply_markdown_style(content, style)
     return _apply_html_style(content, style)
 
 
 def _render_link(text: str, url: str, inline_syntax: str) -> str:
-    """按 block 级语法渲染链接，复杂 HTML block 内统一使用 <a>。"""
+    """Implementation detail."""
     if inline_syntax == OFFICE_INLINE_SYNTAX_MARKDOWN:
         return f'[{text}]({url})'
     return f'<a href="{escape(url, quote=True)}">{text}</a>'
 
 
 def _escape_office_inline_text(content: str, inline_syntax: str) -> str:
-    """根据当前 block 语法转义普通文本，HTML block 内同时避开标签和 Markdown delimiter。"""
+    """Process text content."""
     if not content:
         return content
     if inline_syntax == OFFICE_INLINE_SYNTAX_MARKDOWN:
@@ -153,7 +153,7 @@ def _make_rendered_part(
     style: list | None = None,
     has_markdown_wrapper: bool = False,
 ) -> RenderedPart:
-    """构造段落渲染中间片段，并保留 Markdown 边界补空格所需的原始信息。"""
+    """Implementation detail."""
     return RenderedPart(
         span_type=span_type,
         rendered_content=rendered_content,
@@ -164,7 +164,7 @@ def _make_rendered_part(
 
 
 def _get_first_non_whitespace_char(text: str):
-    """返回文本中第一个非空白字符，用于 block 级 Markdown 风险判定。"""
+    """Process text content."""
     for ch in text:
         if not ch.isspace():
             return ch
@@ -172,7 +172,7 @@ def _get_first_non_whitespace_char(text: str):
 
 
 def _get_last_non_whitespace_char(text: str):
-    """返回文本中最后一个非空白字符，用于 block 级 Markdown 风险判定。"""
+    """Process text content."""
     for ch in reversed(text):
         if not ch.isspace():
             return ch
@@ -180,12 +180,12 @@ def _get_last_non_whitespace_char(text: str):
 
 
 def _is_punctuation_or_symbol(ch: str) -> bool:
-    """判断字符是否属于 Unicode 标点或符号类别。"""
+    """Validate the current value."""
     return unicodedata.category(ch).startswith(('P', 'S'))
 
 
 def _is_boundary_text_char(ch: str) -> bool:
-    """判断字符是否是会和 Markdown delimiter 紧贴产生歧义的普通文本字符。"""
+    """Validate the current value."""
     if ch.isspace():
         return False
     return not _is_punctuation_or_symbol(ch)
@@ -195,7 +195,7 @@ def _needs_markdown_boundary_space(
     prev_part: RenderedPart,
     next_part: RenderedPart,
 ) -> bool:
-    """判断 Markdown wrapper 后是否需要补空格，避免标点结尾的 wrapper 无法被解析。"""
+    """Validate the current value."""
     if not prev_part.has_markdown_wrapper:
         return False
     if next_part.span_type in {
@@ -222,7 +222,7 @@ def _needs_markdown_boundary_space(
 
 
 def _join_rendered_parts(parts: list[RenderedPart]) -> str:
-    """按 Office 段落规则拼接行内片段，并为行内公式补必要空格。"""
+    """Merge the related values."""
     rendered_parts = []
     prev_part = None
 
@@ -248,14 +248,14 @@ def _join_rendered_parts(parts: list[RenderedPart]) -> str:
 
 
 def _strip_text_block_markdown_edges(content: str) -> str:
-    """去掉 Markdown 文本块首尾普通空白，避免段首缩进被渲染成代码块。"""
+    """Process text content."""
     if not content:
         return content
     return content.strip()
 
 
 def _get_visible_space_marker(style: list) -> str | None:
-    """根据可见空格样式选择 Markdown marker，下划线优先于删除线。"""
+    """Remove invalid or unnecessary data."""
     if not style:
         return None
     if 'underline' in style:
@@ -266,7 +266,7 @@ def _get_visible_space_marker(style: list) -> str | None:
 
 
 def _is_ascii_space_only(content: str) -> bool:
-    """判断文本是否只由普通 ASCII 空格组成。"""
+    """Validate the current value."""
     return bool(content) and all(char == ' ' for char in content)
 
 
@@ -275,7 +275,7 @@ def _replace_ascii_spaces_with_marker(
     marker: str,
     inline_syntax: str,
 ) -> str:
-    """将普通 ASCII 空格替换为指定 marker，其他文本按当前 block 语法转义。"""
+    """Process text content."""
     rendered_parts = []
     text_buffer = []
 
@@ -302,7 +302,7 @@ def _render_text_with_edge_space_markers(
     marker: str,
     inline_syntax: str,
 ) -> str:
-    """渲染非空文本：只把首尾 ASCII 空格转成 marker，中间普通空格保持原样。"""
+    """Convert the value to the required format."""
     leading_space_count = len(content) - len(content.lstrip(' '))
     trailing_space_count = len(content) - len(content.rstrip(' '))
     text_end = len(content) - trailing_space_count if trailing_space_count else len(content)
@@ -320,7 +320,7 @@ def _render_visible_space_marker_text(
     inline_syntax: str,
     render_style: list | None = None,
 ) -> str:
-    """渲染可见样式空格：纯空白用 marker，非空文本只处理边缘空格。"""
+    """Process text content."""
     marker = _get_visible_space_marker(style)
     render_style = style if render_style is None else render_style
     if marker is None:
@@ -357,7 +357,7 @@ def _render_visible_space_marker_text(
 
 
 def _render_styled_inline_text(content: str, style: list, inline_syntax: str) -> str:
-    """渲染行内文本内容，统一复用可见空格 marker 规则。"""
+    """Process text content."""
     if content and _get_visible_space_marker(style):
         return _render_visible_space_marker_text(content, style, inline_syntax)
 
@@ -366,7 +366,7 @@ def _render_styled_inline_text(content: str, style: list, inline_syntax: str) ->
 
 
 def _escape_standalone_marker_rule(content: str) -> str:
-    """独立一行全是 marker 时转义首个字符，避免被 Markdown 当作分隔线。"""
+    """Implementation detail."""
     if content and all(char == '_' for char in content):
         return f'\\{content}'
     if content and all(char == '-' for char in content):
@@ -443,7 +443,7 @@ def _append_text_part(
 def _split_plain_blank_edges(
     text_spans: list[dict],
 ) -> tuple[list[dict], list[dict], list[dict]]:
-    """拆出首尾纯空白 span，避免把段首 emphasis-only 空格包进 HTML 外层后无法 trim。"""
+    """Implementation detail."""
     start = 0
     end = len(text_spans)
     while start < end and not str(text_spans[start].get('content', '')).strip():
@@ -456,7 +456,7 @@ def _split_plain_blank_edges(
 def _get_markdown_style_key(
     style: list | tuple | set | None,
 ) -> frozenset[str] | str | None:
-    """返回可安全使用 Markdown 的样式 key；空样式返回 None，不支持返回空串。"""
+    """Prepare the output value."""
     style_set = {name for name in (style or []) if name}
     if not style_set:
         return None
@@ -469,7 +469,7 @@ def _get_markdown_style_key(
 
 
 def _is_simple_markdown_style(style: list | tuple | set | None) -> bool:
-    """判断样式是否适合保留为简单 Markdown 输出。"""
+    """Validate the current value."""
     return _get_markdown_style_key(style) != ''
 
 
@@ -477,21 +477,21 @@ def _has_markdown_wrapper(
     style: list | tuple | set | None,
     inline_syntax: str,
 ) -> bool:
-    """判断当前片段是否实际使用 Markdown wrapper，供拼接阶段补空格。"""
+    """Validate the current value."""
     if inline_syntax != OFFICE_INLINE_SYNTAX_MARKDOWN:
         return False
     return _get_markdown_style_key(style) in OFFICE_MARKDOWN_STYLE_WRAPPERS
 
 
 def _iter_para_inline_spans(para_block):
-    """按 block 原始顺序遍历行内 span，供 auto 语法判定复用。"""
+    """Sort items into the required order."""
     for line in para_block.get('lines', []):
         for span in line.get('spans', []):
             yield span
 
 
 def _hyperlink_requires_html(span: dict) -> bool:
-    """判断 hyperlink 是否存在混合或复杂样式，需要整块切到 HTML。"""
+    """Validate the current value."""
     children = span.get('children') or []
     if not children:
         return not _is_simple_markdown_style(span.get('style', []))
@@ -513,7 +513,7 @@ def _hyperlink_requires_html(span: dict) -> bool:
 
 
 def _iter_block_inline_units(para_block):
-    """把 block 展开为线性文本单元，用于判断 Markdown 边界风险。"""
+    """Validate the current value."""
     if para_block.get('type') == BlockType.TITLE:
         section_number = para_block.get('section_number', '')
         if para_block.get('is_numbered_style', False) and section_number:
@@ -557,7 +557,7 @@ def _iter_block_inline_units(para_block):
 
 
 def _select_block_inline_syntax(para_block) -> str:
-    """按 block 粒度选择 inline 输出语法：简单样式用 Markdown，复杂样式统一 HTML。"""
+    """Prepare the output value."""
     units = list(_iter_block_inline_units(para_block))
     markdown_style_keys = set()
 
@@ -586,7 +586,7 @@ def _append_style_range_token(
     rendered_content: str,
     style: list | set | None,
 ):
-    """追加一个可参与 HTML 范围合并的文本 token，空内容不进入 wrapper diff。"""
+    """Merge the related values."""
     if not rendered_content:
         return
     tokens.append(
@@ -603,7 +603,7 @@ def _extend_style_range_tokens(
     span_style: list,
     inline_syntax: str,
 ):
-    """把原始 text span 拆成 HTML 合并 token，并保留现有可见空格 marker 规则。"""
+    """Merge the related values."""
     if not original_content:
         return
 
@@ -670,7 +670,7 @@ def _build_style_range_tokens(
     text_spans: list[dict],
     inline_syntax: str,
 ) -> list[StyleRangeToken]:
-    """将连续文本 span 标准化为 HTML token 序列，供统一 wrapper writer 渲染。"""
+    """Process text content."""
     tokens = []
     for span in text_spans:
         _extend_style_range_tokens(
@@ -683,7 +683,7 @@ def _build_style_range_tokens(
 
 
 def _style_range_stack(token: StyleRangeToken) -> list[str]:
-    """按外到内顺序生成 HTML block 需要打开的 wrapper 栈。"""
+    """Sort items into the required order."""
     style = token.style
     stack = []
     if 'emphasis' in style:
@@ -704,12 +704,12 @@ def _style_range_stack(token: StyleRangeToken) -> list[str]:
 
 
 def _style_wrapper_open(wrapper: str) -> str:
-    """返回指定 wrapper 的打开标记。"""
+    """Prepare the output value."""
     return STYLE_WRAPPER_OPEN.get(wrapper, '')
 
 
 def _style_wrapper_close(wrapper: str) -> str:
-    """返回指定 wrapper 的关闭标记。"""
+    """Prepare the output value."""
     return STYLE_WRAPPER_CLOSE.get(wrapper, '')
 
 
@@ -717,7 +717,7 @@ def _common_stack_prefix_len(
     current_stack: list[str],
     next_stack: list[str],
 ) -> int:
-    """计算两个 wrapper 栈从外到内的共同前缀长度。"""
+    """Calculate the result."""
     prefix_len = 0
     for current, next_item in zip(current_stack, next_stack):
         if current != next_item:
@@ -727,7 +727,7 @@ def _common_stack_prefix_len(
 
 
 def _render_style_range_tokens(tokens: list[StyleRangeToken]) -> str:
-    """使用 HTML wrapper stack diff 渲染连续文本 token，合并可连续表达的共同样式。"""
+    """Merge the related values."""
     rendered_parts = []
     current_stack = []
 
@@ -753,7 +753,7 @@ def _append_markdown_grouped_text_parts(
     parts: list[RenderedPart],
     text_spans: list[dict],
 ):
-    """渲染简单 Markdown block，按可枚举 style key 合并相邻等价片段。"""
+    """Merge the related values."""
     pending_content = []
     pending_style = None
     pending_style_key = None
@@ -794,7 +794,7 @@ def _append_style_grouped_text_parts(
     text_spans: list[dict],
     inline_syntax: str,
 ):
-    """按 block 语法渲染连续文本 span：简单 Markdown，复杂 HTML。"""
+    """Process text content."""
     if inline_syntax == OFFICE_INLINE_SYNTAX_MARKDOWN:
         _append_markdown_grouped_text_parts(parts, text_spans)
         return
@@ -828,7 +828,7 @@ def _append_style_grouped_text_parts(
 
 
 def _render_hyperlink_children_label(children: list[dict], inline_syntax: str) -> str:
-    """渲染 hyperlink 的子文本片段，保留各自样式后再组成同一个链接 label。"""
+    """Process text content."""
     child_parts = []
     child_text_spans = []
     for child in children or []:
@@ -851,7 +851,7 @@ def _append_hyperlink_part(
     plain_text_only: bool = False,
     children: list[dict] | None = None,
 ):
-    """渲染 hyperlink 片段；HTML block 使用 <a>，Markdown block 使用 []()。"""
+    """Implementation detail."""
     if children:
         styled_text = _render_hyperlink_children_label(children, inline_syntax)
         if not styled_text:
@@ -887,13 +887,13 @@ def _append_hyperlink_part(
 
 
 def merge_para_with_text(para_block, escape_text_block_prefix=True):
-    """将 Office 段落 block 渲染为 Markdown/HTML 混合文本，按 block 自动选择行内语法。"""
+    """Process text content."""
     inline_syntax = _select_block_inline_syntax(para_block)
     parts = []
     text_span_buffer = []
 
     def flush_text_span_buffer():
-        """遇到公式、超链接等边界时落盘连续文本 span，避免跨语义边界合并。"""
+        """Merge the related values."""
         if not text_span_buffer:
             return
         _append_style_grouped_text_parts(parts, text_span_buffer, inline_syntax)

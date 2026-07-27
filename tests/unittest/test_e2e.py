@@ -157,7 +157,7 @@ def assert_content(content_path, parse_method="txt"):
     type_set = set()
     for content_dict in content_list:
         match content_dict["type"]:
-            # 图片校验，只校验 Caption
+            # Validate the current value.
             case "image":
                 type_set.add("image")
                 assert (
@@ -167,7 +167,7 @@ def assert_content(content_path, parse_method="txt"):
                     )
                     > 90
                 )
-            # 表格校验，校验 Caption，表格格式和表格内容
+            # Validate the current value.
             case "table":
                 type_set.add("table")
                 assert (
@@ -201,13 +201,13 @@ def assert_content(content_path, parse_method="txt"):
                     assert correct_count > 0.7 * len(target_str_list)
                 else:
                     assert False
-            # 公式校验，检测是否含有公式元素
+            # Validate the current value.
             case "equation":
                 type_set.add("equation")
                 target_str_list = ["$$", "lambda", "frac", "bar"]
                 for target_str in target_str_list:
                     assert target_str in content_dict["text"]
-            # 文本校验，文本相似度超过90
+            # Validate the current value.
             case "text":
                 type_set.add("text")
                 assert (

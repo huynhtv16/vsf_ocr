@@ -21,7 +21,7 @@ from mineru.version import __version__
 
 
 def blocks_to_page_info(page_blocks, image_dict, page, image_writer, page_index) -> dict:
-    """将blocks转换为页面信息"""
+    """Convert the value to the required format."""
 
     scale = image_dict["scale"]
     page_pil_img = image_dict["img_pil"]
@@ -44,7 +44,7 @@ def blocks_to_page_info(page_blocks, image_dict, page, image_writer, page_index)
     interline_equation_blocks = magic_model.get_interline_equation_blocks()
 
     all_spans = magic_model.get_all_spans()
-    # 对image/table/chart/interline_equation的span截图
+    # Implementation detail.
     for span in all_spans:
         if span["type"] in [ContentType.IMAGE, ContentType.TABLE, ContentType.CHART, ContentType.INTERLINE_EQUATION]:
             span = cut_image_and_table(span, page_pil_img, page_img_md5, page_index, image_writer, scale=scale)
@@ -64,7 +64,7 @@ def blocks_to_page_info(page_blocks, image_dict, page, image_writer, page_index)
         *interline_equation_blocks,
         *list_blocks,
     ])
-    # 对page_blocks根据index的值进行排序
+    # Sort items into the required order.
     page_blocks.sort(key=lambda x: x["index"])
 
     page_info = {
@@ -104,7 +104,7 @@ def append_page_blocks_to_middle_json(
 
 
 def finalize_middle_json(pdf_info_list):
-    """从 VLM preproc_blocks 执行完整 finalize，客户端和服务端完整路径共用。"""
+    """Process the service request."""
     build_para_blocks_from_preproc(pdf_info_list)
     merge_para_text_blocks(pdf_info_list)
 

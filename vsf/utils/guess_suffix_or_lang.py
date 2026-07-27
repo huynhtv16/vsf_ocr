@@ -81,14 +81,14 @@ def guess_language_by_text(code):
 
 
 def _strip_package_part_name(part_name: str | None) -> str:
-    """规范化 OPC part 路径，方便匹配 Content_Types 中的 PartName。"""
+    """Convert the value to the required format."""
     if not part_name:
         return ""
     return part_name.replace("\\", "/").lstrip("/")
 
 
 def _ooxml_relationship_targets(root: ElementTree.Element) -> list[str]:
-    """从根关系文件中提取 Office 主文档关系目标。"""
+    """Extract the required value."""
     targets = []
     for relationship in root:
         if relationship.tag not in {
@@ -107,7 +107,7 @@ def _ooxml_relationship_targets(root: ElementTree.Element) -> list[str]:
 
 
 def _ooxml_content_type_overrides(root: ElementTree.Element) -> dict[str, str]:
-    """读取 Content_Types 中每个显式 part 的 ContentType 映射。"""
+    """Extract the required value."""
     overrides = {}
     for override in root:
         if override.tag not in {
@@ -123,7 +123,7 @@ def _ooxml_content_type_overrides(root: ElementTree.Element) -> dict[str, str]:
 
 
 def _guess_ooxml_suffix_from_zip(package: ZipFile) -> str | None:
-    """根据 OOXML 包内标准主文档关系和主内容类型判断 Office 子类型。"""
+    """Validate the current value."""
     rels_root = ElementTree.fromstring(package.read(OOXML_ROOT_RELS))
     content_types_root = ElementTree.fromstring(package.read(OOXML_CONTENT_TYPES))
 
@@ -152,7 +152,7 @@ def _guess_ooxml_suffix_by_bytes(file_bytes: bytes) -> str | None:
 
 
 def _guess_ooxml_suffix_by_path(file_path: Path) -> str | None:
-    """从文件路径读取 OOXML 包结构；失败时交给 Magika 原有逻辑兜底。"""
+    """Extract the required value."""
     try:
         with ZipFile(file_path) as package:
             return _guess_ooxml_suffix_from_zip(package)

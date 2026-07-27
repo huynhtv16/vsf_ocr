@@ -8,7 +8,7 @@ VISIBLE_SPACE_STYLES = {"underline", "emphasis", "strikethrough"}
 
 @dataclass(frozen=True)
 class OfficeRichTextSegment:
-    """表示 Office 行内富文本片段，用于统一样式和超链接输出。"""
+    """Process text content."""
 
     text: str
     style: str | list[str] | tuple[str, ...] | None = None
@@ -16,7 +16,7 @@ class OfficeRichTextSegment:
 
 
 def _style_list(style: str | list[str] | tuple[str, ...] | None) -> list[str]:
-    """把样式字符串或列表规范为样式列表。"""
+    """Convert the value to the required format."""
     if not style:
         return []
     if isinstance(style, str):
@@ -25,7 +25,7 @@ def _style_list(style: str | list[str] | tuple[str, ...] | None) -> list[str]:
 
 
 def _style_str(style: str | list[str] | tuple[str, ...] | None) -> Optional[str]:
-    """把样式字符串或列表规范为逗号分隔字符串。"""
+    """Convert the value to the required format."""
     styles = _style_list(style)
     return ",".join(styles) if styles else None
 
@@ -42,7 +42,7 @@ def _script_to_style_name(format_obj: Any) -> Optional[str]:
 
 
 def formatting_to_style_str(format_obj: Any) -> Optional[str]:
-    """从 Formatting-like 对象提取 Office 内部富文本样式字符串。"""
+    """Extract the required value."""
     if format_obj is None:
         return None
     styles = []
@@ -63,7 +63,7 @@ def formatting_to_style_str(format_obj: Any) -> Optional[str]:
 
 
 def has_visible_style(format_obj: Any) -> bool:
-    """判断格式是否包含让空白文本也可见的样式。"""
+    """Validate the current value."""
     if format_obj is None:
         return False
     return bool(
@@ -74,7 +74,7 @@ def has_visible_style(format_obj: Any) -> bool:
 
 
 def has_non_visible_text_style(format_obj: Any) -> bool:
-    """判断格式是否只包含空白文本不可见的字形样式。"""
+    """Validate the current value."""
     if format_obj is None:
         return False
     return bool(
@@ -89,7 +89,7 @@ def normalize_format_for_text(
     *,
     preserve_blank_non_visible_style: bool = False,
 ):
-    """按文本内容规范 run 格式，避免空白 run 误把不可见样式带到输出。"""
+    """Convert the value to the required format."""
     if format_obj is None:
         return None
     if text.strip():
@@ -119,7 +119,7 @@ def should_keep_group_text(
     *,
     preserve_plain_blank: bool = False,
 ) -> bool:
-    """判断当前累积文本是否应输出，保留可见样式或被显式保留的空白。"""
+    """Validate the current value."""
     if not text:
         return False
     if text.strip():
@@ -135,7 +135,7 @@ def append_rich_text_element(
     format_obj: Any,
     hyperlink: Any,
 ) -> None:
-    """追加段落元素；相邻同 URL 且同格式的片段合并为一个元素。"""
+    """Merge the related values."""
     if (
         hyperlink is not None
         and paragraph_elements
@@ -159,7 +159,7 @@ def format_text_tag(
     *,
     force_tag: bool = False,
 ) -> str:
-    """生成 Office 内部富文本 text 标签；无样式普通文本默认不包标签。"""
+    """Build the required output."""
     if not text:
         return text
     if style_str:
@@ -170,7 +170,7 @@ def format_text_tag(
 
 
 def is_valid_hyperlink_target(hyperlink: Any) -> bool:
-    """判断超链接目标是否可作为真实链接输出。"""
+    """Validate the current value."""
     if hyperlink is None:
         return False
     hyperlink_str = str(hyperlink)
@@ -182,7 +182,7 @@ def format_text_with_hyperlink(
     hyperlink: Any,
     style_str: Optional[str] = None,
 ) -> str:
-    """按 Office 内部约定输出带样式/超链接的文本片段。"""
+    """Process text content."""
     if not text:
         return text
     if not is_valid_hyperlink_target(hyperlink):
@@ -193,7 +193,7 @@ def format_text_with_hyperlink(
 
 
 def _format_hyperlink_segments(group: list[OfficeRichTextSegment]) -> str:
-    """将连续同 URL 的多个片段渲染成单个 hyperlink 标签。"""
+    """Implementation detail."""
     if not group:
         return ""
     hyperlink = group[0].hyperlink
@@ -229,14 +229,14 @@ def format_hyperlink_group(
 
 
 def _style_has_visible_space(style: str | list[str] | tuple[str, ...] | None) -> bool:
-    """判断样式列表是否会让空白文本在渲染结果中可见。"""
+    """Validate the current value."""
     return any(style_name in VISIBLE_SPACE_STYLES for style_name in _style_list(style))
 
 
 def _trim_plain_edge_spaces(
     segments: list[OfficeRichTextSegment],
 ) -> list[OfficeRichTextSegment]:
-    """只裁剪段落首尾普通空白，不裁剪带可见样式的空白。"""
+    """Implementation detail."""
     trimmed_segments = [segment for segment in segments if segment.text is not None]
     if not trimmed_segments:
         return []
@@ -277,7 +277,7 @@ def _trim_plain_edge_spaces(
 def _merge_non_link_segments(
     segments: list[OfficeRichTextSegment],
 ) -> list[OfficeRichTextSegment]:
-    """合并相邻同样式的非超链接片段，避免输出碎片化样式标记。"""
+    """Merge the related values."""
     merged: list[OfficeRichTextSegment] = []
     for segment in segments:
         if (
@@ -302,7 +302,7 @@ def build_rich_text_from_segments(
     *,
     trim_plain_edges: bool = False,
 ) -> str:
-    """从 Office 富文本片段构建内部标记，统一处理样式、空白和超链接分组。"""
+    """Build the required output."""
     normalized_segments = [
         OfficeRichTextSegment(
             segment.text,
@@ -350,7 +350,7 @@ def build_rich_text_from_segments(
 def build_text_mappings_from_elements(
     paragraph_elements: list[tuple[str, Any, Any]],
 ) -> list[tuple[str, str]]:
-    """按连续同 URL hyperlink 分组，生成原文到内部富文本标记的映射。"""
+    """Build the required output."""
     mappings = []
     index = 0
     while index < len(paragraph_elements):

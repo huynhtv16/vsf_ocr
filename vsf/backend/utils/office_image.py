@@ -129,7 +129,7 @@ def create_text_placeholder(
 
 @lru_cache(maxsize=1)
 def _standard_vector_placeholder_data_uri() -> str:
-    """生成并缓存标准 WMF/EMF 占位图，避免每张矢量图重复绘制。"""
+    """Build the required output."""
     placeholder = create_text_placeholder(
         STANDARD_VECTOR_PLACEHOLDER_SIZE,
         list(STANDARD_VECTOR_PLACEHOLDER_LINES),
@@ -138,7 +138,7 @@ def _standard_vector_placeholder_data_uri() -> str:
 
 
 def get_standard_vector_placeholder_data_uri() -> str:
-    """返回标准 WMF/EMF 占位图 data URI，供 Office 各格式复用。"""
+    """Prepare the output value."""
     return _standard_vector_placeholder_data_uri()
 
 

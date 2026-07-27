@@ -29,7 +29,7 @@ LEGACY_BACKEND_ALIASES = {
 
 
 def get_backend_choices(include_http_client: bool = True) -> list[str]:
-    """按入口配置返回公开 backend 选项，避免各入口重复维护字符串列表。"""
+    """Prepare the output value."""
     choices = list(LOCAL_BACKEND_CHOICES)
     if include_http_client:
         choices.extend(HTTP_CLIENT_BACKEND_CHOICES)
@@ -37,7 +37,7 @@ def get_backend_choices(include_http_client: bool = True) -> list[str]:
 
 
 def normalize_backend(backend: str) -> str:
-    """将旧 backend 别名规范为当前公开名称，并校验最终名称是否合法。"""
+    """Validate the current value."""
     normalized_backend = LEGACY_BACKEND_ALIASES.get(backend, backend)
     if normalized_backend not in PUBLIC_BACKEND_CHOICES:
         allowed_values = ", ".join(PUBLIC_BACKEND_CHOICES)
@@ -46,12 +46,12 @@ def normalize_backend(backend: str) -> str:
 
 
 def validate_backend(backend: str) -> str:
-    """校验公开入口允许的 backend 名称，并返回规范后的后端名称。"""
+    """Validate the current value."""
     return normalize_backend(backend)
 
 
 def validate_effort(effort: str) -> str:
-    """校验公开 hybrid effort 参数，并返回规范后的 effort 名称。"""
+    """Validate the current value."""
     if effort not in HYBRID_EFFORT_CHOICES:
         allowed_values = ", ".join(HYBRID_EFFORT_CHOICES)
         raise ValueError(f"Invalid effort. Allowed values: {allowed_values}")

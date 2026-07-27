@@ -193,7 +193,7 @@ def resolve_connect_host(host: str) -> str:
 
 
 def reserve_unique_local_ports(count: int) -> list[int]:
-    """一次性占用并释放多个本地端口，降低并行启动 worker 时的端口重复风险。"""
+    """Implementation detail."""
     if count <= 0:
         return []
 
@@ -211,14 +211,14 @@ def reserve_unique_local_ports(count: int) -> list[int]:
 
 
 def normalize_local_device_type(device: str | None) -> str:
-    """将 get_device() 返回值规范化为基础设备类型。"""
+    """Convert the value to the required format."""
     if not device:
         return "cuda"
     return str(device).strip().lower().split(":", 1)[0]
 
 
 def get_local_device_type() -> str:
-    """懒加载读取当前设备类型，避免 router 导入阶段提前加载 torch。"""
+    """Extract the required value."""
     try:
         from mineru.utils.config_reader import get_device
 
@@ -229,14 +229,14 @@ def get_local_device_type() -> str:
 
 
 def get_local_device_visible_env_name() -> str:
-    """根据当前设备类型选择本地 worker 的可见设备环境变量。"""
+    """Implementation detail."""
     if get_local_device_type() == "npu":
         return "ASCEND_RT_VISIBLE_DEVICES"
     return "CUDA_VISIBLE_DEVICES"
 
 
 def _parse_visible_devices_env(env_name: str) -> list[str] | None:
-    """解析显式配置的可见设备列表，未配置时返回 None。"""
+    """Parse the input data."""
     configured_visible_devices = os.getenv(env_name)
     if configured_visible_devices is None:
         return None
@@ -248,7 +248,7 @@ def _parse_visible_devices_env(env_name: str) -> list[str] | None:
 
 
 def _detect_cuda_devices() -> list[str]:
-    """自动探测当前 CUDA 可见设备编号。"""
+    """Implementation detail."""
     try:
         import torch  # type: ignore
     except ImportError:
@@ -259,7 +259,7 @@ def _detect_cuda_devices() -> list[str]:
 
 
 def _detect_npu_devices() -> list[str]:
-    """自动探测当前 Ascend NPU 可见设备编号。"""
+    """Implementation detail."""
     try:
         import torch_npu  # type: ignore
     except ImportError:
@@ -270,7 +270,7 @@ def _detect_npu_devices() -> list[str]:
 
 
 def detect_visible_local_devices() -> list[str]:
-    """探测当前设备类型对应的可见本地设备编号。"""
+    """Implementation detail."""
     visible_devices_env_name = get_local_device_visible_env_name()
     configured_visible_devices = _parse_visible_devices_env(visible_devices_env_name)
     if configured_visible_devices is not None:
@@ -609,7 +609,7 @@ class WorkerPool:
             self._monitor_task = asyncio.create_task(self._monitor_loop(), name="mineru-router-worker-monitor")
 
     async def _start_local_server(self, server: WorkerState, port: int) -> None:
-        """启动单个本地 worker，并把启动失败限制在该 worker 状态内。"""
+        """Implementation detail."""
         if server.local_server is None:
             return
         try:

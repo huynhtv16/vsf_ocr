@@ -17,7 +17,7 @@ __all__ = [
 
 
 def __getattr__(name):
-    """按需加载 S3 DataReader/DataWriter，避免默认安装场景强制依赖 boto3。"""
+    """Implementation detail."""
     if name in {"MultiBucketS3DataReader", "MultiBucketS3DataWriter"}:
         from .multi_bucket_s3 import MultiBucketS3DataReader, MultiBucketS3DataWriter
 

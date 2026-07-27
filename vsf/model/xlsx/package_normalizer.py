@@ -35,7 +35,7 @@ MAX_EXCEL_COLUMN = "XFD"
 
 
 def normalize_xlsx_package(file_bytes: bytes) -> bytes:
-    """在进入 openpyxl 前修复常见 XLSX 包级兼容问题。"""
+    """Implementation detail."""
     try:
         with ZipFile(BytesIO(file_bytes)) as source:
             rewritten_members: list[tuple[ZipInfo, bytes]] = []
@@ -58,7 +58,7 @@ def normalize_xlsx_package(file_bytes: bytes) -> bytes:
 
 
 def _normalize_xlsx_member(member_name: str, member_data: bytes) -> bytes:
-    """根据 XLSX 包内成员路径分发 XML 兼容性规范化逻辑。"""
+    """Convert the value to the required format."""
     if member_name == SHARED_STRINGS_PATH:
         return _normalize_shared_strings_xml(member_data)
     if member_name == STYLES_PATH:
@@ -69,7 +69,7 @@ def _normalize_xlsx_member(member_name: str, member_data: bytes) -> bytes:
 
 
 def _normalize_shared_strings_xml(xml_bytes: bytes) -> bytes:
-    """规范化共享字符串 XML 中 openpyxl 无法接受的富文本属性。"""
+    """Convert the value to the required format."""
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:
@@ -87,7 +87,7 @@ def _normalize_shared_strings_xml(xml_bytes: bytes) -> bytes:
 
 
 def _normalize_styles_xml(xml_bytes: bytes) -> bytes:
-    """规范化 styles.xml 中 openpyxl 无法接受的空 fill 节点。"""
+    """Convert the value to the required format."""
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:
@@ -107,7 +107,7 @@ def _normalize_styles_xml(xml_bytes: bytes) -> bytes:
 
 
 def _normalize_worksheet_xml(xml_bytes: bytes) -> bytes:
-    """规范化 worksheet XML 中会阻断 openpyxl 加载的行范围筛选器。"""
+    """Convert the value to the required format."""
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:
@@ -125,7 +125,7 @@ def _normalize_worksheet_xml(xml_bytes: bytes) -> bytes:
 
 
 def _drop_blank_underline_value(underline: ET.Element) -> bool:
-    """删除空白 underline val，保留 <u/> 的默认单下划线语义。"""
+    """Remove invalid or unnecessary data."""
     for attr_name in UNDERLINE_VAL_ATTRS:
         attr_value = underline.attrib.get(attr_name)
         if attr_value is None:
@@ -139,7 +139,7 @@ def _drop_blank_underline_value(underline: ET.Element) -> bool:
 
 
 def _ensure_fill_has_pattern(fill: ET.Element) -> bool:
-    """为空 fill 补一个空 patternFill，保留原 fillId 顺序和样式引用。"""
+    """Sort items into the required order."""
     if len(fill):
         return False
 
@@ -148,7 +148,7 @@ def _ensure_fill_has_pattern(fill: ET.Element) -> bool:
 
 
 def _normalize_auto_filter_ref(root: ET.Element, auto_filter: ET.Element) -> bool:
-    """将 autoFilter 的纯行范围 ref 扩展为 openpyxl 可接受的单元格范围。"""
+    """Implementation detail."""
     ref = auto_filter.attrib.get("ref")
     if not ref:
         return False
@@ -163,7 +163,7 @@ def _normalize_auto_filter_ref(root: ET.Element, auto_filter: ET.Element) -> boo
 
 
 def _parse_row_only_range(ref: str) -> tuple[int, int] | None:
-    """解析 Excel 行范围写法，仅接受正整数且起止顺序有效的范围。"""
+    """Sort items into the required order."""
     match = ROW_ONLY_RANGE_RE.match(ref)
     if match is None:
         return None
@@ -175,7 +175,7 @@ def _parse_row_only_range(ref: str) -> tuple[int, int] | None:
 
 
 def _resolve_worksheet_column_bounds(root: ET.Element) -> tuple[str, str]:
-    """优先从 dimension 获取列边界，失败时退回扫描 sheetData。"""
+    """Extract the required value."""
     dimension = root.find(DIMENSION_TAG)
     if dimension is not None:
         columns = _column_bounds_from_ref(dimension.attrib.get("ref", ""))
@@ -190,7 +190,7 @@ def _resolve_worksheet_column_bounds(root: ET.Element) -> tuple[str, str]:
 
 
 def _column_bounds_from_ref(ref: str) -> tuple[str, str] | None:
-    """从 dimension/ref 这类范围字符串中解析起止列。"""
+    """Parse the input data."""
     ref = ref.strip()
     if not ref:
         return None
@@ -218,7 +218,7 @@ def _column_bounds_from_ref(ref: str) -> tuple[str, str] | None:
 
 
 def _column_bounds_from_sheet_data(root: ET.Element) -> tuple[str, str] | None:
-    """扫描 sheetData 里的单元格引用，推导工作表真实列范围。"""
+    """Implementation detail."""
     sheet_data = root.find(SHEET_DATA_TAG)
     if sheet_data is None:
         return None
@@ -239,7 +239,7 @@ def _column_bounds_from_sheet_data(root: ET.Element) -> tuple[str, str] | None:
 
 
 def _column_from_cell_ref(cell_ref: str) -> str | None:
-    """从 A1 形式的单元格引用中提取列名。"""
+    """Extract the required value."""
     match = CELL_REF_RE.match(cell_ref)
     if match is None:
         return None
@@ -247,7 +247,7 @@ def _column_from_cell_ref(cell_ref: str) -> str | None:
 
 
 def _column_to_index(column: str) -> int:
-    """将 Excel 列名转换为 1-based 数字索引。"""
+    """Convert the value to the required format."""
     index = 0
     for char in column.upper():
         if not "A" <= char <= "Z":
@@ -257,7 +257,7 @@ def _column_to_index(column: str) -> int:
 
 
 def _index_to_column(index: int) -> str:
-    """将 1-based 数字索引转换为 Excel 列名。"""
+    """Convert the value to the required format."""
     column = []
     while index:
         index, remainder = divmod(index - 1, 26)
@@ -266,7 +266,7 @@ def _index_to_column(index: int) -> str:
 
 
 def _is_worksheet_xml(member_name: str) -> bool:
-    """判断包内成员是否为普通 worksheet XML。"""
+    """Validate the current value."""
     return (
         member_name.startswith(WORKSHEET_PREFIX)
         and member_name.endswith(WORKSHEET_SUFFIX)
@@ -275,7 +275,7 @@ def _is_worksheet_xml(member_name: str) -> bool:
 
 
 def _write_package(members: list[tuple[ZipInfo, bytes]]) -> bytes:
-    """把规范化后的成员重新写成 XLSX ZIP 包，并重新计算 CRC。"""
+    """Convert the value to the required format."""
     output = BytesIO()
     with ZipFile(output, "w", ZIP_DEFLATED) as target:
         for info, member_data in members:

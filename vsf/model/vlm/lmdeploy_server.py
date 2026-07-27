@@ -17,7 +17,7 @@ def main():
     device_type = ""
     lm_backend = ""
 
-    # 检查现有参数
+    # Validate the current value.
     indices_to_remove = []
 
     for i, arg in enumerate(args):
@@ -42,11 +42,11 @@ def main():
             device_type = arg.split("=", 1)[1]
             indices_to_remove.append(i)
 
-    # 从后往前删除,避免索引错位
+    # Remove invalid or unnecessary data.
     for i in sorted(set(indices_to_remove), reverse=True):
         args.pop(i)
 
-    # 添加默认参数
+    # Add the value to the result.
     if not has_port_arg:
         args.extend(["--server-port", "30000"])
     if not has_gpu_memory_utilization_arg:
@@ -77,16 +77,16 @@ def main():
 
     # logger.debug(args)
 
-    # 重构参数，将模型路径作为位置参数
+    # Configure the model.
     sys.argv = [sys.argv[0]] + ["serve", "api_server", model_path] + args
 
     if os.getenv('OMP_NUM_THREADS') is None:
         os.environ["OMP_NUM_THREADS"] = "1"
 
-    # 启动 lmdeploy 服务器
+    # Process the service request.
     print(f"start lmdeploy server: {sys.argv}")
 
-    # 使用os.system调用启动lmdeploy服务器
+    # Process the service request.
     os.system("lmdeploy " + " ".join(sys.argv[1:]))
 
 

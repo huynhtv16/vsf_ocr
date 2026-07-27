@@ -7,7 +7,7 @@ from ..utils.path_utils import parse_s3_range_params, parse_s3path, remove_non_o
 
 
 def _load_s3_io_classes():
-    """延迟加载 S3 IO 类，仅在实际读写 S3 时要求安装 boto3。"""
+    """Implementation detail."""
     try:
         from ..io.s3 import S3Reader, S3Writer
     except ModuleNotFoundError as exc:

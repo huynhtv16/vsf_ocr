@@ -22,7 +22,7 @@ class UnimerSwinImageProcessor(BaseImageProcessor):
 
     @staticmethod
     def to_normalized_gray_tensor(image: np.ndarray) -> torch.Tensor:
-        """将图像确定性转灰度、按 UniMERNet 参数归一化，并转为单通道 tensor。"""
+        """Convert the value to the required format."""
         if image.ndim == 2:
             gray = image
         elif image.ndim == 3 and image.shape[2] == 1:

@@ -22,13 +22,13 @@ from gradio_pdf import PDF
 from loguru import logger
 
 os.environ["TORCH_CUDNN_V8_API_DISABLED"] = "1"
-# 检测 Gradio 版本，用于兼容 Gradio 5 和 Gradio 6
+# Implementation detail.
 _gradio_major_version = int(gr.__version__.split('.')[0])
 IS_GRADIO_6 = _gradio_major_version >= 6
 
 log_level = os.getenv("MINERU_LOG_LEVEL", "INFO").upper()
-logger.remove()  # 移除默认handler
-logger.add(sys.stderr, level=log_level)  # 添加新handler
+logger.remove()  # Remove invalid or unnecessary data.
+logger.add(sys.stderr, level=log_level)  # Add the value to the result.
 
 from mineru.cli.common import (
     image_suffixes,
@@ -247,7 +247,7 @@ STATUS_STEP_DEFINITIONS = [
 
 
 def normalize_mineru_locale(locale):
-    """统一自定义 HTML 的语言归一规则：中文使用 zh，其他语言降级为英文。"""
+    """Implementation detail."""
     normalized = str(locale or "").strip().lower()
     if normalized.startswith("zh"):
         return "zh"
@@ -255,7 +255,7 @@ def normalize_mineru_locale(locale):
 
 
 def resolve_i18n_text(i18n, key, locale=None):
-    """按指定语言读取自定义 HTML 需要的纯文本文案，避免直接渲染 Gradio I18nData 元数据。"""
+    """Extract the required value."""
     if i18n is None:
         return key
     translations = getattr(i18n, "translations", None)
@@ -274,12 +274,12 @@ def resolve_i18n_text(i18n, key, locale=None):
 
 
 def translate_ui(i18n, key, locale=None):
-    """按目标语言读取纯文本文案，用作自定义 HTML 的初始渲染内容。"""
+    """Extract the required value."""
     return resolve_i18n_text(i18n, key, locale)
 
 
 def resolve_request_locale(request):
-    """根据 Gradio 请求头推断浏览器语言，避免流式状态面板高频刷新时闪回默认语言。"""
+    """Process the service request."""
     headers = getattr(request, "headers", None) or {}
     if not hasattr(headers, "get"):
         return None
@@ -311,7 +311,7 @@ def resolve_request_locale(request):
 
 
 def build_client_i18n_attrs(i18n, key):
-    """为自定义 HTML 输出中英文文案属性，交给前端按浏览器语言切换。"""
+    """Prepare the output value."""
     attrs = [f'data-mineru-i18n-key="{html_lib.escape(key, quote=True)}"']
     for locale in ("en", "zh"):
         text = resolve_i18n_text(i18n, key, locale)
@@ -320,7 +320,7 @@ def build_client_i18n_attrs(i18n, key):
 
 
 def render_client_i18n_text(i18n, key, locale=None):
-    """生成可被前端重新本地化的文本节点，避免 header/status 在英文环境固定成中文。"""
+    """Build the required output."""
     return (
         f"<span {build_client_i18n_attrs(i18n, key)}>"
         f"{html_lib.escape(translate_ui(i18n, key, locale))}"
@@ -329,7 +329,7 @@ def render_client_i18n_text(i18n, key, locale=None):
 
 
 def build_backend_choices(http_client_enable, i18n):
-    """构建后端选项列表，展示文案与提交给后端的 backend 值保持完全一致。"""
+    """Build the required output."""
     choices = list(BACKEND_CHOICE_DEFINITIONS)
     if http_client_enable:
         choices.extend(HTTP_CLIENT_BACKEND_CHOICE_DEFINITIONS)
@@ -337,12 +337,12 @@ def build_backend_choices(http_client_enable, i18n):
 
 
 def is_http_client_backend(backend_choice):
-    """判断当前后端是否为 http-client 类型，用于控制服务器地址配置显隐。"""
+    """Validate the current value."""
     return isinstance(backend_choice, str) and backend_choice.endswith("-http-client")
 
 
 def select_backend_info_key(backend_choice):
-    """根据解析后端选择说明文案的 i18n key。"""
+    """Parse the input data."""
     if not isinstance(backend_choice, str):
         return "backend_info_default"
     if backend_choice.startswith("vlm"):
@@ -355,19 +355,19 @@ def select_backend_info_key(backend_choice):
 
 
 def select_force_ocr_info_key(backend_choice: object) -> str:
-    """根据解析后端选择强制 OCR 说明；只有 pipeline 需要提示 OCR 语言要求。"""
+    """Parse the input data."""
     if isinstance(backend_choice, str) and backend_choice.startswith("hybrid"):
         return "force_ocr_info_hybrid"
     return "force_ocr_info"
 
 
 def is_effort_option_visible(backend_choice):
-    """判断当前后端是否需要展示 Hybrid effort 配置。"""
+    """Validate the current value."""
     return isinstance(backend_choice, str) and backend_choice.startswith("hybrid")
 
 
 def resolve_status_step_index(status_lines):
-    """根据现有状态日志推断步骤面板中当前应高亮的步骤索引。"""
+    """Implementation detail."""
     if not status_lines:
         return -1, False
     if status_lines[-1].startswith("Failed:"):
@@ -387,7 +387,7 @@ def resolve_status_step_index(status_lines):
 
 
 def render_status_steps_html(status_text, i18n, locale=None):
-    """把流式状态日志渲染为步骤式状态面板，底层日志格式保持不变。"""
+    """Implementation detail."""
     status_lines = [line for line in str(status_text or "").splitlines() if line]
     current_index, is_failed = resolve_status_step_index(status_lines)
     latest_status = (
@@ -438,7 +438,7 @@ RESOURCE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'resourc
 
 
 def load_resource_text(resource_name):
-    """读取 mineru/resources 下的文本资源，集中管理 Gradio 静态片段。"""
+    """Extract the required value."""
     resource_path = os.path.join(RESOURCE_DIR, resource_name)
     with open(resource_path, mode='r', encoding='utf-8') as resource_file:
         return resource_file.read()
@@ -447,7 +447,7 @@ def load_resource_text(resource_name):
 APP_CSS = load_resource_text('gradio_app.css')
 APP_JS = load_resource_text('gradio_app.js')
 
-# Gradio 6 的 js 参数在部分托管环境里只注入函数文本，使用 head 包装确保页面加载后主动执行。
+# Process text content.
 APP_HEAD = f"""
 <script>
 (() => {{
@@ -620,7 +620,7 @@ def format_processing_status(elapsed_seconds: float) -> str:
 
 
 def format_completed_status(elapsed_seconds: float | None) -> str:
-    """生成完成状态文案，保留服务端解析阶段最终耗时。"""
+    """Parse the input data."""
     if elapsed_seconds is None:
         return STATUS_COMPLETED
     return f"{STATUS_COMPLETED} ({elapsed_seconds:.1f}s)"
@@ -661,22 +661,22 @@ def format_remote_status_message(
 
 
 def compress_directory_to_zip(directory_path, output_zip_path):
-    """压缩指定目录到一个 ZIP 文件。
+    """Process the file path.
 
-    :param directory_path: 要压缩的目录路径
-    :param output_zip_path: 输出的 ZIP 文件路径
+    Process the file path.
+    Process the file path.
     """
     try:
         with zipfile.ZipFile(output_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
 
-            # 遍历目录中的所有文件和子目录
+            # Iterate over the available items.
             for root, dirs, files in os.walk(directory_path):
                 for file in files:
-                    # 构建完整的文件路径
+                    # Build the required output.
                     file_path = os.path.join(root, file)
-                    # 计算相对路径
+                    # Calculate the result.
                     arcname = os.path.relpath(file_path, directory_path)
-                    # 添加文件到 ZIP 文件
+                    # Add the value to the result.
                     zipf.write(file_path, arcname)
         return 0
     except Exception as e:
@@ -696,7 +696,7 @@ GRADIO_PREVIEW_EXTERNAL_SRC_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 
 
 def _resolve_gradio_preview_image_path(src, image_dir_path):
-    """将 Markdown/HTML 中的图片路径解析成 Gradio 文件路由需要的本地完整路径。"""
+    """Parse the input data."""
     image_src = str(src).strip()
     if not image_src:
         return None
@@ -711,7 +711,7 @@ def _resolve_gradio_preview_image_path(src, image_dir_path):
 
 
 def replace_image_with_gradio_file_urls(markdown_text, image_dir_path):
-    """将 Gradio 预览中的本地图片路径改写为 HTTP 文件链接，不修改导出的 Markdown 文件。"""
+    """Process image content."""
     if not isinstance(markdown_text, str) or not image_dir_path:
         return markdown_text
 
@@ -721,7 +721,7 @@ def replace_image_with_gradio_file_urls(markdown_text, image_dir_path):
             return None
         return f"/gradio_api/file={quote(image_path, safe='/:')}"
 
-    # 匹配 Markdown 正文图片 ![alt](path)，只替换可安全访问的本地图片路径。
+    # Match the expected pattern.
     def replace_md(match):
         alt_text = match.group("alt")
         image_src = match.group("src")
@@ -736,7 +736,7 @@ def replace_image_with_gradio_file_urls(markdown_text, image_dir_path):
         markdown_text,
     )
 
-    # 匹配 HTML 表格内的 <img src="path">，跳过 data/http/blob 等已有可访问地址。
+    # Remove invalid or unnecessary data.
     def replace_html_src(match):
         prefix = match.group("prefix")
         quote_char = match.group("quote")
@@ -757,7 +757,7 @@ def replace_image_with_gradio_file_urls(markdown_text, image_dir_path):
 
 
 def read_gradio_content_list_json(local_md_dir, file_name):
-    """读取本次 Gradio 解析目录中的 legacy content_list JSON，失败时返回空字符串。"""
+    """Parse the input data."""
     content_list_path = Path(local_md_dir) / f"{file_name}_content_list.json"
     if not content_list_path.is_file():
         logger.warning(
@@ -774,12 +774,12 @@ def read_gradio_content_list_json(local_md_dir, file_name):
 
 
 def _escape_latex_html_chars_for_gradio(content):
-    """转义公式内部会被 Gradio HTML 解析链路误判的尖括号，保留 LaTeX 对齐用 &。"""
+    """Parse the input data."""
     return content.replace("<", "&lt;").replace(">", "&gt;")
 
 
 def escape_latex_blocks_for_gradio_preview(markdown_text, latex_delimiters):
-    """根据当前 LaTeX 分隔符，仅转义公式内容，避免影响公式外 Markdown/HTML。"""
+    """Process formula content."""
     if not markdown_text or not latex_delimiters:
         return markdown_text
 
@@ -812,7 +812,7 @@ def escape_latex_blocks_for_gradio_preview(markdown_text, latex_delimiters):
         content_start = position + len(left)
         content_end = markdown_text.find(right, content_start)
         if content_end == -1:
-            # 未闭合的分隔符保持原样，并继续扫描后续可能闭合的公式块。
+            # Process formula content.
             result.append(markdown_text[position])
             position += 1
             continue
@@ -828,7 +828,7 @@ def escape_latex_blocks_for_gradio_preview(markdown_text, latex_delimiters):
 
 
 def prepare_markdown_for_gradio_preview(markdown_text, latex_delimiters):
-    """准备传给 gr.Markdown 的预览文本；原始 Markdown 文件内容不在这里改写。"""
+    """Process text content."""
     if not isinstance(markdown_text, str):
         return markdown_text
     return escape_latex_blocks_for_gradio_preview(markdown_text, latex_delimiters)
@@ -850,7 +850,7 @@ def resolve_parse_method(file_path, is_ocr, backend):
 
 
 def is_image_analysis_option_visible(backend, effort=DEFAULT_HYBRID_EFFORT):
-    """判断 Gradio 图片分析开关是否应展示；Hybrid medium 会强制关闭该功能。"""
+    """Validate the current value."""
     if not isinstance(backend, str):
         return False
     if backend.startswith("vlm"):
@@ -861,24 +861,24 @@ def is_image_analysis_option_visible(backend, effort=DEFAULT_HYBRID_EFFORT):
 
 
 def is_ocr_language_option_visible(backend: object) -> bool:
-    """判断 OCR 语言选项是否展示；lang 参数只对 pipeline 后端生效。"""
+    """Validate the current value."""
     return backend == "pipeline"
 
 
 def is_force_ocr_option_visible(backend: object) -> bool:
-    """判断强制 OCR 开关是否展示；Hybrid 不需要 lang，但仍支持强制 OCR。"""
+    """Validate the current value."""
     if not isinstance(backend, str):
         return False
     return backend == "pipeline" or backend.startswith("hybrid")
 
 
 def frontend_managed_initial_visibility(is_visible: bool):
-    """转换前端托管显隐控件的初始状态；hidden 会保留 DOM 挂载，避免后续重新挂载。"""
+    """Convert the value to the required format."""
     return True if is_visible else "hidden"
 
 
 def should_use_client_side_output_generation(client_side_output_generation):
-    """判断当前 Gradio 任务是否需要在客户端生成最终输出。"""
+    """Validate the current value."""
     return client_side_output_generation
 
 
@@ -891,7 +891,7 @@ def create_gradio_run_paths(file_path, output_root="./output"):
 
 
 def build_gradio_allowed_paths(output_root="./output"):
-    """生成 Gradio 可公开访问目录，确保预览 HTTP 图片链接能被 /gradio_api/file= 读取。"""
+    """Build the required output."""
     allowed_paths = []
     for item in os.environ.get("GRADIO_ALLOWED_PATHS", "").split(","):
         item = item.strip()
@@ -1085,7 +1085,7 @@ async def _run_to_markdown_job(
                 upload_assets=upload_assets,
                 form_data=form_data,
             )
-            emit_status(f"Task submitted：task_id={submit_response.task_id}")
+            emit_status(f"Task submitted\uff1atask_id={submit_response.task_id}")
 
             last_task_snapshot = None
 
@@ -1330,7 +1330,7 @@ all_lang = list(PUBLIC_OCR_LANGUAGE_CHOICES)
 
 def safe_stem(file_path):
     stem = Path(file_path).stem
-    # 只保留字母、数字、下划线和点，其他字符替换为下划线
+    # Implementation detail.
     return re.sub(r'[^\w.]', '_', stem)
 
 
@@ -1344,10 +1344,10 @@ def to_pdf(file_path):
     # unique_filename = f'{uuid.uuid4()}.pdf'
     unique_filename = f'{safe_stem(file_path)}.pdf'
 
-    # 构建完整的文件路径
+    # Build the required output.
     tmp_file_path = os.path.join(os.path.dirname(file_path), unique_filename)
 
-    # 将字节数据写入文件
+    # Process the file path.
     with open(tmp_file_path, 'wb') as tmp_pdf_file:
         tmp_pdf_file.write(pdf_bytes)
 
@@ -1355,7 +1355,7 @@ def to_pdf(file_path):
 
 
 def to_pdf_preview(file_path):
-    """用于 PDF 预览的转换函数，office 文件不支持预览，返回 None。"""
+    """Convert the value to the required format."""
     if file_path is None:
         return None
     file_suffix = Path(file_path).suffix.lower().lstrip('.')
@@ -1365,7 +1365,7 @@ def to_pdf_preview(file_path):
 
 
 def build_gradio_file_public_url(file_path, request: gr.Request):
-    """根据当前 Gradio 请求构建上传文件的外部访问 URL，兼容本地和反代环境。"""
+    """Build the required output."""
     headers = getattr(request, "headers", None) or {}
     host = (
         headers.get('x-forwarded-host')
@@ -1376,7 +1376,7 @@ def build_gradio_file_public_url(file_path, request: gr.Request):
 
 
 def build_short_gradio_file_url(public_url, file_path):
-    """生成页面展示用的短链接文本，保留站点前缀和文件名尾部以避免长路径撑破预览区。"""
+    """Build the required output."""
     base_url = public_url.split("/gradio_api/file=", 1)[0]
     file_name = Path(file_path).name
     file_suffix = Path(file_name).suffix
@@ -1386,7 +1386,7 @@ def build_short_gradio_file_url(public_url, file_path):
 
 
 def build_office_preview_html(file_path, request: gr.Request, i18n=None):
-    """生成 Office 在线预览 HTML，并提示该预览依赖外部 Microsoft 服务访问。"""
+    """Build the required output."""
     public_url = build_gradio_file_public_url(file_path, request)
     short_public_url = build_short_gradio_file_url(public_url, file_path)
     viewer_url = (
@@ -1421,15 +1421,15 @@ def build_office_preview_html(file_path, request: gr.Request, i18n=None):
 
 
 def update_file_options_html(file_path, request: gr.Request, i18n=None):
-    """处理文件上传第一阶段：根据文件类型更新 options_group 和 office_html。
-    将 doc_show（gradio_pdf.PDF）的更新拆分到独立的 .then() 事件中，
-    以规避 gradio_pdf 0.0.24 在 Gradio 6 中对 value=None 处理不当导致的
-    整个事件 processing 状态卡死的兼容性问题。
+    """Process the file path.
+    Implementation detail.
+    Process the current item.
+    Implementation detail.
     """
     if file_path is None:
         return (
-            gr.update(visible=True),             # options_group - 恢复显示
-            gr.update(value="", visible=False),  # office_html - 隐藏
+            gr.update(visible=True),             # Implementation detail.
+            gr.update(value="", visible=False),  # Implementation detail.
         )
 
     file_suffix = Path(file_path).suffix.lower().lstrip('.')
@@ -1438,30 +1438,30 @@ def update_file_options_html(file_path, request: gr.Request, i18n=None):
     if is_office:
         html_content = build_office_preview_html(file_path, request, i18n)
         return (
-            gr.update(visible=False),                    # options_group - 隐藏
-            gr.update(value=html_content, visible=True), # office_html - 显示
+            gr.update(visible=False),                    # Implementation detail.
+            gr.update(value=html_content, visible=True), # Implementation detail.
         )
     else:
         return (
-            gr.update(visible=True),             # options_group - 显示
-            gr.update(value="", visible=False),  # office_html - 隐藏
+            gr.update(visible=True),             # Implementation detail.
+            gr.update(value="", visible=False),  # Implementation detail.
         )
 
 
 def update_doc_show(file_path):
-    """处理文件上传第二阶段：单独更新 doc_show（gradio_pdf.PDF）组件。
-    对 office 文件仅改变 visible，避免传递 value=None 触发
-    gradio_pdf 0.0.24 在 Gradio 6 中无法完成的加载周期。
+    """Process the file path.
+    Process the file path.
+    Implementation detail.
     """
     if file_path is None:
-        # 无文件时恢复显示并清空（clear 按钮路径）
+        # Process the file path.
         return gr.update(value=None, visible=True)
 
     file_suffix = Path(file_path).suffix.lower().lstrip('.')
     is_office = file_suffix in office_suffixes
 
     if is_office:
-        # 仅隐藏，不改变 value，避免触发 gradio_pdf 加载周期导致事件 pending 卡死
+        # Implementation detail.
         return gr.update(visible=False)
     else:
         pdf_path = to_pdf_preview(file_path)
@@ -1550,7 +1550,7 @@ def main(ctx,
         client_side_output_generation, latex_delimiters_type, **kwargs
 ):
 
-    # 创建 i18n 实例，支持中英文
+    # Build the required output.
     i18n = gr.I18n(
         en={
             "upload_file": "Chọn hoặc dán tệp cần tải lên\nPDF, hình ảnh, PPTX hoặc XLSX",
@@ -1563,9 +1563,9 @@ def main(ctx,
             "header_model_huggingface_link": "Hugging Face",
             "header_model_modelscope_link": "ModelScope",
             "header_paper_link": "Paper",
-            "header_paper_mineru_report": "MinerU · arXiv: 2409.18839",
-            "header_paper_mineru25_report": "MinerU 2.5 · arXiv: 2509.22186",
-            "header_paper_mineru25pro_report": "MinerU 2.5 Pro · arXiv: 2604.04771",
+            "header_paper_mineru_report": "MinerU \u00b7 arXiv: 2409.18839",
+            "header_paper_mineru25_report": "MinerU 2.5 \u00b7 arXiv: 2509.22186",
+            "header_paper_mineru25pro_report": "MinerU 2.5 Pro \u00b7 arXiv: 2604.04771",
             "header_homepage_link": "Homepage",
             "header_download_link": "Download",
             "max_pages": "Max convert pages",
@@ -1632,81 +1632,81 @@ def main(ctx,
             "upload_file": "Chọn hoặc dán tệp cần tải lên\nPDF, hình ảnh, PPTX hoặc XLSX",
             "header_title": "VSF OCR",
             "header_subtitle": "Phân tích tài liệu thông minh, nhận diện văn bản, bố cục, bảng, hình ảnh và công thức.",
-            "header_support_text": "如果我们的项目对你有帮助，请点亮 ⭐️ 支持我们！",
-            "header_stars_alt": "GitHub 星标",
-            "header_code_link": "代码",
-            "header_model_link": "模型",
+            "header_support_text": "If you found our project helpful, please give us a ⭐️ to support us!",
+            "header_stars_alt": "stars",
+            "header_code_link": "Code",
+            "header_model_link": "Model",
             "header_model_huggingface_link": "Hugging Face",
             "header_model_modelscope_link": "ModelScope",
-            "header_paper_link": "论文",
-            "header_paper_mineru_report": "MinerU · arXiv: 2409.18839",
-            "header_paper_mineru25_report": "MinerU 2.5 · arXiv: 2509.22186",
-            "header_paper_mineru25pro_report": "MinerU 2.5 Pro · arXiv: 2604.04771",
-            "header_homepage_link": "主页",
-            "header_download_link": "下载",
-            "max_pages": "最大转换页数",
-            "backend": "解析后端",
-            "backend_label_hybrid": "Hybrid 推荐",
-            "backend_label_pipeline": "Pipeline 稳定多语言",
-            "backend_label_vlm": "VLM 高精度中英文",
+            "header_paper_link": "Paper",
+            "header_paper_mineru_report": "MinerU \u00b7 arXiv: 2409.18839",
+            "header_paper_mineru25_report": "MinerU 2.5 \u00b7 arXiv: 2509.22186",
+            "header_paper_mineru25pro_report": "MinerU 2.5 Pro \u00b7 arXiv: 2604.04771",
+            "header_homepage_link": "Homepage",
+            "header_download_link": "Download",
+            "max_pages": "Max convert pages",
+            "backend": "Backend",
+            "backend_label_hybrid": "Hybrid (Recommended)",
+            "backend_label_pipeline": "Pipeline (Stable multilingual)",
+            "backend_label_vlm": "VLM (High-precision Chinese/English)",
             "backend_label_remote_vlm": "Remote VLM",
             "backend_label_remote_hybrid": "Remote Hybrid",
-            "server_url": "服务器地址",
-            "server_url_info": "http-client 后端的 OpenAI 兼容服务器地址。",
-            "recognition_options": "**识别选项：**",
-            "advanced_options": "高级选项",
-            "table_enable": "启用表格识别",
-            "table_info": "禁用后，表格将显示为图片。",
-            "image_analysis_enable": "启用图片分析",
-            "image_analysis_info": "禁用后，图片/图表块仍保留版面位置，但跳过 VLM 图片/图表分析。",
-            "formula_label_vlm": "启用行间公式识别",
-            "formula_label_pipeline": "启用公式识别",
-            "formula_label_hybrid": "启用行内公式识别",
-            "formula_info_vlm": "禁用后，行间公式将显示为图片。",
-            "formula_info_pipeline": "禁用后，行间公式将显示为图片，行内公式将不会被检测或解析。",
-            "formula_info_hybrid": "禁用后，行内公式将不会被检测或解析。",
-            "ocr_language": "OCR 语言",
-            "ocr_language_info": "为扫描版 PDF 和图片选择 OCR 语言。",
-            "force_ocr": "强制启用 OCR",
-            "force_ocr_info": "仅在识别效果极差时启用，需选择正确的 OCR 语言。",
-            "force_ocr_info_hybrid": "仅在识别效果极差时启用。",
-            "convert": "转换",
-            "clear": "清除",
-            "doc_preview": "文档预览",
-            "examples": "示例：",
-            "convert_status": "转换状态",
-            "convert_result": "转换结果",
-            "result_file": "结果文件",
-            "md_rendering": "Markdown 渲染",
-            "md_text": "Markdown 文本",
-            "content_list_json": "JSON 内容列表",
-            "status_idle_title": "等待任务",
-            "status_idle_hint": "上传文件后开始转换。",
-            "status_latest": "最新状态",
-            "status_step_prepare": "准备请求",
-            "status_step_check": "检查服务",
-            "status_step_submit": "提交任务",
-            "status_step_queue": "排队",
-            "status_step_process": "解析中",
-            "status_step_download": "下载结果",
-            "status_step_outputs": "整理输出",
-            "status_step_done": "完成",
-            "status_step_failed": "失败",
-            "office_preview_title": "Office 在线预览",
-            "office_preview_notice": "该预览需要当前文件可被 Microsoft 在线预览服务访问，转换不依赖该预览。",
-            "office_preview_source_link": "文件链接",
-            "office_preview_ignore_once": "忽略",
-            "office_preview_ignore_forever": "不再提示",
-            "backend_info_vlm": "多模态大模型端到端解析，高精度",
-            "backend_info_pipeline": "传统多模型管道解析，低资源，无幻觉",
-            "backend_info_hybrid": "独家混合引擎解析，超高精度",
-            "backend_info_default": "选择文档解析的后端引擎。",
-            "hybrid_effort": "解析强度",
-            "hybrid_effort_info": "Medium 速度更快；High 精度更高，耗时可能更长。",
+            "server_url": "Server URL",
+            "server_url_info": "OpenAI-compatible server URL for http-client backend.",
+            "recognition_options": "**Recognition Options:**",
+            "advanced_options": "Advanced options",
+            "table_enable": "Enable table recognition",
+            "table_info": "If disabled, tables will be shown as images.",
+            "image_analysis_enable": "Enable image analysis",
+            "image_analysis_info": "If disabled, image/chart blocks will keep layout positions but skip VLM image/chart analysis.",
+            "formula_label_vlm": "Enable display formula recognition",
+            "formula_label_pipeline": "Enable formula recognition",
+            "formula_label_hybrid": "Enable inline formula recognition",
+            "formula_info_vlm": "If disabled, display formulas will be shown as images.",
+            "formula_info_pipeline": "If disabled, display formulas will be shown as images, and inline formulas will not be detected or parsed.",
+            "formula_info_hybrid": "If disabled, inline formulas will not be detected or parsed.",
+            "ocr_language": "OCR Language",
+            "ocr_language_info": "Select the OCR language for image-based PDFs and images.",
+            "force_ocr": "Force enable OCR",
+            "force_ocr_info": "Enable only if the result is extremely poor. Requires correct OCR language.",
+            "force_ocr_info_hybrid": "Enable only if the result is extremely poor.",
+            "convert": "Convert",
+            "clear": "Clear",
+            "doc_preview": "Document preview",
+            "examples": "Examples:",
+            "convert_status": "Conversion Status",
+            "convert_result": "Convert result",
+            "result_file": "Result file",
+            "md_rendering": "Markdown rendering",
+            "md_text": "Markdown text",
+            "content_list_json": "JSON Content List",
+            "status_idle_title": "Waiting",
+            "status_idle_hint": "Upload a file and start conversion.",
+            "status_latest": "Latest status",
+            "status_step_prepare": "Prepare",
+            "status_step_check": "Check service",
+            "status_step_submit": "Submit",
+            "status_step_queue": "Queue",
+            "status_step_process": "Parse",
+            "status_step_download": "Download",
+            "status_step_outputs": "Build outputs",
+            "status_step_done": "Done",
+            "status_step_failed": "Failed",
+            "office_preview_title": "Office online preview",
+            "office_preview_notice": "This preview requires the current file to be reachable by Microsoft Office Online. Conversion does not depend on this preview.",
+            "office_preview_source_link": "File url",
+            "office_preview_ignore_once": "Dismiss",
+            "office_preview_ignore_forever": "Always dismiss",
+            "backend_info_vlm": "Multimodal large-model end-to-end parsing, high accuracy.",
+            "backend_info_pipeline": "Traditional multi-model pipeline parsing, low resource usage, hallucination-free.",
+            "backend_info_hybrid": "Exclusive hybrid engine parsing, ultra-high accuracy.",
+            "backend_info_default": "Select the backend engine for document parsing.",
+            "hybrid_effort": "Hybrid effort",
+            "hybrid_effort_info": "Medium is faster. High is more accurate and may take longer.",
         },
     )
 
-    # 根据后端类型获取公式识别标签（闭包函数以支持 i18n）
+    # Extract the required value.
     def get_formula_label(backend_choice):
         if backend_choice.startswith("vlm"):
             return i18n("formula_label_vlm")
@@ -1731,11 +1731,11 @@ def main(ctx,
         return i18n(select_backend_info_key(backend_choice))
 
     def get_force_ocr_info(backend_choice):
-        """根据后端返回强制 OCR 控件说明，避免 Hybrid 显示 pipeline 的语言提示。"""
+        """Prepare the output value."""
         return i18n(select_force_ocr_info_key(backend_choice))
 
     def build_interface_updates(backend_choice, effort_choice):
-        """构建 Gradio 后端联动更新，保证所有事件复用同一套显隐规则。"""
+        """Build the required output."""
         formula_label_update = gr.update(label=get_formula_label(backend_choice), info=get_formula_info(backend_choice))
         backend_info_update = gr.update(info=get_backend_info(backend_choice))
         force_ocr_update = gr.update(info=get_force_ocr_info(backend_choice))
@@ -1747,7 +1747,7 @@ def main(ctx,
         )
 
     def update_interface(backend_choice, effort_choice):
-        """更新可由 Gradio 稳定管理的基础界面项，易重挂载的控件交给前端状态类处理。"""
+        """Process the current item."""
         return build_interface_updates(backend_choice, effort_choice)
 
     del kwargs
@@ -1836,7 +1836,7 @@ def main(ctx,
                         placeholder='http://localhost:30000',
                         info=i18n("server_url_info"),
                     )
-                # 下面这些选项在上传 office 文件时会被自动隐藏
+                # Process the file path.
                 with gr.Group() as options_group:
                     max_pages = gr.Slider(1, max_convert_pages, max_convert_pages, step=1, label=i18n("max_pages"))
                     gr.Button(
@@ -1859,8 +1859,8 @@ def main(ctx,
                 )
 
             _doc_preview_label = "doc preview" if IS_GRADIO_6 else i18n("doc_preview")
-            # preview_content_height 约束文档预览/Markdown 的内容区；gradio_pdf 的 height
-            # 实际是单页 canvas 高度，需要单独扣除 label 和分页器占用，避免上传 PDF 后撑高预览块。
+            # Implementation detail.
+            # Implementation detail.
             preview_content_height = 775
             pdf_preview_page_height = 720
             with gr.Column(variant='panel', scale=4, min_width=340, elem_classes=["mineru-preview-pane"]):
@@ -1964,7 +1964,7 @@ def main(ctx,
                             info=i18n(select_force_ocr_info_key(preferred_option)),
                         )
 
-        # 添加事件处理
+        # Add the value to the result.
         _private_api_kwargs = (
             {"api_visibility": "private", "queue": False, "show_progress": "hidden"}
             if IS_GRADIO_6
@@ -1976,7 +1976,7 @@ def main(ctx,
             outputs=[is_ocr, formula_enable, backend],
             **_private_api_kwargs
         )
-        # 添加demo.load事件，在页面加载时触发一次界面更新
+        # Add the value to the result.
         demo.load(
             fn=update_interface,
             inputs=[backend, hybrid_effort],
@@ -1986,7 +1986,7 @@ def main(ctx,
         clear_bu.add([input_file, md, doc_show, md_text, content_list_json, output_file, is_ocr, office_html, status_panel])
 
         def reset_primary_ui():
-            """清除主界面状态。高级气泡由前端点击外部逻辑自动收起。"""
+            """Implementation detail."""
             return (
                 gr.update(visible=True),
                 gr.update(value=None, visible=True),
@@ -1995,7 +1995,7 @@ def main(ctx,
                 gr.update(value=""),
             )
 
-        # 清除按钮额外重置 UI 可见性（ClearButton 不一定触发 input_file.change）
+        # Implementation detail.
         clear_bu.click(
             fn=reset_primary_ui,
             inputs=[],
@@ -2004,12 +2004,12 @@ def main(ctx,
         )
 
         def update_file_options_html_for_ui(file_path, request: gr.Request):
-            """绑定当前 i18n 的文件上传 UI 更新函数，避免事件签名暴露额外参数。"""
+            """Process the file path."""
             return update_file_options_html(file_path, request, i18n)
 
-        # 第一阶段：快速更新 options_group 和 office_html，不涉及 gradio_pdf 组件
-        # 第二阶段（.then）：单独更新 doc_show，使 office_html 的 processing 遮罩
-        # 在第一阶段完成后立即消失，规避 gradio_pdf 0.0.24 与 Gradio 6 的兼容性问题。
+        # Implementation detail.
+        # Implementation detail.
+        # Implementation detail.
         input_file.change(
             fn=update_file_options_html_for_ui,
             inputs=input_file,

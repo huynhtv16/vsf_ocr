@@ -40,12 +40,12 @@ MFR_BASE_BATCH_SIZE = 16
 OCR_DET_BASE_BATCH_SIZE = 8
 TABLE_Wired_Wireless_CLS_BATCH_SIZE = 16
 TABLE_OCR_REC_SINGLE_CHAR_REPLACEMENTS = {
-    "香": "否",
-    "哦樂": "哦",
+    "\u9999": "\u5426",
+    "\u54e6\u6a02": "\u54e6",
 }
 TABLE_OCR_REC_REGEX_REPLACEMENTS = (
-    # 仅规范化完整的“单个数字 + 號”，避免影响“10號”“第6號”等普通文本。
-    (re.compile(r"^([0-9])號$"), r"\1"),
+    # Convert the value to the required format.
+    (re.compile(r"^([0-9])\u865f$"), r"\1"),
 )
 
 
@@ -97,7 +97,7 @@ class BatchAnalyze:
         return self._apply_mask_boxes_to_image(bgr_image, mask_boxes)
 
     def _build_table_ocr_det_items(self, table_res_list_all_page: list[dict]) -> list[dict]:
-        """构造表格 OCR-det 输入项，保留原图、遮罩图和后续回填所需信息。"""
+        """Process table content."""
         table_det_items = []
         for index, table_res_dict in enumerate(table_res_list_all_page):
             bgr_image = cv2.cvtColor(table_res_dict["table_img"], cv2.COLOR_RGB2BGR)
@@ -137,7 +137,7 @@ class BatchAnalyze:
         dt_boxes,
         rec_img_lang_group: dict,
     ) -> None:
-        """将单表 OCR-det 结果整理成 OCR-rec 输入，并保持表格回填顺序。"""
+        """Sort items into the required order."""
         if dt_boxes is None or len(dt_boxes) == 0:
             return
 
@@ -258,7 +258,7 @@ class BatchAnalyze:
 
     @staticmethod
     def _apply_table_rotate_label(table_res_dict: dict, rotate_label: str) -> None:
-        """根据方向预测结果写回标签，并同步旋转无线和有线表格图片。"""
+        """Process image content."""
         rotate_label = str(rotate_label or "0")
         table_res_dict["rotate_label"] = rotate_label
 
@@ -304,7 +304,7 @@ class BatchAnalyze:
 
     @staticmethod
     def _normalize_table_ocr_rec_text(text):
-        """规范化表格 OCR rec 的已知误识别，避免后续表格模型消费错误文本。"""
+        """Convert the value to the required format."""
         if not isinstance(text, str):
             return text
         if text in TABLE_OCR_REC_SINGLE_CHAR_REPLACEMENTS:
@@ -428,7 +428,7 @@ class BatchAnalyze:
             pil_images,
             batch_size=min(8, self.batch_ratio * LAYOUT_BASE_BATCH_SIZE),
         )
-        # 清理显存
+        # Remove invalid or unnecessary data.
         clean_vram(self.model.device, vram_threshold=8)
 
         if self.formula_enable:
@@ -441,7 +441,7 @@ class BatchAnalyze:
                         page_formula_res.append(res)
                 images_mfd_res.append(page_formula_res)
 
-            # 公式识别
+            # Process formula content.
             images_formula_list = run_mfr_inference(
                 self.model.mfr_model.batch_predict,
                 images_mfd_res,
@@ -456,12 +456,12 @@ class BatchAnalyze:
                 ):
                     formula_res["latex"] = formula_with_latex.get("latex", "")
 
-            # 清理显存
+            # Remove invalid or unnecessary data.
             clean_vram(self.model.device, vram_threshold=8)
 
         else:
             for layout_res in images_layout_res:
-                # 移除所有的"inline_formula"
+                # Remove invalid or unnecessary data.
                 layout_res[:] = [res for res in layout_res if res.get("label") != "inline_formula"]
 
         ocr_res_list_all_page = []
@@ -516,10 +516,10 @@ class BatchAnalyze:
                                                 'table_inline_objects':table_inline_objects.get(id(table_res), []),
                                               })
 
-        # 表格识别 table recognition
+        # Process table content.
         if self.table_enable:
 
-            # 图片旋转批量处理
+            # Process image content.
             table_orientation_cls_model = atom_model_manager.get_atom_model(
                 atom_model_name=AtomicModel.TableOrientationCls,
             )
@@ -545,7 +545,7 @@ class BatchAnalyze:
                     f"Table orientation classification failed: {e}, using original image"
                 )
 
-            # 表格分类
+            # Process table content.
             table_cls_model = atom_model_manager.get_atom_model(
                 atom_model_name=AtomicModel.TableCls,
             )
@@ -557,7 +557,7 @@ class BatchAnalyze:
                     f"Table classification failed: {e}, using default model"
                 )
 
-            # OCR det 过程，默认使用 detector 内部分桶 batch，关闭开关时回退逐表单张路径。
+            # Process the file path.
             rec_img_lang_group = defaultdict(list)
             det_ocr_engine = atom_model_manager.get_atom_model(
                 atom_model_name=AtomicModel.OCR,
@@ -601,7 +601,7 @@ class BatchAnalyze:
                         rec_img_lang_group,
                     )
 
-            # OCR rec，按照语言分批处理
+            # Process the current item.
             for _lang, rec_img_list in rec_img_lang_group.items():
                 if not rec_img_list:
                     continue
@@ -620,7 +620,7 @@ class BatchAnalyze:
                     tqdm_enable=True,
                     tqdm_desc=f"Table-ocr rec {_lang}",
                 )[0]
-                # 按照 table_id 将识别结果进行回填
+                # Prepare the output value.
                 for img_dict, ocr_res in zip(rec_img_list, ocr_res_list):
                     ocr_text = self._normalize_table_ocr_rec_text(ocr_res[0])
                     ocr_result_item = [img_dict["dt_box"], html.escape(ocr_text), ocr_res[1]]
@@ -633,7 +633,7 @@ class BatchAnalyze:
                             ocr_result_item
                         ]
 
-            # 先对所有表格使用无线表格模型，然后对分类为有线的表格使用有线表格模型
+            # Process table content.
             for table_res_dict in table_res_list_all_page:
                 if not self._table_supports_inline_objects(table_res_dict):
                     continue
@@ -659,7 +659,7 @@ class BatchAnalyze:
             )
             wireless_table_model.batch_predict(table_res_list_all_page)
 
-            # 单独拿出有线表格进行预测
+            # Process table content.
             wired_table_res_list = []
             for table_res_dict in table_res_list_all_page:
                 # logger.debug(f"Table classification result: {table_res_dict["table_res"]["cls_label"]} with confidence {table_res_dict["table_res"]["cls_score"]}")
@@ -687,13 +687,13 @@ class BatchAnalyze:
                         table_res_dict["table_res"].get("html", None)
                     )
 
-            # 表格格式清理
+            # Remove invalid or unnecessary data.
             for table_res_dict in table_res_list_all_page:
                 html_code = table_res_dict["table_res"].get("html", "") or ""
 
-                # 检查html_code是否包含'<table>'和'</table>'
+                # Validate the current value.
                 if "<table>" in html_code and "</table>" in html_code:
-                    # 选用<table>到</table>的内容，放入table_res_dict['table_res']['html']
+                    # Implementation detail.
                     start_index = html_code.find("<table>")
                     end_index = html_code.rfind("</table>") + len("</table>")
                     table_res_dict["table_res"]["html"] = html_code[start_index:end_index]
@@ -701,8 +701,8 @@ class BatchAnalyze:
 
         # OCR det
         if self.text_ocr_det_batch_enabled:
-            # 批处理模式 - 按语言和分辨率分组
-            # 收集所有需要OCR检测的裁剪图像
+            # Process the current item.
+            # Process image content.
             all_cropped_images_info = []
 
             for ocr_res_list_dict in ocr_res_list_all_page:
@@ -716,7 +716,7 @@ class BatchAnalyze:
                         ocr_res_list_dict['single_page_mfdetrec_res'], useful_list
                     )
 
-                    # BGR转换
+                    # Convert the value to the required format.
                     bgr_image = cv2.cvtColor(new_image, cv2.COLOR_RGB2BGR)
                     det_image = self._get_masked_det_image(
                         bgr_image,
@@ -732,20 +732,20 @@ class BatchAnalyze:
                         _lang,
                     ))
 
-            # 按语言分组
+            # Implementation detail.
             lang_groups = defaultdict(list)
             for crop_info in all_cropped_images_info:
                 lang = crop_info[5]
                 lang_groups[lang].append(crop_info)
 
-            # 对每种语言按分辨率分组并批处理
+            # Process the current item.
             for lang, lang_crop_list in lang_groups.items():
                 if not lang_crop_list:
                     continue
 
                 # logger.info(f"Processing OCR detection for language {lang} with {len(lang_crop_list)} images")
 
-                # 获取OCR模型
+                # Extract the required value.
                 ocr_model = atom_model_manager.get_atom_model(
                     atom_model_name=AtomicModel.OCR,
                     lang=lang
@@ -774,11 +774,11 @@ class BatchAnalyze:
                     ) = crop_info
 
                     if dt_boxes is not None and len(dt_boxes) > 0:
-                        # 处理检测框
+                        # Process the current item.
                         dt_boxes_sorted = sorted_boxes(dt_boxes)
                         dt_boxes_merged = merge_det_boxes(dt_boxes_sorted) if dt_boxes_sorted else []
 
-                        # 根据公式位置更新检测框
+                        # Process formula content.
                         dt_boxes_final = (update_det_boxes(dt_boxes_merged, adjusted_mfdetrec_res)
                                           if dt_boxes_merged and adjusted_mfdetrec_res
                                           else dt_boxes_merged)
@@ -794,11 +794,11 @@ class BatchAnalyze:
                             )
                             ocr_res_list_dict['layout_res'].extend(ocr_result_list)
 
-            # 清理显存
+            # Remove invalid or unnecessary data.
             clean_vram(self.model.device, vram_threshold=8)
 
         else:
-            # 原始单张处理模式
+            # Process the current item.
             for ocr_res_list_dict in tqdm(ocr_res_list_all_page, desc="OCR-det Predict"):
                 # Process each area that requires OCR processing
                 _lang = ocr_res_list_dict['lang']
@@ -902,7 +902,7 @@ class BatchAnalyze:
                             layout_res_height = layout_res_bbox[3] - layout_res_bbox[1]
                             if (
                                     ocr_text in [
-                                        '（204号', '（20', '（2', '（2号', '（20号', '号', '（204',
+                                        '\uff08204\u53f7', '\uff0820', '\uff082', '\uff082\u53f7', '\uff0820\u53f7', '\u53f7', '\uff08204',
                                         '(cid:)', '(ci:)', '(cd:1)', 'cd:)', 'c)', '(cd:)', 'c', 'id:)',
                                         ':)', '√:)', '√i:)', '−i:)', '−:', 'i:)',
                                     ]

@@ -50,7 +50,7 @@ class Head(nn.Module):
 
 
 class PPOCRV6DBConvBatchnormLayer(nn.Module):
-    """PP-OCRv6 DBHead 使用的 Conv-BN-Act 基础层，命名对齐 safetensors。"""
+    """Implementation detail."""
 
     def __init__(
         self,
@@ -63,7 +63,7 @@ class PPOCRV6DBConvBatchnormLayer(nn.Module):
         bias=False,
         convolution_transpose=False,
     ):
-        """初始化普通卷积或反卷积、BN 和激活层。"""
+        """Initialize the component."""
         super().__init__()
         if convolution_transpose:
             self.convolution = nn.ConvTranspose2d(
@@ -85,7 +85,7 @@ class PPOCRV6DBConvBatchnormLayer(nn.Module):
         self.act_fn = nn.ReLU() if activation == "relu" else nn.Identity()
 
     def forward(self, hidden_states):
-        """执行 DBHead v6 分支的卷积、BN 和激活。"""
+        """Implementation detail."""
         hidden_states = self.convolution(hidden_states)
         hidden_states = self.norm(hidden_states)
         hidden_states = self.act_fn(hidden_states)
@@ -101,7 +101,7 @@ class DBHead(nn.Module):
     """
 
     def __init__(self, in_channels, k=50, mode=None, kernel_list=None, fix_nan=False, **kwargs):
-        """初始化 DBHead；v6 模式使用 safetensors 对齐的三层上采样 head。"""
+        """Initialize the component."""
         super(DBHead, self).__init__()
         self.k = k
         self.mode = mode
@@ -132,11 +132,11 @@ class DBHead(nn.Module):
         self.thresh = Head(in_channels, **kwargs)
 
     def step_function(self, x, y):
-        """计算 DB 二值化近似阶跃函数。"""
+        """Calculate the result."""
         return torch.reciprocal(1 + torch.exp(-self.k * (x - y)))
 
     def forward(self, x):
-        """推理时返回统一的 `maps` 字段，兼容现有 OCR-det 后处理。"""
+        """Prepare the output value."""
         if self.mode == "ppocrv6":
             shrink_maps = self.conv_down(x)
             shrink_maps = self.conv_up(shrink_maps)

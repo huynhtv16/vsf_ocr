@@ -19,7 +19,7 @@ from mineru.backend.office.mkcontent.inline_renderer import (
 
 
 def _prefix_table_img_src(html: str, img_buket_path: str) -> str:
-    """给表格 HTML 内的本地图片 src 加上输出图片目录前缀。"""
+    """Process image content."""
     if not html or not img_buket_path:
         return html
     return re.sub(
@@ -30,7 +30,7 @@ def _prefix_table_img_src(html: str, img_buket_path: str) -> str:
 
 
 def _replace_eq_tags_in_table_html(html: str) -> str:
-    """把表格或图表 HTML 中的 <eq> 标签替换为当前配置的行内公式定界符。"""
+    """Process table content."""
     if not html:
         return html
     return re.sub(
@@ -42,12 +42,12 @@ def _replace_eq_tags_in_table_html(html: str) -> str:
 
 
 def _format_embedded_html(html: str, img_buket_path: str) -> str:
-    """统一处理 Office 嵌入 HTML 的图片路径和行内公式标签。"""
+    """Process image content."""
     return _replace_eq_tags_in_table_html(_prefix_table_img_src(html, img_buket_path))
 
 
 def _build_media_path(img_buket_path: str, image_path: str) -> str:
-    """构造图片展示路径，空图片路径保持为空。"""
+    """Process image content."""
     if not image_path:
         return ''
     if not img_buket_path:
@@ -56,7 +56,7 @@ def _build_media_path(img_buket_path: str, image_path: str) -> str:
 
 
 def _get_ordered_list_start(list_block):
-    """读取有序列表起始编号，兼容旧版数据缺少 start 字段的情况。"""
+    """Extract the required value."""
     try:
         return int(list_block.get('start', 1))
     except (TypeError, ValueError):
@@ -141,7 +141,7 @@ def merge_list_to_markdown(list_block):
 
 
 def _collect_index_span_items(text_block):
-    """按原始顺序收集目录叶子节点中的 span 三元组。"""
+    """Sort items into the required order."""
     span_items = []
     for line in text_block.get('lines', []):
         for span in line.get('spans', []):
@@ -154,7 +154,7 @@ def _collect_index_span_items(text_block):
 
 
 def _normalize_anchor(block) -> str | None:
-    """规范化 block 锚点，空值返回 None。"""
+    """Convert the value to the required format."""
     anchor = block.get('anchor')
     if not isinstance(anchor, str) or not anchor.strip():
         return None
@@ -162,7 +162,7 @@ def _normalize_anchor(block) -> str | None:
 
 
 def _looks_like_index_page_token(token: str) -> bool:
-    """判断目录 tab 后缀是否像页码，避免误删正文内容。"""
+    """Validate the current value."""
     token = token.strip()
     if not token:
         return False
@@ -180,7 +180,7 @@ def _looks_like_index_page_token(token: str) -> bool:
 
 
 def _strip_index_page_tail(span_items):
-    """去掉目录叶子末尾 tab+页码，并把剩余 tab 转成普通空格。"""
+    """Convert the value to the required format."""
     last_tab_span_idx = -1
     for i, (content, span_type, _) in enumerate(span_items):
         if span_type != ContentType.INLINE_EQUATION and '\t' in content:
@@ -203,7 +203,7 @@ def _strip_index_page_tail(span_items):
 
 
 def _get_uniform_index_style(span_items) -> list | None:
-    """如果目录叶子所有非公式 span 样式完全一致，则返回统一样式。"""
+    """Process formula content."""
     non_eq_styles = [
         tuple(span_style)
         for content, span_type, span_style in span_items
@@ -218,7 +218,7 @@ def _get_uniform_index_style(span_items) -> list | None:
 
 
 def _render_uniform_index_item(span_items, uniform_style, inline_syntax) -> str:
-    """用统一样式渲染目录叶子，避免同样式片段产生碎片化 marker。"""
+    """Process the file path."""
     raw_parts = []
     for content, span_type, _span_style in span_items:
         if not content:
@@ -236,7 +236,7 @@ def _render_uniform_index_item(span_items, uniform_style, inline_syntax) -> str:
 
 
 def _render_mixed_index_item(span_items, inline_syntax) -> str:
-    """逐 span 渲染目录叶子，超链接 span 在目录中仅保留可见文本。"""
+    """Process text content."""
     rendered_parts = []
     for content, span_type, span_style in span_items:
         if not content:
@@ -267,7 +267,7 @@ def _render_mixed_index_item(span_items, inline_syntax) -> str:
 
 
 def _render_index_leaf_item(text_block, indent: str) -> str | None:
-    """渲染单个目录叶子节点，并在有锚点时挂载内部链接。"""
+    """Process the file path."""
     inline_syntax = _select_block_inline_syntax(text_block)
     span_items = _collect_index_span_items(text_block)
     if not span_items:
@@ -293,7 +293,7 @@ def _render_index_leaf_item(text_block, indent: str) -> str | None:
 
 
 def _flatten_index_items(index_block):
-    """递归展平目录 block，保留目录锚点和目录项样式。"""
+    """Process the file path."""
     items = []
     indent = '    ' * index_block.get('ilevel', 0)
     for child in index_block.get('blocks', []):
@@ -312,21 +312,21 @@ def merge_index_to_markdown(index_block):
 
 
 def _iter_child_blocks(para_block, block_type: str):
-    """按原始顺序遍历指定类型的子 block。"""
+    """Sort items into the required order."""
     for block in para_block.get('blocks', []):
         if block.get('type') == block_type:
             yield block
 
 
 def _iter_block_spans(block):
-    """按原始顺序遍历 block 下所有 span。"""
+    """Sort items into the required order."""
     for line in block.get('lines', []):
         for span in line.get('spans', []):
             yield span
 
 
 def _iter_body_spans(para_block, body_type: str, span_type: str):
-    """遍历视觉类 block 的 body span，统一 image/table/chart 的查找方式。"""
+    """Iterate over the available items."""
     for block in _iter_child_blocks(para_block, body_type):
         for span in _iter_block_spans(block):
             if span.get('type') == span_type:
@@ -334,7 +334,7 @@ def _iter_body_spans(para_block, body_type: str, span_type: str):
 
 
 def _collect_caption_texts(para_block, caption_type: str) -> list[str]:
-    """收集 legacy markdown/content_list 使用的 caption 文本。"""
+    """Process text content."""
     return [
         merge_para_with_text(block)
         for block in _iter_child_blocks(para_block, caption_type)
@@ -342,7 +342,7 @@ def _collect_caption_texts(para_block, caption_type: str) -> list[str]:
 
 
 def _collect_caption_v2(para_block, caption_type: str) -> list[dict]:
-    """收集 content_list_v2 使用的结构化 caption spans。"""
+    """Implementation detail."""
     caption_content = []
     for block in _iter_child_blocks(para_block, caption_type):
         caption_content.extend(merge_para_with_text_v2(block))
@@ -697,7 +697,7 @@ def get_body_data(para_block):
                 return '', span.get('content', '')
         return '', ''
 
-    # 处理嵌套的 blocks 结构
+    # Process the current item.
     if 'blocks' in para_block:
         for block in para_block['blocks']:
             block_type = block.get('type')
@@ -709,12 +709,12 @@ def get_body_data(para_block):
                     return result
         return '', ''
 
-    # 处理直接包含 lines 的结构
+    # Process the current item.
     return get_data_from_spans(para_block.get('lines', []))
 
 
 def _span_has_content_for_v2(span: dict, visible_styles: set) -> bool:
-    """判断 V2 span 是否应保留，支持 hyperlink children 的可见空白样式。"""
+    """Validate the current value."""
     content = span.get("content", '')
     span_style = span.get('style', [])
     if content.strip():
@@ -732,13 +732,13 @@ def _span_has_content_for_v2(span: dict, visible_styles: set) -> bool:
 
 
 def merge_para_with_text_v2(para_block):
-    """将 Office 段落转换为 content_list_v2 spans，避免原地修改 middle_json。"""
+    """Convert the value to the required format."""
     _visible_styles = {'underline', 'strikethrough'}
     para_content = []
     if para_block.get('type') == BlockType.TITLE:
         section_number = para_block.get('section_number', '')
         if section_number:
-            # v2 保持结构化 spans，同时补上 middle_json 已生成的自动标题编号。
+            # Build the required output.
             para_content.append({
                 'type': ContentTypeV2.SPAN_TEXT,
                 'content': f'{section_number} ',
