@@ -41,7 +41,6 @@ from vsf.cli import api_client as _api_client
 from vsf.cli.backend_options import (
     DEFAULT_BACKEND,
     DEFAULT_HYBRID_EFFORT,
-    HYBRID_EFFORT_CHOICES,
     HTTP_CLIENT_BACKEND_CHOICES,
     LOCAL_BACKEND_CHOICES,
 )
@@ -49,7 +48,7 @@ from vsf.cli.client_side_output import regenerate_client_side_outputs
 from vsf.cli.output_paths import resolve_parse_dir
 from vsf.cli.vlm_preload import resolve_gradio_local_api_cli_args
 from vsf.cli.visualization import VisualizationJob, run_visualization_job
-from vsf.utils.ocr_language import PUBLIC_OCR_LANGUAGE_CHOICES
+from vsf.idp.schemas import DOCUMENT_SCHEMAS
 
 _gradio_local_api_server = _api_client.ReusableLocalAPIServer()
 
@@ -222,15 +221,15 @@ STATUS_TIMER_INTERVAL_SECONDS = 0.1
 STATUS_QUEUE_ANIMATION_INTERVAL_SECONDS = 1.0
 STATUS_QUEUE_ANIMATION_MAX_DOTS = 10
 
-STATUS_PREPARING_REQUEST = "Preparing request..."
-STATUS_CHECKING_SERVER = "Checking server status..."
-STATUS_SUBMITTING_TASK = "Submitting task..."
-STATUS_DOWNLOADING_RESULT = "Task completed, downloading result..."
-STATUS_PROCESSING_OUTPUT = "Preparing outputs..."
-STATUS_COMPLETED = "Completed"
-STATUS_QUEUED_ON_SERVER = "Queued on server"
-STATUS_PROCESSING_ON_SERVER = "Processing on server"
-STATUS_QUEUED_LOCALLY_PREFIX = "Queued locally:"
+STATUS_PREPARING_REQUEST = "Đang chuẩn bị yêu cầu..."
+STATUS_CHECKING_SERVER = "Đang kiểm tra dịch vụ..."
+STATUS_SUBMITTING_TASK = "Đang gửi tác vụ..."
+STATUS_DOWNLOADING_RESULT = "Đã xử lý xong, đang tải kết quả..."
+STATUS_PROCESSING_OUTPUT = "Đang tạo tệp kết quả..."
+STATUS_COMPLETED = "Hoàn thành"
+STATUS_QUEUED_ON_SERVER = "Đang chờ trên máy chủ"
+STATUS_PROCESSING_ON_SERVER = "Máy chủ đang xử lý"
+STATUS_QUEUED_LOCALLY_PREFIX = "Đang chờ cục bộ:"
 
 BACKEND_CHOICE_DEFINITIONS = list(LOCAL_BACKEND_CHOICES)
 HTTP_CLIENT_BACKEND_CHOICE_DEFINITIONS = list(HTTP_CLIENT_BACKEND_CHOICES)
@@ -370,7 +369,7 @@ def resolve_status_step_index(status_lines):
     """Implementation detail."""
     if not status_lines:
         return -1, False
-    if status_lines[-1].startswith("Failed:"):
+    if status_lines[-1].startswith("Thất bại:"):
         return len(STATUS_STEP_DEFINITIONS) - 1, True
     if any(line.startswith(STATUS_COMPLETED) for line in status_lines):
         return len(STATUS_STEP_DEFINITIONS) - 1, False
@@ -612,7 +611,7 @@ class StatusPanelState:
 
 
 def format_failed_status(error: Exception | str) -> str:
-    return f"Failed: {error}"
+    return f"Thất bại: {error}"
 
 
 def format_processing_status(elapsed_seconds: float) -> str:
@@ -634,7 +633,7 @@ def format_queue_status(base_message: str, elapsed_seconds: float) -> str:
 
 
 def format_concurrency_wait_message(snapshot: GradioConcurrencyWaitSnapshot) -> str:
-    return f"{STATUS_QUEUED_LOCALLY_PREFIX} {snapshot.ahead} request(s) ahead"
+    return f"{STATUS_QUEUED_LOCALLY_PREFIX} còn {snapshot.ahead} tác vụ phía trước"
 
 
 def format_remote_status_message(
@@ -649,15 +648,15 @@ def format_remote_status_message(
 
     if status == "pending":
         if queued_ahead is not None:
-            return f"{STATUS_QUEUED_ON_SERVER}: {queued_ahead} request(s) ahead"
+            return f"{STATUS_QUEUED_ON_SERVER}: còn {queued_ahead} tác vụ phía trước"
         return STATUS_QUEUED_ON_SERVER
     if status == "processing":
         return STATUS_PROCESSING_ON_SERVER
     if status == "completed":
         return STATUS_COMPLETED
     if status == "failed":
-        return format_failed_status("server task failed")
-    return f"Task status: {status}"
+        return format_failed_status("tác vụ trên máy chủ gặp lỗi")
+    return f"Trạng thái tác vụ: {status}"
 
 
 def compress_directory_to_zip(directory_path, output_zip_path):
@@ -770,6 +769,19 @@ def read_gradio_content_list_json(local_md_dir, file_name):
         logger.warning(
             f"Failed to read Gradio content list JSON: {content_list_path}, error={exc}"
         )
+        return ""
+
+
+def read_gradio_idp_json(local_md_dir, file_name):
+    """Read the optional HR IDP result for preview."""
+
+    idp_path = Path(local_md_dir) / f"{file_name}_idp.json"
+    if not idp_path.is_file():
+        return ""
+    try:
+        return idp_path.read_text(encoding="utf-8")
+    except Exception as exc:
+        logger.warning(f"Failed to read Gradio IDP JSON: {idp_path}, error={exc}")
         return ""
 
 
@@ -1016,6 +1028,8 @@ async def _run_to_markdown_job(
     url=None,
     api_url=None,
     client_side_output_generation=False,
+    enable_idp=False,
+    idp_document_type="auto",
     status_callback: Callable[[str], None] | None = None,
 ):
     if file_path is None:
@@ -1054,6 +1068,8 @@ async def _run_to_markdown_job(
         response_format_zip=True,
         return_original_file=True,
         client_side_output_generation=use_client_side_output_generation,
+        enable_idp=enable_idp,
+        idp_document_type=idp_document_type,
     )
     upload_assets = [
         _api_client.UploadAsset(
@@ -1147,12 +1163,20 @@ async def _run_to_markdown_job(
         txt_content = f.read()
     md_content = replace_image_with_gradio_file_urls(txt_content, local_md_dir)
     content_list_json = read_gradio_content_list_json(local_md_dir, file_name)
+    idp_result_json = read_gradio_idp_json(local_md_dir, file_name)
 
     if file_suffix in office_suffixes:
         preview_pdf_path = None
 
     emit_status(STATUS_COMPLETED)
-    return md_content, txt_content, content_list_json, str(archive_zip_path), preview_pdf_path
+    return (
+        md_content,
+        txt_content,
+        content_list_json,
+        idp_result_json,
+        str(archive_zip_path),
+        preview_pdf_path,
+    )
 
 
 async def stream_to_markdown(
@@ -1168,12 +1192,14 @@ async def stream_to_markdown(
     url=None,
     api_url=None,
     client_side_output_generation=False,
+    enable_idp=False,
+    idp_document_type="auto",
 ):
     status_state = StatusPanelState()
     job_task: asyncio.Task | None = None
     queue_get_task: asyncio.Task | None = None
     timer_task: asyncio.Task | None = None
-    yield status_state.render(), None, "", "", "", gr.skip()
+    yield status_state.render(), None, "", "", "", "", gr.skip()
 
     if file_path is None:
         return
@@ -1199,6 +1225,8 @@ async def stream_to_markdown(
                 url=url,
                 api_url=api_url,
                 client_side_output_generation=client_side_output_generation,
+                enable_idp=enable_idp,
+                idp_document_type=idp_document_type,
                 status_callback=enqueue_status,
             )
         )
@@ -1227,10 +1255,10 @@ async def stream_to_markdown(
             if queue_get_task in done:
                 message = queue_get_task.result()
                 if status_state.append(message):
-                    yield status_state.render(), None, "", "", "", gr.skip()
+                    yield status_state.render(), None, "", "", "", "", gr.skip()
             elif timer_task is not None and timer_task in done:
                 if status_state.tick():
-                    yield status_state.render(), None, "", "", "", gr.skip()
+                    yield status_state.render(), None, "", "", "", "", gr.skip()
             else:
                 queue_get_task.cancel()
                 await asyncio.gather(queue_get_task, return_exceptions=True)
@@ -1247,7 +1275,7 @@ async def stream_to_markdown(
             status_state.append(status_queue.get_nowait())
     except Exception as exc:
         status_state.append(format_failed_status(exc))
-        yield status_state.render(), None, "", "", "", gr.skip()
+        yield status_state.render(), None, "", "", "", "", gr.skip()
         raise
     finally:
         for task in (queue_get_task, timer_task, job_task):
@@ -1257,10 +1285,17 @@ async def stream_to_markdown(
             await asyncio.gather(task, return_exceptions=True)
 
     try:
-        md_content, txt_content, content_list_json, archive_zip_path, preview_pdf_path = await job_task
+        (
+            md_content,
+            txt_content,
+            content_list_json,
+            idp_result_json,
+            archive_zip_path,
+            preview_pdf_path,
+        ) = await job_task
     except Exception as exc:
         status_state.append(format_failed_status(exc))
-        yield status_state.render(), None, "", "", "", gr.skip()
+        yield status_state.render(), None, "", "", "", "", gr.skip()
         raise
 
     status_state.append(STATUS_COMPLETED)
@@ -1270,6 +1305,7 @@ async def stream_to_markdown(
         md_content,
         txt_content,
         content_list_json,
+        idp_result_json,
         preview_pdf_path,
     )
 
@@ -1325,7 +1361,25 @@ def render_header_html(i18n):
     )
     return rendered_header
 
-all_lang = list(PUBLIC_OCR_LANGUAGE_CHOICES)
+all_lang = [
+    ("Trung, Anh, Nhật và chữ Latin (phù hợp tiếng Việt)", "ch"),
+    ("Trung, Anh, Nhật và chữ Latin - bản máy chủ", "ch_server"),
+    ("Hàn Quốc và tiếng Anh", "korean"),
+    ("Tamil và tiếng Anh", "ta"),
+    ("Telugu và tiếng Anh", "te"),
+    ("Kannada", "ka"),
+    ("Thái Lan và tiếng Anh", "th"),
+    ("Hy Lạp và tiếng Anh", "el"),
+    ("Ả Rập, Ba Tư, Urdu và tiếng Anh", "arabic"),
+    ("Nga, Belarus, Ukraina và tiếng Anh", "east_slavic"),
+    ("Nhóm chữ Kirin và tiếng Anh", "cyrillic"),
+    ("Nhóm chữ Devanagari và tiếng Anh", "devanagari"),
+]
+
+hybrid_effort_choices_vi = [
+    ("Trung bình - nhanh hơn", "medium"),
+    ("Cao - chính xác hơn", "high"),
+]
 
 
 def safe_stem(file_path):
@@ -1385,8 +1439,116 @@ def build_short_gradio_file_url(public_url, file_path):
     return f"{base_url}/....{short_file_name}"
 
 
+def build_local_xlsx_preview_html(
+    file_path,
+    i18n=None,
+    max_rows=100,
+    max_columns=30,
+):
+    """Render a safe, bounded XLSX preview without an external Office service."""
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(file_path, read_only=True, data_only=True)
+    try:
+        worksheet = workbook.active
+        if worksheet.max_row is None or worksheet.max_column is None:
+            worksheet.calculate_dimension(force=True)
+        worksheet_max_row = worksheet.max_row or 1
+        worksheet_max_column = worksheet.max_column or 1
+        row_limit = min(max(worksheet_max_row, 1), max_rows)
+        column_limit = min(max(worksheet_max_column, 1), max_columns)
+        rows = list(
+            worksheet.iter_rows(
+                min_row=1,
+                max_row=row_limit,
+                min_col=1,
+                max_col=column_limit,
+                values_only=True,
+            )
+        )
+        while rows and not any(value not in (None, "") for value in rows[-1]):
+            rows.pop()
+
+        sheet_names = "".join(
+            (
+                '<span class="office-local-sheet'
+                + (" is-active" if name == worksheet.title else "")
+                + f'">{html_lib.escape(str(name))}</span>'
+            )
+            for name in workbook.sheetnames
+        )
+        table_rows = []
+        for row_number, row in enumerate(rows, start=1):
+            cells = "".join(
+                f"<td>{html_lib.escape(str(value)) if value is not None else ''}</td>"
+                for value in row
+            )
+            table_rows.append(f"<tr><th>{row_number}</th>{cells}</tr>")
+
+        is_truncated = (
+            worksheet_max_row > max_rows or worksheet_max_column > max_columns
+        )
+        detail = (
+            f"Hiển thị tối đa {max_rows} dòng và {max_columns} cột đầu tiên."
+            if is_truncated
+            else "Dữ liệu được đọc trực tiếp trên máy, không gửi tới Microsoft."
+        )
+        body = (
+            '<div class="office-local-empty">Bảng tính không có dữ liệu.</div>'
+            if not table_rows
+            else (
+                '<div class="office-local-table-wrap"><table class="office-local-table">'
+                "<tbody>"
+                + "".join(table_rows)
+                + "</tbody></table></div>"
+            )
+        )
+        return (
+            '<div class="office-preview-shell office-local-preview">'
+            '<div class="office-local-header">'
+            "<strong>Xem trước bảng tính cục bộ</strong>"
+            f"<span>{html_lib.escape(detail)}</span>"
+            f'<div class="office-local-sheets">{sheet_names}</div>'
+            "</div>"
+            f"{body}"
+            "</div>"
+        )
+    finally:
+        workbook.close()
+
+
+def request_uses_local_host(request: gr.Request) -> bool:
+    headers = getattr(request, "headers", None) or {}
+    host = (headers.get("x-forwarded-host") or headers.get("host", "")).lower()
+    hostname = host.rsplit(":", 1)[0].strip("[]")
+    return hostname in {"127.0.0.1", "localhost", "0.0.0.0", "::1"}
+
+
+def build_local_office_notice_html(file_path):
+    file_type = Path(file_path).suffix.lstrip(".").upper() or "Office"
+    return (
+        '<div class="office-preview-shell office-local-preview">'
+        '<div class="office-local-header">'
+        f"<strong>Không hỗ trợ xem trước {html_lib.escape(file_type)} cục bộ</strong>"
+        "<span>Tệp vẫn có thể được xử lý bình thường. "
+        'Nhấn "Bắt đầu xử lý" để xem nội dung và kết quả.</span>'
+        "</div>"
+        "</div>"
+    )
+
+
 def build_office_preview_html(file_path, request: gr.Request, i18n=None):
     """Build the required output."""
+    file_suffix = Path(file_path).suffix.lower()
+    if file_suffix == ".xlsx":
+        try:
+            return build_local_xlsx_preview_html(file_path, i18n)
+        except Exception as exc:
+            logger.warning(f"Không thể tạo bản xem trước XLSX cục bộ: {exc}")
+            return build_local_office_notice_html(file_path)
+    if request_uses_local_host(request):
+        return build_local_office_notice_html(file_path)
+
     public_url = build_gradio_file_public_url(file_path, request)
     short_public_url = build_short_gradio_file_url(public_url, file_path)
     viewer_url = (
@@ -1438,7 +1600,7 @@ def update_file_options_html(file_path, request: gr.Request, i18n=None):
     if is_office:
         html_content = build_office_preview_html(file_path, request, i18n)
         return (
-            gr.update(visible=False),                    # Implementation detail.
+            gr.update(visible=True),                     # Keep IDP/options available.
             gr.update(value=html_content, visible=True), # Implementation detail.
         )
     else:
@@ -1556,153 +1718,163 @@ def main(ctx,
             "upload_file": "Chọn hoặc dán tệp cần tải lên\nPDF, hình ảnh, PPTX hoặc XLSX",
             "header_title": "VSF OCR",
             "header_subtitle": "Phân tích tài liệu thông minh, nhận diện văn bản, bố cục, bảng, hình ảnh và công thức.",
-            "header_support_text": "If you found our project helpful, please give us a ⭐️ to support us!",
-            "header_stars_alt": "stars",
-            "header_code_link": "Code",
-            "header_model_link": "Model",
+            "header_support_text": "Nếu dự án hữu ích, hãy tặng một ⭐️ để ủng hộ!",
+            "header_stars_alt": "số sao",
+            "header_code_link": "Mã nguồn",
+            "header_model_link": "Mô hình",
             "header_model_huggingface_link": "Hugging Face",
             "header_model_modelscope_link": "ModelScope",
-            "header_paper_link": "Paper",
+            "header_paper_link": "Bài báo",
             "header_paper_vsf_report": "VSF \u00b7 arXiv: 2409.18839",
             "header_paper_vsf25_report": "VSF 2.5 \u00b7 arXiv: 2509.22186",
             "header_paper_vsf25pro_report": "VSF 2.5 Pro \u00b7 arXiv: 2604.04771",
-            "header_homepage_link": "Homepage",
-            "header_download_link": "Download",
-            "max_pages": "Max convert pages",
-            "backend": "Backend",
-            "backend_label_hybrid": "Hybrid (Recommended)",
-            "backend_label_pipeline": "Pipeline (Stable multilingual)",
-            "backend_label_vlm": "VLM (High-precision Chinese/English)",
-            "backend_label_remote_vlm": "Remote VLM",
-            "backend_label_remote_hybrid": "Remote Hybrid",
-            "server_url": "Server URL",
-            "server_url_info": "OpenAI-compatible server URL for http-client backend.",
-            "recognition_options": "**Recognition Options:**",
-            "advanced_options": "Advanced options",
-            "table_enable": "Enable table recognition",
-            "table_info": "If disabled, tables will be shown as images.",
-            "image_analysis_enable": "Enable image analysis",
-            "image_analysis_info": "If disabled, image/chart blocks will keep layout positions but skip VLM image/chart analysis.",
-            "formula_label_vlm": "Enable display formula recognition",
-            "formula_label_pipeline": "Enable formula recognition",
-            "formula_label_hybrid": "Enable inline formula recognition",
-            "formula_info_vlm": "If disabled, display formulas will be shown as images.",
-            "formula_info_pipeline": "If disabled, display formulas will be shown as images, and inline formulas will not be detected or parsed.",
-            "formula_info_hybrid": "If disabled, inline formulas will not be detected or parsed.",
-            "ocr_language": "OCR Language",
-            "ocr_language_info": "Select the OCR language for image-based PDFs and images.",
-            "force_ocr": "Force enable OCR",
-            "force_ocr_info": "Enable only if the result is extremely poor. Requires correct OCR language.",
-            "force_ocr_info_hybrid": "Enable only if the result is extremely poor.",
-            "convert": "Convert",
-            "clear": "Clear",
-            "doc_preview": "Document preview",
-            "examples": "Examples:",
-            "convert_status": "Conversion Status",
-            "convert_result": "Convert result",
-            "result_file": "Result file",
-            "md_rendering": "Markdown rendering",
-            "md_text": "Markdown text",
-            "content_list_json": "JSON Content List",
-            "status_idle_title": "Waiting",
-            "status_idle_hint": "Upload a file and start conversion.",
-            "status_latest": "Latest status",
-            "status_step_prepare": "Prepare",
-            "status_step_check": "Check service",
-            "status_step_submit": "Submit",
-            "status_step_queue": "Queue",
-            "status_step_process": "Parse",
-            "status_step_download": "Download",
-            "status_step_outputs": "Build outputs",
-            "status_step_done": "Done",
-            "status_step_failed": "Failed",
-            "office_preview_title": "Office online preview",
-            "office_preview_notice": "This preview requires the current file to be reachable by Microsoft Office Online. Conversion does not depend on this preview.",
-            "office_preview_source_link": "File url",
-            "office_preview_ignore_once": "Dismiss",
-            "office_preview_ignore_forever": "Always dismiss",
-            "backend_info_vlm": "Multimodal large-model end-to-end parsing, high accuracy.",
-            "backend_info_pipeline": "Traditional multi-model pipeline parsing, low resource usage, hallucination-free.",
-            "backend_info_hybrid": "Exclusive hybrid engine parsing, ultra-high accuracy.",
-            "backend_info_default": "Select the backend engine for document parsing.",
-            "hybrid_effort": "Hybrid effort",
-            "hybrid_effort_info": "Medium is faster. High is more accurate and may take longer.",
+            "header_homepage_link": "Trang chủ",
+            "header_download_link": "Tải xuống",
+            "max_pages": "Số trang tối đa",
+            "backend": "Phương thức xử lý",
+            "backend_label_hybrid": "Kết hợp Hybrid (Khuyến nghị)",
+            "backend_label_pipeline": "Pipeline (Ổn định, đa ngôn ngữ)",
+            "backend_label_vlm": "VLM (Độ chính xác cao cho Trung/Anh)",
+            "backend_label_remote_vlm": "VLM từ máy chủ từ xa",
+            "backend_label_remote_hybrid": "Hybrid từ máy chủ từ xa",
+            "server_url": "Địa chỉ máy chủ",
+            "server_url_info": "Địa chỉ máy chủ tương thích OpenAI dành cho chế độ xử lý từ xa.",
+            "recognition_options": "**Tùy chọn nhận dạng:**",
+            "advanced_options": "Tùy chọn nâng cao",
+            "table_enable": "Nhận dạng bảng",
+            "table_info": "Nếu tắt, bảng sẽ được giữ dưới dạng hình ảnh.",
+            "image_analysis_enable": "Phân tích hình ảnh và biểu đồ",
+            "image_analysis_info": "Nếu tắt, hệ thống giữ vị trí ảnh/biểu đồ nhưng không dùng VLM để phân tích nội dung.",
+            "formula_label_vlm": "Nhận dạng công thức dạng khối",
+            "formula_label_pipeline": "Nhận dạng công thức",
+            "formula_label_hybrid": "Nhận dạng công thức trong dòng",
+            "formula_info_vlm": "Nếu tắt, công thức dạng khối sẽ được giữ dưới dạng hình ảnh.",
+            "formula_info_pipeline": "Nếu tắt, công thức dạng khối sẽ thành hình ảnh và công thức trong dòng sẽ không được nhận dạng.",
+            "formula_info_hybrid": "Nếu tắt, công thức trong dòng sẽ không được nhận dạng.",
+            "ocr_language": "Ngôn ngữ OCR",
+            "ocr_language_info": "Chọn nhóm ngôn ngữ dùng để đọc PDF scan và hình ảnh.",
+            "force_ocr": "Buộc chạy OCR",
+            "force_ocr_info": "Chỉ bật khi kết quả đọc tự động quá kém; cần chọn đúng ngôn ngữ OCR.",
+            "force_ocr_info_hybrid": "Chỉ bật khi kết quả đọc tự động quá kém.",
+            "convert": "Bắt đầu xử lý",
+            "clear": "Xóa",
+            "doc_preview": "Xem trước tài liệu",
+            "examples": "Tài liệu mẫu:",
+            "convert_status": "Trạng thái xử lý",
+            "convert_result": "Tải kết quả",
+            "result_file": "Tệp kết quả",
+            "md_rendering": "Xem nội dung",
+            "md_text": "Markdown",
+            "content_list_json": "JSON nội dung",
+            "idp_result_json": "Kết quả IDP",
+            "status_idle_title": "Đang chờ",
+            "status_idle_hint": "Hãy tải tài liệu lên và bắt đầu xử lý.",
+            "status_latest": "Trạng thái mới nhất",
+            "status_step_prepare": "Chuẩn bị",
+            "status_step_check": "Kiểm tra dịch vụ",
+            "status_step_submit": "Gửi tác vụ",
+            "status_step_queue": "Xếp hàng",
+            "status_step_process": "Phân tích",
+            "status_step_download": "Tải kết quả",
+            "status_step_outputs": "Tạo đầu ra",
+            "status_step_done": "Hoàn thành",
+            "status_step_failed": "Thất bại",
+            "office_preview_title": "Xem trước tài liệu Office",
+            "office_preview_notice": "Tính năng xem trước cần tệp có thể truy cập qua Microsoft Office Online và không ảnh hưởng đến quá trình xử lý.",
+            "office_preview_source_link": "Đường dẫn tệp",
+            "office_preview_ignore_once": "Bỏ qua",
+            "office_preview_ignore_forever": "Luôn bỏ qua",
+            "backend_info_vlm": "VLM phân tích toàn bộ trang với độ chính xác cao.",
+            "backend_info_pipeline": "Pipeline nhiều mô hình, ít tốn tài nguyên và hạn chế sinh sai nội dung.",
+            "backend_info_hybrid": "Kết hợp Pipeline và VLM để ưu tiên độ chính xác.",
+            "backend_info_default": "Chọn phương thức dùng để phân tích tài liệu.",
+            "hybrid_effort": "Mức xử lý Hybrid",
+            "hybrid_effort_info": "Trung bình nhanh hơn; Cao chính xác hơn nhưng xử lý lâu hơn.",
+            "idp_enable": "Bật IDP tài liệu",
+            "idp_info": "Nhận mọi PDF, XLSX, PPTX và ảnh; tự phân loại, trích xuất và kiểm tra dữ liệu.",
+            "idp_document_type": "Mẫu dữ liệu cần trích xuất",
+            "idp_document_type_info": "Chọn Tự động để nhận mọi tài liệu. Các lựa chọn bên dưới chỉ là mẫu trích xuất chuyên sâu.",
         },
         zh={
             "upload_file": "Chọn hoặc dán tệp cần tải lên\nPDF, hình ảnh, PPTX hoặc XLSX",
             "header_title": "VSF OCR",
             "header_subtitle": "Phân tích tài liệu thông minh, nhận diện văn bản, bố cục, bảng, hình ảnh và công thức.",
-            "header_support_text": "If you found our project helpful, please give us a ⭐️ to support us!",
-            "header_stars_alt": "stars",
-            "header_code_link": "Code",
-            "header_model_link": "Model",
+            "header_support_text": "Nếu dự án hữu ích, hãy tặng một ⭐️ để ủng hộ!",
+            "header_stars_alt": "số sao",
+            "header_code_link": "Mã nguồn",
+            "header_model_link": "Mô hình",
             "header_model_huggingface_link": "Hugging Face",
             "header_model_modelscope_link": "ModelScope",
-            "header_paper_link": "Paper",
+            "header_paper_link": "Bài báo",
             "header_paper_vsf_report": "VSF \u00b7 arXiv: 2409.18839",
             "header_paper_vsf25_report": "VSF 2.5 \u00b7 arXiv: 2509.22186",
             "header_paper_vsf25pro_report": "VSF 2.5 Pro \u00b7 arXiv: 2604.04771",
-            "header_homepage_link": "Homepage",
-            "header_download_link": "Download",
-            "max_pages": "Max convert pages",
-            "backend": "Backend",
-            "backend_label_hybrid": "Hybrid (Recommended)",
-            "backend_label_pipeline": "Pipeline (Stable multilingual)",
-            "backend_label_vlm": "VLM (High-precision Chinese/English)",
-            "backend_label_remote_vlm": "Remote VLM",
-            "backend_label_remote_hybrid": "Remote Hybrid",
-            "server_url": "Server URL",
-            "server_url_info": "OpenAI-compatible server URL for http-client backend.",
-            "recognition_options": "**Recognition Options:**",
-            "advanced_options": "Advanced options",
-            "table_enable": "Enable table recognition",
-            "table_info": "If disabled, tables will be shown as images.",
-            "image_analysis_enable": "Enable image analysis",
-            "image_analysis_info": "If disabled, image/chart blocks will keep layout positions but skip VLM image/chart analysis.",
-            "formula_label_vlm": "Enable display formula recognition",
-            "formula_label_pipeline": "Enable formula recognition",
-            "formula_label_hybrid": "Enable inline formula recognition",
-            "formula_info_vlm": "If disabled, display formulas will be shown as images.",
-            "formula_info_pipeline": "If disabled, display formulas will be shown as images, and inline formulas will not be detected or parsed.",
-            "formula_info_hybrid": "If disabled, inline formulas will not be detected or parsed.",
-            "ocr_language": "OCR Language",
-            "ocr_language_info": "Select the OCR language for image-based PDFs and images.",
-            "force_ocr": "Force enable OCR",
-            "force_ocr_info": "Enable only if the result is extremely poor. Requires correct OCR language.",
-            "force_ocr_info_hybrid": "Enable only if the result is extremely poor.",
-            "convert": "Convert",
-            "clear": "Clear",
-            "doc_preview": "Document preview",
-            "examples": "Examples:",
-            "convert_status": "Conversion Status",
-            "convert_result": "Convert result",
-            "result_file": "Result file",
-            "md_rendering": "Markdown rendering",
-            "md_text": "Markdown text",
-            "content_list_json": "JSON Content List",
-            "status_idle_title": "Waiting",
-            "status_idle_hint": "Upload a file and start conversion.",
-            "status_latest": "Latest status",
-            "status_step_prepare": "Prepare",
-            "status_step_check": "Check service",
-            "status_step_submit": "Submit",
-            "status_step_queue": "Queue",
-            "status_step_process": "Parse",
-            "status_step_download": "Download",
-            "status_step_outputs": "Build outputs",
-            "status_step_done": "Done",
-            "status_step_failed": "Failed",
-            "office_preview_title": "Office online preview",
-            "office_preview_notice": "This preview requires the current file to be reachable by Microsoft Office Online. Conversion does not depend on this preview.",
-            "office_preview_source_link": "File url",
-            "office_preview_ignore_once": "Dismiss",
-            "office_preview_ignore_forever": "Always dismiss",
-            "backend_info_vlm": "Multimodal large-model end-to-end parsing, high accuracy.",
-            "backend_info_pipeline": "Traditional multi-model pipeline parsing, low resource usage, hallucination-free.",
-            "backend_info_hybrid": "Exclusive hybrid engine parsing, ultra-high accuracy.",
-            "backend_info_default": "Select the backend engine for document parsing.",
-            "hybrid_effort": "Hybrid effort",
-            "hybrid_effort_info": "Medium is faster. High is more accurate and may take longer.",
+            "header_homepage_link": "Trang chủ",
+            "header_download_link": "Tải xuống",
+            "max_pages": "Số trang tối đa",
+            "backend": "Phương thức xử lý",
+            "backend_label_hybrid": "Kết hợp Hybrid (Khuyến nghị)",
+            "backend_label_pipeline": "Pipeline (Ổn định, đa ngôn ngữ)",
+            "backend_label_vlm": "VLM (Độ chính xác cao cho Trung/Anh)",
+            "backend_label_remote_vlm": "VLM từ máy chủ từ xa",
+            "backend_label_remote_hybrid": "Hybrid từ máy chủ từ xa",
+            "server_url": "Địa chỉ máy chủ",
+            "server_url_info": "Địa chỉ máy chủ tương thích OpenAI dành cho chế độ xử lý từ xa.",
+            "recognition_options": "**Tùy chọn nhận dạng:**",
+            "advanced_options": "Tùy chọn nâng cao",
+            "table_enable": "Nhận dạng bảng",
+            "table_info": "Nếu tắt, bảng sẽ được giữ dưới dạng hình ảnh.",
+            "image_analysis_enable": "Phân tích hình ảnh và biểu đồ",
+            "image_analysis_info": "Nếu tắt, hệ thống giữ vị trí ảnh/biểu đồ nhưng không dùng VLM để phân tích nội dung.",
+            "formula_label_vlm": "Nhận dạng công thức dạng khối",
+            "formula_label_pipeline": "Nhận dạng công thức",
+            "formula_label_hybrid": "Nhận dạng công thức trong dòng",
+            "formula_info_vlm": "Nếu tắt, công thức dạng khối sẽ được giữ dưới dạng hình ảnh.",
+            "formula_info_pipeline": "Nếu tắt, công thức dạng khối sẽ thành hình ảnh và công thức trong dòng sẽ không được nhận dạng.",
+            "formula_info_hybrid": "Nếu tắt, công thức trong dòng sẽ không được nhận dạng.",
+            "ocr_language": "Ngôn ngữ OCR",
+            "ocr_language_info": "Chọn nhóm ngôn ngữ dùng để đọc PDF scan và hình ảnh.",
+            "force_ocr": "Buộc chạy OCR",
+            "force_ocr_info": "Chỉ bật khi kết quả đọc tự động quá kém; cần chọn đúng ngôn ngữ OCR.",
+            "force_ocr_info_hybrid": "Chỉ bật khi kết quả đọc tự động quá kém.",
+            "convert": "Bắt đầu xử lý",
+            "clear": "Xóa",
+            "doc_preview": "Xem trước tài liệu",
+            "examples": "Tài liệu mẫu:",
+            "convert_status": "Trạng thái xử lý",
+            "convert_result": "Tải kết quả",
+            "result_file": "Tệp kết quả",
+            "md_rendering": "Xem nội dung",
+            "md_text": "Markdown",
+            "content_list_json": "JSON nội dung",
+            "idp_result_json": "Kết quả IDP",
+            "status_idle_title": "Đang chờ",
+            "status_idle_hint": "Hãy tải tài liệu lên và bắt đầu xử lý.",
+            "status_latest": "Trạng thái mới nhất",
+            "status_step_prepare": "Chuẩn bị",
+            "status_step_check": "Kiểm tra dịch vụ",
+            "status_step_submit": "Gửi tác vụ",
+            "status_step_queue": "Xếp hàng",
+            "status_step_process": "Phân tích",
+            "status_step_download": "Tải kết quả",
+            "status_step_outputs": "Tạo đầu ra",
+            "status_step_done": "Hoàn thành",
+            "status_step_failed": "Thất bại",
+            "office_preview_title": "Xem trước tài liệu Office",
+            "office_preview_notice": "Tính năng xem trước cần tệp có thể truy cập qua Microsoft Office Online và không ảnh hưởng đến quá trình xử lý.",
+            "office_preview_source_link": "Đường dẫn tệp",
+            "office_preview_ignore_once": "Bỏ qua",
+            "office_preview_ignore_forever": "Luôn bỏ qua",
+            "backend_info_vlm": "VLM phân tích toàn bộ trang với độ chính xác cao.",
+            "backend_info_pipeline": "Pipeline nhiều mô hình, ít tốn tài nguyên và hạn chế sinh sai nội dung.",
+            "backend_info_hybrid": "Kết hợp Pipeline và VLM để ưu tiên độ chính xác.",
+            "backend_info_default": "Chọn phương thức dùng để phân tích tài liệu.",
+            "hybrid_effort": "Mức xử lý Hybrid",
+            "hybrid_effort_info": "Trung bình nhanh hơn; Cao chính xác hơn nhưng xử lý lâu hơn.",
+            "idp_enable": "Bật IDP tài liệu",
+            "idp_info": "Nhận mọi PDF, XLSX, PPTX và ảnh; tự phân loại, trích xuất và kiểm tra dữ liệu.",
+            "idp_document_type": "Mẫu dữ liệu cần trích xuất",
+            "idp_document_type_info": "Chọn Tự động để nhận mọi tài liệu. Các lựa chọn bên dưới chỉ là mẫu trích xuất chuyên sâu.",
         },
     )
 
@@ -1780,6 +1952,8 @@ def main(ctx,
         language="ch",
         backend="pipeline",
         url=None,
+        enable_idp=False,
+        idp_document_type="auto",
         request: gr.Request = None,
     ):
         request_locale = resolve_request_locale(request)
@@ -1796,6 +1970,8 @@ def main(ctx,
             url=url,
             api_url=api_url,
             client_side_output_generation=client_side_output_generation,
+            enable_idp=enable_idp,
+            idp_document_type=idp_document_type,
         ):
             update = (
                 render_status_steps_html(update[0], i18n, locale=request_locale),
@@ -1858,7 +2034,7 @@ def main(ctx,
                     elem_classes=["vsf-status-panel"],
                 )
 
-            _doc_preview_label = "doc preview" if IS_GRADIO_6 else i18n("doc_preview")
+            _doc_preview_label = i18n("doc_preview")
             # Implementation detail.
             # Implementation detail.
             preview_content_height = 775
@@ -1889,6 +2065,16 @@ def main(ctx,
                             latex_delimiters=latex_delimiters,
                             line_breaks=True,
                             **_md_copy_kwargs
+                        )
+                    with gr.Tab(i18n("idp_result_json")):
+                        idp_result_json = gr.Code(
+                            lines=28,
+                            language="json",
+                            label=i18n("idp_result_json"),
+                            interactive=False,
+                            wrap_lines=True,
+                            show_label=False,
+                            elem_classes=["vsf-idp-result-json"],
                         )
                     with gr.Tab(i18n("md_text")):
                         md_text = gr.Code(
@@ -1941,9 +2127,26 @@ def main(ctx,
                         info=i18n("image_analysis_info"),
                         elem_classes=["vsf-image-analysis-option"],
                     )
+                    enable_idp = gr.Checkbox(
+                        label=i18n("idp_enable"),
+                        value=True,
+                        info=i18n("idp_info"),
+                    )
+                    idp_document_type = gr.Dropdown(
+                        choices=[
+                            ("Tự động – nhận mọi loại tài liệu", "auto"),
+                            *[
+                                (schema.label, document_type)
+                                for document_type, schema in DOCUMENT_SCHEMAS.items()
+                            ],
+                        ],
+                        value="auto",
+                        label=i18n("idp_document_type"),
+                        info=i18n("idp_document_type_info"),
+                    )
                     with gr.Column(elem_classes=["vsf-hybrid-effort-option"]):
                         hybrid_effort = gr.Radio(
-                            list(HYBRID_EFFORT_CHOICES),
+                            hybrid_effort_choices_vi,
                             label=i18n("hybrid_effort"),
                             value=DEFAULT_HYBRID_EFFORT,
                             info=i18n("hybrid_effort_info"),
@@ -1955,7 +2158,7 @@ def main(ctx,
                             language = gr.Dropdown(
                                 all_lang,
                                 label=i18n("ocr_language"),
-                                value=all_lang[0],
+                                value="ch",
                                 info=i18n("ocr_language_info"),
                             )
                         is_ocr = gr.Checkbox(
@@ -1983,7 +2186,20 @@ def main(ctx,
             outputs=[is_ocr, formula_enable, backend],
             **_private_api_kwargs
         )
-        clear_bu.add([input_file, md, doc_show, md_text, content_list_json, output_file, is_ocr, office_html, status_panel])
+        clear_bu.add([
+            input_file,
+            md,
+            doc_show,
+            md_text,
+            content_list_json,
+            idp_result_json,
+            output_file,
+            is_ocr,
+            enable_idp,
+            idp_document_type,
+            office_html,
+            status_panel,
+        ])
 
         def reset_primary_ui():
             """Implementation detail."""
@@ -2036,8 +2252,29 @@ def main(ctx,
         )
         change_bu.click(
             fn=convert_to_markdown_stream,
-            inputs=[input_file, max_pages, is_ocr, formula_enable, table_enable, image_analysis, hybrid_effort, language, backend, url],
-            outputs=[status_panel, output_file, md, md_text, content_list_json, doc_show],
+            inputs=[
+                input_file,
+                max_pages,
+                is_ocr,
+                formula_enable,
+                table_enable,
+                image_analysis,
+                hybrid_effort,
+                language,
+                backend,
+                url,
+                enable_idp,
+                idp_document_type,
+            ],
+            outputs=[
+                status_panel,
+                output_file,
+                md,
+                md_text,
+                content_list_json,
+                idp_result_json,
+                doc_show,
+            ],
             **_to_md_api_kwargs
         )
 

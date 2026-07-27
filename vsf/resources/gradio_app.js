@@ -1,5 +1,5 @@
 () => {
-    const POPOVER_SCRIPT_VERSION = "office-preview-dismiss-v1";
+    const POPOVER_SCRIPT_VERSION = "fast-advanced-popover-v2";
     if (window.__vsfAdvancedPopoverInstalled === POPOVER_SCRIPT_VERSION) {
         return;
     }
@@ -12,9 +12,7 @@
     const FORCE_OCR_HIDDEN_CLASS = "vsf-hide-force-ocr";
     const HYBRID_EFFORT_HIDDEN_CLASS = "vsf-hide-hybrid-effort";
     const OFFICE_PREVIEW_NOTICE_STORAGE_KEY = "vsf.officePreviewNoticeIgnored";
-    const OPEN_DELAY_MS = 120;
-    const CLOSE_DELAY_MS = 280;
-    const ANIMATION_DELAY_MS = 140;
+    const ANIMATION_DELAY_MS = 90;
     const CLIPBOARD_MIME_EXTENSIONS = {
         "image/png": "png",
         "image/jpeg": "jpg",
@@ -105,10 +103,9 @@
     const findPopover = () => document.querySelector(".vsf-advanced-popover");
     const findBackendRoot = () => document.querySelector(".vsf-backend-select");
     const findEffortRoot = () => document.querySelector(".vsf-hybrid-effort");
-    let openTimer = null;
-    let closeTimer = null;
     let visibilityTimer = null;
-    let hoverHandlersInstalled = false;
+    let optionRefreshFrame = null;
+    let customHtmlRefreshFrame = null;
 
     // Validate the current value.
     const getBackendValue = () => {
@@ -149,9 +146,12 @@
 
     // Implementation detail.
     const queueVSFOptionVisibilityRefresh = () => {
-        requestAnimationFrame(() => {
+        if (optionRefreshFrame !== null) {
+            return;
+        }
+        optionRefreshFrame = requestAnimationFrame(() => {
+            optionRefreshFrame = null;
             refreshVSFOptionVisibility();
-            requestAnimationFrame(refreshVSFOptionVisibility);
         });
     };
     const findUploadFileInput = () => {
@@ -324,21 +324,7 @@
     };
 
     // Implementation detail.
-    const supportsHoverPopover = () => (
-        typeof window.matchMedia === "function"
-        && window.matchMedia("(hover: hover) and (pointer: fine)").matches
-    );
-
-    // Implementation detail.
     const cancelPopoverTimers = () => {
-        if (openTimer !== null) {
-            clearTimeout(openTimer);
-            openTimer = null;
-        }
-        if (closeTimer !== null) {
-            clearTimeout(closeTimer);
-            closeTimer = null;
-        }
         if (visibilityTimer !== null) {
             clearTimeout(visibilityTimer);
             visibilityTimer = null;
@@ -360,7 +346,7 @@
         popover.style.setProperty("visibility", "visible", "important");
         popover.style.setProperty("opacity", "1", "important");
         popover.style.setProperty("pointer-events", "auto", "important");
-        popover.style.setProperty("transform", "translateY(0) scale(1)", "important");
+        popover.style.setProperty("transform", "translateY(0)", "important");
     };
 
     // Implementation detail.
@@ -370,7 +356,7 @@
         }
         popover.style.setProperty("opacity", "0", "important");
         popover.style.setProperty("pointer-events", "none", "important");
-        popover.style.setProperty("transform", "translateY(-4px) scale(0.985)", "important");
+        popover.style.setProperty("transform", "translateY(-2px)", "important");
         visibilityTimer = window.setTimeout(() => {
             if (!document.body.classList.contains(POPOVER_OPEN_CLASS)) {
                 popover.style.setProperty("visibility", "hidden", "important");
@@ -382,7 +368,7 @@
     // Implementation detail.
     const queueDropdownPosition = () => {
         requestAnimationFrame(() => {
-            requestAnimationFrame(positionAdvancedDropdowns);
+            positionAdvancedDropdowns();
         });
     };
 
@@ -421,12 +407,10 @@
         const popover = findPopover();
         cancelPopoverTimers();
         clearLegacyPopoverDisplay(popover);
+        positionPopover();
         document.body.classList.add(POPOVER_OPEN_CLASS);
         applyOpenPopoverStyle(popover);
-        requestAnimationFrame(() => {
-            positionPopover();
-            queueDropdownPosition();
-        });
+        queueDropdownPosition();
     };
 
     // Implementation detail.
@@ -438,61 +422,20 @@
         applyClosedPopoverStyle(popover);
     };
 
-    // Implementation detail.
-    const scheduleHoverOpen = () => {
-        if (!supportsHoverPopover()) {
-            return;
-        }
-        cancelPopoverTimers();
-        openTimer = window.setTimeout(() => {
-            openTimer = null;
-            openPopover();
-        }, OPEN_DELAY_MS);
-    };
-
-    // Implementation detail.
-    const scheduleHoverClose = () => {
-        if (!supportsHoverPopover()) {
-            return;
-        }
-        cancelPopoverTimers();
-        closeTimer = window.setTimeout(() => {
-            closeTimer = null;
-            closePopover();
-        }, CLOSE_DELAY_MS);
-    };
-
-    // Implementation detail.
-    const installHoverPopoverHandlers = () => {
-        if (hoverHandlersInstalled || !supportsHoverPopover()) {
-            return;
-        }
-        const button = findButton();
-        const popover = findPopover();
-        if (!button || !popover) {
-            return;
-        }
-        button.addEventListener("pointerenter", scheduleHoverOpen);
-        button.addEventListener("pointerleave", scheduleHoverClose);
-        button.addEventListener("mouseenter", scheduleHoverOpen);
-        button.addEventListener("mouseleave", scheduleHoverClose);
-        popover.addEventListener("pointerenter", cancelPopoverTimers);
-        popover.addEventListener("pointerleave", scheduleHoverClose);
-        popover.addEventListener("mouseenter", cancelPopoverTimers);
-        popover.addEventListener("mouseleave", scheduleHoverClose);
-        hoverHandlersInstalled = true;
-    };
-
     refreshVSFCustomHtml();
-    installHoverPopoverHandlers();
-    requestAnimationFrame(() => {
-        refreshVSFCustomHtml();
-        installHoverPopoverHandlers();
-    });
+    const queueCustomHtmlRefresh = () => {
+        if (customHtmlRefreshFrame !== null) {
+            return;
+        }
+        customHtmlRefreshFrame = requestAnimationFrame(() => {
+            customHtmlRefreshFrame = null;
+            refreshVSFCustomHtml();
+        });
+    };
+    queueCustomHtmlRefresh();
     if (typeof MutationObserver !== "undefined") {
         const uiObserver = new MutationObserver(() => {
-            refreshVSFCustomHtml();
-            installHoverPopoverHandlers();
+            queueCustomHtmlRefresh();
         });
         uiObserver.observe(document.body, { childList: true, subtree: true });
     }
@@ -502,7 +445,6 @@
         if (!(target instanceof Element)) {
             return;
         }
-        queueVSFOptionVisibilityRefresh();
         if (target.closest(".office-preview-ignore-forever")) {
             const notice = target.closest(".office-preview-notice");
             if (setOfficePreviewNoticeIgnored()) {

@@ -116,27 +116,27 @@ body.dark .gradio-container {
     border-radius: 14px !important;
     background: var(--vsf-popover-shell-bg) !important;
     box-shadow: var(--vsf-popover-shadow) !important;
-    backdrop-filter: blur(12px);
+    backdrop-filter: none;
     overflow: hidden !important;
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
-    transform: translateY(-4px) scale(0.985) !important;
+    transform: translateY(-2px) !important;
     transform-origin: left center !important;
     transition:
-        opacity 140ms ease,
-        transform 140ms ease,
-        visibility 0s linear 140ms !important;
+        opacity 90ms ease-out,
+        transform 90ms ease-out,
+        visibility 0s linear 90ms !important;
 }
 body.vsf-advanced-popover-open .gradio-container .contain .vsf-advanced-popover,
 body.vsf-advanced-popover-open .vsf-advanced-popover {
     visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
-    transform: translateY(0) scale(1) !important;
+    transform: translateY(0) !important;
     transition:
-        opacity 140ms ease,
-        transform 140ms ease,
+        opacity 90ms ease-out,
+        transform 90ms ease-out,
         visibility 0s linear 0s !important;
 }
 .vsf-advanced-popover::before {
@@ -440,6 +440,84 @@ body.vsf-hide-hybrid-effort .gradio-container .contain .vsf-hybrid-effort-option
     border: 1px solid var(--vsf-panel-border);
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.18);
+}
+.office-local-preview {
+    overflow: hidden;
+    border: 1px solid var(--vsf-panel-border);
+    border-radius: 8px;
+    background: var(--block-background-fill);
+}
+.office-local-header {
+    flex: none;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--vsf-panel-border);
+    background: rgba(59, 130, 246, 0.08);
+}
+.office-local-header strong,
+.office-local-header > span {
+    display: block;
+}
+.office-local-header > span {
+    margin-top: 4px;
+    color: var(--body-text-color-subdued);
+    font-size: 12px;
+}
+.office-local-sheets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+.office-local-sheet {
+    padding: 3px 8px;
+    border: 1px solid var(--vsf-panel-border);
+    border-radius: 999px;
+    color: var(--body-text-color-subdued);
+    font-size: 11px;
+}
+.office-local-sheet.is-active {
+    border-color: rgba(59, 130, 246, 0.55);
+    color: var(--body-text-color);
+    background: rgba(59, 130, 246, 0.14);
+}
+.office-local-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+.office-local-table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+    line-height: 1.35;
+}
+.office-local-table th,
+.office-local-table td {
+    max-width: 360px;
+    padding: 6px 9px;
+    border-right: 1px solid var(--vsf-panel-border);
+    border-bottom: 1px solid var(--vsf-panel-border);
+    text-align: left;
+    vertical-align: top;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.office-local-table th {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: 38px;
+    color: var(--body-text-color-subdued);
+    background: var(--block-background-fill);
+    text-align: right;
+}
+.office-local-empty {
+    display: grid;
+    flex: 1 1 auto;
+    place-items: center;
+    color: var(--body-text-color-subdued);
 }
 @media (max-width: 900px) {
     .vsf-control-column {
