@@ -384,22 +384,3 @@ pytest tests/unittest/test_e2e.py
 
 Bản fork này được duy trì và tùy chỉnh cho mục đích học tập, nghiên cứu và xây
 dựng các hệ thống xử lý tài liệu thông minh.
-
-## Giấy phép và ghi nhận
-
-Dự án này được phát triển dựa trên
-[OpenDataLab MinerU](https://github.com/opendatalab/MinerU).
-
-Mã nguồn tiếp tục tuân theo
-[MinerU Open Source License](LICENSE.md), một giấy phép dựa trên Apache 2.0 và
-có các điều kiện bổ sung. Copyright và quyền tác giả của mã nguồn gốc thuộc về
-các tác giả và tổ chức tương ứng.
-
-Khi triển khai dịch vụ trực tuyến dựa trên dự án, hãy đọc kỹ nghĩa vụ ghi nhận
-và các điều kiện sử dụng thương mại trong `LICENSE.md`.
-
-## Lưu ý
-
-Kết quả OCR và phân tích bố cục phụ thuộc vào chất lượng tài liệu đầu vào. Tài
-liệu scan mờ, chữ viết tay, bảng phức tạp hoặc bố cục bất thường có thể cần bước
-kiểm tra thủ công trước khi đưa vào quy trình nghiệp vụ.
