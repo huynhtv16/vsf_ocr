@@ -152,6 +152,8 @@ class AsyncParseTask:
     formula_enable: bool
     table_enable: bool
     image_analysis: bool
+    enable_idp: bool
+    idp_document_type: str
     server_url: Optional[str]
     return_md: bool
     return_middle_json: bool
@@ -179,6 +181,8 @@ class AsyncParseTask:
             "task_id": self.task_id,
             "status": self.status,
             "backend": self.backend,
+            "enable_idp": self.enable_idp,
+            "idp_document_type": self.idp_document_type,
             "file_names": self.file_names,
             "created_at": self.created_at,
             "started_at": self.started_at,
@@ -444,6 +448,7 @@ def build_result_dict(
     return_model_output: bool,
     return_content_list: bool,
     return_images: bool,
+    return_idp: bool = False,
 ) -> dict[str, dict[str, Any]]:
     result_dict: dict[str, dict[str, Any]] = {}
     for pdf_name in pdf_file_names:
@@ -469,6 +474,8 @@ def build_result_dict(
             data["content_list"] = get_infer_result(
                 "_content_list.json", pdf_name, parse_dir
             )
+        if return_idp:
+            data["idp_result"] = get_infer_result("_idp.json", pdf_name, parse_dir)
         if return_images:
             images_dir = os.path.join(parse_dir, "images")
             image_paths = get_images_dir_image_paths(images_dir)
@@ -500,6 +507,7 @@ def create_result_zip(
     return_content_list: bool,
     return_images: bool,
     return_original_file: bool,
+    return_idp: bool = False,
 ) -> str:
     zip_fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="vsf_results_")
     os.close(zip_fd)
@@ -574,6 +582,18 @@ def create_result_zip(
                         ),
                     )
 
+            if return_idp:
+                path = os.path.join(parse_dir, f"{pdf_name}_idp.json")
+                if os.path.exists(path):
+                    zf.write(
+                        path,
+                        arcname=build_zip_arcname(
+                            pdf_name,
+                            parse_dir,
+                            f"{pdf_name}_idp.json",
+                        ),
+                    )
+
             if return_images:
                 images_dir = os.path.join(parse_dir, "images")
                 image_paths = get_images_dir_image_paths(images_dir)
@@ -629,6 +649,7 @@ async def build_result_response(
     return_images: bool,
     response_format_zip: bool,
     return_original_file: bool,
+    return_idp: bool = False,
     zip_filename: str = "results.zip",
 ) -> Response:
     if response_format_zip:
@@ -645,6 +666,7 @@ async def build_result_response(
                 return_content_list=return_content_list,
                 return_images=return_images,
                 return_original_file=return_original_file,
+                return_idp=return_idp,
             )
         )
         try:
@@ -671,6 +693,7 @@ async def build_result_response(
         return_model_output=return_model_output,
         return_content_list=return_content_list,
         return_images=return_images,
+        return_idp=return_idp,
     )
     return JSONResponse(
         status_code=status_code,
@@ -713,6 +736,7 @@ async def build_sync_file_parse_response(
             return_images=task.return_images,
             response_format_zip=task.response_format_zip,
             return_original_file=task.return_original_file,
+            return_idp=task.enable_idp,
             zip_filename=f"{task.task_id}.zip",
         )
         response.headers[FILE_PARSE_TASK_ID_HEADER] = task.task_id
@@ -732,6 +756,7 @@ async def build_sync_file_parse_response(
         return_model_output=task.return_model_output,
         return_content_list=task.return_content_list,
         return_images=task.return_images,
+        return_idp=task.enable_idp,
     )
     return JSONResponse(
         status_code=200,
@@ -840,6 +865,8 @@ async def run_parse_job(
         formula_enable=request_options.formula_enable,
         table_enable=request_options.table_enable,
         image_analysis=request_options.image_analysis,
+        enable_idp=request_options.enable_idp,
+        idp_document_type=request_options.idp_document_type,
         server_url=request_options.server_url,
         f_draw_layout_bbox=False,
         f_draw_span_bbox=False,
@@ -899,6 +926,8 @@ async def create_async_parse_task(
             formula_enable=request_options.formula_enable,
             table_enable=request_options.table_enable,
             image_analysis=request_options.image_analysis,
+            enable_idp=request_options.enable_idp,
+            idp_document_type=request_options.idp_document_type,
             server_url=request_options.server_url,
             return_md=request_options.return_md,
             return_middle_json=request_options.return_middle_json,
@@ -1345,6 +1374,7 @@ async def get_async_task_result(
         return_images=task.return_images,
         response_format_zip=task.response_format_zip,
         return_original_file=task.return_original_file,
+        return_idp=task.enable_idp,
         zip_filename=f"{task.task_id}.zip",
     )
 

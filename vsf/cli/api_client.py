@@ -822,6 +822,8 @@ def build_parse_request_form_data(
     response_format_zip: bool,
     return_original_file: bool,
     client_side_output_generation: bool = False,
+    enable_idp: bool = False,
+    idp_document_type: str = "auto",
 ) -> dict[str, str | list[str]]:
     effective_lang_list = list(lang_list) or ["ch"]
     data: dict[str, str | list[str]] = {
@@ -840,6 +842,8 @@ def build_parse_request_form_data(
         "response_format_zip": str(response_format_zip).lower(),
         "return_original_file": str(return_original_file).lower(),
         "client_side_output_generation": str(client_side_output_generation).lower(),
+        "enable_idp": str(enable_idp).lower(),
+        "idp_document_type": idp_document_type,
         "start_page_id": str(start_page_id),
         "end_page_id": str(99999 if end_page_id is None else end_page_id),
     }

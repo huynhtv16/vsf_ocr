@@ -18,6 +18,7 @@ from vsf.utils.ocr_language import (
     format_public_ocr_lang_description,
     validate_public_ocr_lang_list,
 )
+from vsf.idp.schemas import DOCUMENT_TYPES, validate_document_type
 
 ALLOWED_PARSE_METHODS = {"auto", "txt", "ocr"}
 SWAGGER_UI_FILE_ARRAY_SCHEMA_EXTRA = {
@@ -39,6 +40,8 @@ class ParseRequestOptions:
     formula_enable: bool
     table_enable: bool
     image_analysis: bool
+    enable_idp: bool
+    idp_document_type: str
     server_url: Optional[str]
     return_md: bool
     return_middle_json: bool
@@ -85,6 +88,15 @@ def validate_parse_lang_list(lang_list: list[str]) -> list[str]:
     """Validate the current value."""
     try:
         return validate_public_ocr_lang_list(lang_list)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def validate_idp_document_type(document_type: str) -> str:
+    """Validate an HR IDP schema selection."""
+
+    try:
+        return validate_document_type(document_type)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -153,6 +165,24 @@ async def parse_request_form(
             ),
         ),
     ] = True,
+    enable_idp: Annotated[
+        bool,
+        Form(
+            description=(
+                "Enable HR Intelligent Document Processing. The result includes "
+                "classification, extracted fields, evidence, and validation."
+            ),
+        ),
+    ] = False,
+    idp_document_type: Annotated[
+        str,
+        Form(
+            description=(
+                "HR document schema. Use auto to classify automatically. "
+                f"Allowed values: {', '.join(DOCUMENT_TYPES)}"
+            ),
+        ),
+    ] = "auto",
     server_url: Annotated[
         Optional[str],
         Form(
@@ -240,6 +270,8 @@ async def parse_request_form(
         formula_enable=formula_enable,
         table_enable=table_enable,
         image_analysis=image_analysis,
+        enable_idp=enable_idp,
+        idp_document_type=validate_idp_document_type(idp_document_type),
         server_url=server_url,
         return_md=return_md,
         return_middle_json=return_middle_json,

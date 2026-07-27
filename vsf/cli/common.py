@@ -272,6 +272,8 @@ def _process_output(
         middle_json,
         model_output=None,
         process_mode="vlm",
+        enable_idp=False,
+        idp_document_type="auto",
 ):
     from vsf.backend.pipeline.pipeline_middle_json_mkcontent import union_make as pipeline_union_make
     if process_mode == "pipeline":
@@ -330,7 +332,6 @@ def _process_output(
             json.dumps(content_list_v2, ensure_ascii=False, indent=4),
         )
 
-
     if f_dump_middle_json:
         md_writer.write_string(
             f"{pdf_file_name}_middle.json",
@@ -341,6 +342,20 @@ def _process_output(
         md_writer.write_string(
             f"{pdf_file_name}_model.json",
             json.dumps(model_output, ensure_ascii=False, indent=4),
+        )
+
+    if enable_idp:
+        from vsf.idp import process_hr_document
+
+        idp_content_list = make_func(pdf_info, MakeMode.CONTENT_LIST, image_dir)
+        idp_result = process_hr_document(
+            idp_content_list or [],
+            document_type=idp_document_type,
+            document_name=pdf_file_name,
+        )
+        md_writer.write_string(
+            f"{pdf_file_name}_idp.json",
+            json.dumps(idp_result, ensure_ascii=False, indent=4),
         )
 
     logger.debug(f"local output dir is {local_md_dir}")
@@ -363,6 +378,8 @@ def _process_pipeline(
         f_dump_content_list,
         f_make_md_mode,
         client_side_output_generation=False,
+        enable_idp=False,
+        idp_document_type="auto",
 ):
     """Process the current item."""
     from vsf.backend.pipeline.pipeline_analyze import doc_analyze_streaming as pipeline_doc_analyze_streaming
@@ -390,7 +407,8 @@ def _process_pipeline(
                 middle_json["pdf_info"], pdf_bytes, pdf_file_name, local_md_dir, local_image_dir,
                 md_writer, f_draw_layout_bbox, f_draw_span_bbox, f_dump_orig_pdf,
                 f_dump_md, f_dump_content_list, f_dump_middle_json, f_dump_model_output,
-                f_make_md_mode, middle_json, model_list, process_mode="pipeline"
+                f_make_md_mode, middle_json, model_list, process_mode="pipeline",
+                enable_idp=enable_idp, idp_document_type=idp_document_type,
             )
             logger.debug(f"Pipeline output complete: doc{doc_index}")
         except Exception:
@@ -435,6 +453,8 @@ async def _async_process_vlm(
         f_dump_content_list,
         f_make_md_mode,
         server_url=None,
+        enable_idp=False,
+        idp_document_type="auto",
         **kwargs,
 ):
     """Process the current item."""
@@ -458,7 +478,8 @@ async def _async_process_vlm(
             pdf_info, pdf_bytes, pdf_file_name, local_md_dir, local_image_dir,
             md_writer, f_draw_layout_bbox, f_draw_span_bbox, f_dump_orig_pdf,
             f_dump_md, f_dump_content_list, f_dump_middle_json, f_dump_model_output,
-            f_make_md_mode, middle_json, infer_result, process_mode="vlm"
+            f_make_md_mode, middle_json, infer_result, process_mode="vlm",
+            enable_idp=enable_idp, idp_document_type=idp_document_type,
         )
 
 
@@ -476,6 +497,8 @@ def _process_vlm(
         f_dump_content_list,
         f_make_md_mode,
         server_url=None,
+        enable_idp=False,
+        idp_document_type="auto",
         **kwargs,
 ):
     """Process the current item."""
@@ -499,7 +522,8 @@ def _process_vlm(
             pdf_info, pdf_bytes, pdf_file_name, local_md_dir, local_image_dir,
             md_writer, f_draw_layout_bbox, f_draw_span_bbox, f_dump_orig_pdf,
             f_dump_md, f_dump_content_list, f_dump_middle_json, f_dump_model_output,
-            f_make_md_mode, middle_json, infer_result, process_mode="vlm"
+            f_make_md_mode, middle_json, infer_result, process_mode="vlm",
+            enable_idp=enable_idp, idp_document_type=idp_document_type,
         )
 
 
@@ -520,6 +544,8 @@ def _process_hybrid(
         f_make_md_mode,
         server_url=None,
         effort=DEFAULT_HYBRID_EFFORT,
+        enable_idp=False,
+        idp_document_type="auto",
         **kwargs,
 ):
     hybrid_doc_analyze = _load_hybrid_analyze_entrypoint(
@@ -554,7 +580,8 @@ def _process_hybrid(
             pdf_info, pdf_bytes, pdf_file_name, local_md_dir, local_image_dir,
             md_writer, f_draw_layout_bbox, f_draw_span_bbox, f_dump_orig_pdf,
             f_dump_md, f_dump_content_list, f_dump_middle_json, f_dump_model_output,
-            f_make_md_mode, middle_json, infer_result, process_mode="vlm"
+            f_make_md_mode, middle_json, infer_result, process_mode="vlm",
+            enable_idp=enable_idp, idp_document_type=idp_document_type,
         )
 
 
@@ -575,6 +602,8 @@ async def _async_process_hybrid(
         f_make_md_mode,
         server_url=None,
         effort=DEFAULT_HYBRID_EFFORT,
+        enable_idp=False,
+        idp_document_type="auto",
         **kwargs,
 ):
     aio_hybrid_doc_analyze = _load_hybrid_analyze_entrypoint(
@@ -609,7 +638,8 @@ async def _async_process_hybrid(
             pdf_info, pdf_bytes, pdf_file_name, local_md_dir, local_image_dir,
             md_writer, f_draw_layout_bbox, f_draw_span_bbox, f_dump_orig_pdf,
             f_dump_md, f_dump_content_list, f_dump_middle_json, f_dump_model_output,
-            f_make_md_mode, middle_json, infer_result, process_mode="vlm"
+            f_make_md_mode, middle_json, infer_result, process_mode="vlm",
+            enable_idp=enable_idp, idp_document_type=idp_document_type,
         )
 
 
@@ -623,6 +653,8 @@ def _process_office_doc(
         f_dump_orig_file=True,
         f_dump_content_list=True,
         f_make_md_mode=MakeMode.MM_MD,
+        enable_idp=False,
+        idp_document_type="auto",
 ):
     need_remove_index = []
     for i, file_bytes in enumerate(pdf_bytes_list):
@@ -655,7 +687,8 @@ def _process_office_doc(
                 pdf_info, file_bytes, pdf_file_name, local_md_dir, local_image_dir,
                 md_writer, f_draw_layout_bbox, f_draw_span_bbox, f_dump_orig_file,
                 f_dump_md, f_dump_content_list, f_dump_middle_json, f_dump_model_output,
-                f_make_md_mode, middle_json, infer_result, process_mode=file_suffix
+                f_make_md_mode, middle_json, infer_result, process_mode=file_suffix,
+                enable_idp=enable_idp, idp_document_type=idp_document_type,
             )
 
     return need_remove_index
@@ -684,6 +717,8 @@ def do_parse(
         image_analysis=True,
         client_side_output_generation=False,
         effort=DEFAULT_HYBRID_EFFORT,
+        enable_idp=False,
+        idp_document_type="auto",
         **kwargs,
 ):
     backend = normalize_backend(backend)
@@ -697,6 +732,8 @@ def do_parse(
         f_dump_orig_file=f_dump_orig_pdf,
         f_dump_content_list=f_dump_content_list,
         f_make_md_mode=f_make_md_mode,
+        enable_idp=enable_idp,
+        idp_document_type=idp_document_type,
     )
     for index in sorted(need_remove_index, reverse=True):
         del pdf_bytes_list[index]
@@ -716,6 +753,8 @@ def do_parse(
             f_draw_layout_bbox, f_draw_span_bbox, f_dump_md, f_dump_middle_json,
             f_dump_model_output, f_dump_orig_pdf, f_dump_content_list, f_make_md_mode,
             client_side_output_generation=client_side_output_generation,
+            enable_idp=enable_idp,
+            idp_document_type=idp_document_type,
         )
     else:
         if backend.startswith("vlm-"):
@@ -732,6 +771,7 @@ def do_parse(
                 f_draw_layout_bbox, f_draw_span_bbox, f_dump_md, f_dump_middle_json,
                 f_dump_model_output, f_dump_orig_pdf, f_dump_content_list, f_make_md_mode,
                 server_url, image_analysis=image_analysis,
+                enable_idp=enable_idp, idp_document_type=idp_document_type,
                 client_side_output_generation=client_side_output_generation, **kwargs,
             )
         elif backend.startswith("hybrid-"):
@@ -749,6 +789,7 @@ def do_parse(
                 f_draw_layout_bbox, f_draw_span_bbox, f_dump_md, f_dump_middle_json,
                 f_dump_model_output, f_dump_orig_pdf, f_dump_content_list, f_make_md_mode,
                 server_url, effort=effort, image_analysis=image_analysis,
+                enable_idp=enable_idp, idp_document_type=idp_document_type,
                 client_side_output_generation=client_side_output_generation, **kwargs,
             )
 
@@ -776,6 +817,8 @@ async def aio_do_parse(
         image_analysis=True,
         client_side_output_generation=False,
         effort=DEFAULT_HYBRID_EFFORT,
+        enable_idp=False,
+        idp_document_type="auto",
         **kwargs,
 ):
     backend = normalize_backend(backend)
@@ -791,6 +834,8 @@ async def aio_do_parse(
         f_dump_orig_file=f_dump_orig_pdf,
         f_dump_content_list=f_dump_content_list,
         f_make_md_mode=f_make_md_mode,
+        enable_idp=enable_idp,
+        idp_document_type=idp_document_type,
     )
     for index in sorted(need_remove_index, reverse=True):
         del pdf_bytes_list[index]
@@ -811,6 +856,8 @@ async def aio_do_parse(
             f_draw_layout_bbox, f_draw_span_bbox, f_dump_md, f_dump_middle_json,
             f_dump_model_output, f_dump_orig_pdf, f_dump_content_list, f_make_md_mode,
             client_side_output_generation=client_side_output_generation,
+            enable_idp=enable_idp,
+            idp_document_type=idp_document_type,
         )
     else:
         if backend.startswith("vlm-"):
@@ -827,6 +874,7 @@ async def aio_do_parse(
                 f_draw_layout_bbox, f_draw_span_bbox, f_dump_md, f_dump_middle_json,
                 f_dump_model_output, f_dump_orig_pdf, f_dump_content_list, f_make_md_mode,
                 server_url, image_analysis=image_analysis,
+                enable_idp=enable_idp, idp_document_type=idp_document_type,
                 client_side_output_generation=client_side_output_generation, **kwargs,
             )
         elif backend.startswith("hybrid-"):
@@ -844,6 +892,7 @@ async def aio_do_parse(
                 f_draw_layout_bbox, f_draw_span_bbox, f_dump_md, f_dump_middle_json,
                 f_dump_model_output, f_dump_orig_pdf, f_dump_content_list, f_make_md_mode,
                 server_url, effort=effort, image_analysis=image_analysis,
+                enable_idp=enable_idp, idp_document_type=idp_document_type,
                 client_side_output_generation=client_side_output_generation, **kwargs,
             )
 

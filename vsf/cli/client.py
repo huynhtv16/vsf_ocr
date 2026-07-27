@@ -39,6 +39,7 @@ from vsf.utils.pdfium_guard import (
 )
 
 from vsf.version import __version__
+from vsf.idp.schemas import DOCUMENT_TYPES
 from vsf.cli.common import (
     HybridDependencyError,
     ensure_backend_dependencies,
@@ -676,6 +677,8 @@ def build_request_form_data(
     image_analysis: bool = True,
     client_side_output_generation: bool = False,
     effort: str = DEFAULT_HYBRID_EFFORT,
+    enable_idp: bool = False,
+    idp_document_type: str = "auto",
 ) -> dict[str, str | list[str]]:
     # Build the required output.
     return_md = not client_side_output_generation
@@ -699,6 +702,8 @@ def build_request_form_data(
         response_format_zip=True,
         return_original_file=True,
         client_side_output_generation=client_side_output_generation,
+        enable_idp=enable_idp,
+        idp_document_type=idp_document_type,
     )
 
 
@@ -922,6 +927,8 @@ async def run_orchestrated_cli(
     image_analysis: bool = True,
     client_side_output_generation: bool = False,
     effort: str = DEFAULT_HYBRID_EFFORT,
+    enable_idp: bool = False,
+    idp_document_type: str = "auto",
     extra_cli_args: tuple[str, ...] = (),
 ) -> None:
     if start_page_id < 0:
@@ -994,6 +1001,8 @@ async def run_orchestrated_cli(
                 end_page_id=end_page_id,
                 client_side_output_generation=client_side_output_generation,
                 effort=effort,
+                enable_idp=enable_idp,
+                idp_document_type=idp_document_type,
             )
             visualization_context = create_visualization_context()
             failures = await execute_planned_tasks(
@@ -1182,6 +1191,19 @@ async def run_orchestrated_cli(
         "middle json, images, and original files."
     ),
 )
+@click.option(
+    "--idp/--no-idp",
+    "enable_idp",
+    default=False,
+    help="Enable HR document classification, field extraction, and validation.",
+)
+@click.option(
+    "--idp-document-type",
+    "idp_document_type",
+    type=click.Choice(DOCUMENT_TYPES),
+    default="auto",
+    help="Select an HR schema or use auto classification.",
+)
 def main(
     ctx: click.Context,
     input_path: Path,
@@ -1198,6 +1220,8 @@ def main(
     table_enable: bool,
     image_analysis: bool,
     client_side_output_generation: bool,
+    enable_idp: bool,
+    idp_document_type: str,
 ) -> None:
     asyncio.run(
         run_orchestrated_cli(
@@ -1215,6 +1239,8 @@ def main(
             table_enable=table_enable,
             image_analysis=image_analysis,
             client_side_output_generation=client_side_output_generation,
+            enable_idp=enable_idp,
+            idp_document_type=idp_document_type,
             extra_cli_args=tuple(ctx.args),
         )
     )
