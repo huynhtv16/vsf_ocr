@@ -5,8 +5,8 @@ import sys
 import click
 from loguru import logger
 
-from mineru.utils.enum_class import ModelPath
-from mineru.utils.models_download_utils import (
+from vsf.utils.enum_class import ModelPath
+from vsf.utils.models_download_utils import (
     CONFIG_TEMPLATE_URL,
     auto_download_and_get_model_root_path,
     download_and_modify_json,
@@ -14,7 +14,7 @@ from mineru.utils.models_download_utils import (
     resolve_model_source,
 )
 
-MODEL_SOURCE_ENV_VAR = 'MINERU_MODEL_SOURCE'
+MODEL_SOURCE_ENV_VAR = 'VSF_MODEL_SOURCE'
 REMOTE_MODEL_SOURCES = ('auto', 'huggingface', 'modelscope')
 
 
@@ -65,7 +65,7 @@ def get_effective_download_model_source(requested_model_source):
     if current_model_source == 'local':
         logger.warning(
             f"{MODEL_SOURCE_ENV_VAR}=local means using pre-downloaded local models. "
-            f"`mineru-models-download` will temporarily use '{requested_model_source}' "
+            f"`vsf-models-download` will temporarily use '{requested_model_source}' "
             f"to perform a real download."
         )
         return resolve_model_source(requested_model_source, allow_auto=True)
@@ -112,7 +112,7 @@ def temporary_model_source(model_source):
     default=None,
 )
 def download_models(model_source, model_type):
-    """Download MinerU model files.
+    """Download VSF model files.
 
     Supports downloading pipeline or VLM models from ModelScope or HuggingFace.
     """

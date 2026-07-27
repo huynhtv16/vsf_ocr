@@ -2,10 +2,10 @@
 import re
 from collections import defaultdict
 
-from mineru.backend.utils.html_image_utils import replace_inline_table_images, save_span_image_if_needed
-from mineru.backend.office.office_magic_model import MagicModel
-from mineru.utils.enum_class import BlockType
-from mineru.version import __version__
+from vsf.backend.utils.html_image_utils import replace_inline_table_images, save_span_image_if_needed
+from vsf.backend.office.office_magic_model import MagicModel
+from vsf.utils.enum_class import BlockType
+from vsf.version import __version__
 
 def blocks_to_page_info(page_blocks, image_writer, page_index) -> dict:
     """Convert the value to the required format."""

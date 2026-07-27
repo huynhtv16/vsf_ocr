@@ -8,43 +8,43 @@ import cv2
 import numpy as np
 import pypdfium2 as pdfium
 from loguru import logger
-from mineru_vl_utils import MinerUClient
+from mineru_vl_utils import MinerUClient as VSFClient
 from mineru_vl_utils.structs import BlockType, ContentBlock
 from tqdm import tqdm
 
-from mineru.backend.hybrid.hybrid_model_output_to_middle_json import (
+from vsf.backend.hybrid.hybrid_model_output_to_middle_json import (
     append_page_model_list_to_middle_json,
     apply_server_side_postprocess,
     finalize_middle_json,
     init_middle_json,
 )
-from mineru.backend.pipeline.model_init import (
+from vsf.backend.pipeline.model_init import (
     HybridModelSingleton,
     run_layout_inference,
     run_mfr_inference,
     run_ocr_inference,
 )
-from mineru.backend.pipeline.model_list import AtomicModel
-from mineru.backend.utils.formula_number import optimize_hybrid_formula_number_blocks
-from mineru.backend.utils.runtime_utils import exclude_progress_bar_idle_time
-from mineru.backend.vlm.vlm_analyze import (
+from vsf.backend.pipeline.model_list import AtomicModel
+from vsf.backend.utils.formula_number import optimize_hybrid_formula_number_blocks
+from vsf.backend.utils.runtime_utils import exclude_progress_bar_idle_time
+from vsf.backend.vlm.vlm_analyze import (
     ModelSingleton,
     _get_model_async,
     _maybe_enable_serial_execution,
     aio_predictor_execution_guard,
     predictor_execution_guard,
 )
-from mineru.data.data_reader_writer import DataWriter
-from mineru.utils.boxbase import calculate_overlap_area_2_minbox_area_ratio
-from mineru.utils.config_reader import (
+from vsf.data.data_reader_writer import DataWriter
+from vsf.utils.boxbase import calculate_overlap_area_2_minbox_area_ratio
+from vsf.utils.config_reader import (
     get_device,
     get_ocr_det_mask_inline_formula_enable,
     get_processing_window_size,
 )
-from mineru.utils.enum_class import BlockType as MineruBlockType
-from mineru.utils.enum_class import ImageType, NotExtractType
-from mineru.utils.model_utils import clean_memory, crop_img, get_vram
-from mineru.utils.ocr_utils import (
+from vsf.utils.enum_class import BlockType as VSFBlockType
+from vsf.utils.enum_class import ImageType, NotExtractType
+from vsf.utils.model_utils import clean_memory, crop_img, get_vram
+from vsf.utils.ocr_utils import (
     get_adjusted_mfdetrec_res,
     get_ocr_result_list,
     mask_formula_regions_for_ocr_det,
@@ -52,12 +52,12 @@ from mineru.utils.ocr_utils import (
     sorted_boxes,
     update_det_boxes,
 )
-from mineru.utils.pdf_classify import classify
-from mineru.utils.pdf_image_tools import (
+from vsf.utils.pdf_classify import classify
+from vsf.utils.pdf_image_tools import (
     aio_load_images_from_pdf_bytes_range,
     load_images_from_pdf_doc,
 )
-from mineru.utils.pdfium_guard import (
+from vsf.utils.pdfium_guard import (
     close_pdfium_document,
     get_pdfium_document_page_count,
     open_pdfium_document,
@@ -73,10 +73,10 @@ LAYOUT_TITLE_SPLIT_OVERLAP_THRESHOLD = 0.8
 not_extract_list = [item.value for item in NotExtractType]
 HYBRID_OCR_DET_TEXT_TYPES = set(not_extract_list)
 HYBRID_VLM_OCR_DET_TEXT_TYPES = {
-    MineruBlockType.TEXT,
-    MineruBlockType.TITLE,
-    MineruBlockType.DOC_TITLE,
-    MineruBlockType.PARAGRAPH_TITLE,
+    VSFBlockType.TEXT,
+    VSFBlockType.TITLE,
+    VSFBlockType.DOC_TITLE,
+    VSFBlockType.PARAGRAPH_TITLE,
 }
 HYBRID_ANALYZE_EFFORTS = {"medium", "high"}
 INLINE_FORMULA_CONTAINER_LABELS = {"table", "image", "chart", "display_formula"}
@@ -609,7 +609,7 @@ def _collect_layout_doc_title_bboxes(layout_res, page_size):
     """Configure the model."""
     doc_title_bboxes = []
     for layout_item in layout_res or []:
-        if layout_item.get("label") != MineruBlockType.DOC_TITLE:
+        if layout_item.get("label") != VSFBlockType.DOC_TITLE:
             continue
         bbox = _bbox_to_pixel_bbox(layout_item.get("bbox"), page_size)
         if bbox is not None:
@@ -636,15 +636,15 @@ def _apply_layout_title_split(
     for page_model_list, layout_res, page_size in zip(model_list, images_layout_res, page_sizes):
         doc_title_bboxes = _collect_layout_doc_title_bboxes(layout_res, page_size)
         for block in page_model_list:
-            if block.get("type") != MineruBlockType.TITLE:
+            if block.get("type") != VSFBlockType.TITLE:
                 continue
             title_bbox = _bbox_to_pixel_bbox(block.get("bbox"), page_size)
             if title_bbox is None:
                 continue
             if _has_doc_title_overlap(title_bbox, doc_title_bboxes, overlap_threshold):
-                block["type"] = MineruBlockType.DOC_TITLE
+                block["type"] = VSFBlockType.DOC_TITLE
             else:
-                block["type"] = MineruBlockType.PARAGRAPH_TITLE
+                block["type"] = VSFBlockType.PARAGRAPH_TITLE
 
 
 def _predict_layout_for_title_split(
@@ -838,25 +838,25 @@ def get_batch_ratio(device):
     """
     # Extract the required value.
     """
-    c/s\u67b6\u6784\u5206\u79bb\u90e8\u7f72\u65f6\uff0c\u5efa\u8bae\u901a\u8fc7\u8bbe\u7f6e\u73af\u5883\u53d8\u91cf MINERU_HYBRID_BATCH_RATIO \u6765\u6307\u5b9a batch ratio
+    c/s\u67b6\u6784\u5206\u79bb\u90e8\u7f72\u65f6\uff0c\u5efa\u8bae\u901a\u8fc7\u8bbe\u7f6e\u73af\u5883\u53d8\u91cf VSF_HYBRID_BATCH_RATIO \u6765\u6307\u5b9a batch ratio
     \u5efa\u8bae\u7684\u8bbe\u7f6e\u503c\u5982\u5982\u4e0b\uff0c\u4ee5\u4e0b\u914d\u7f6e\u503c\u5df2\u8003\u8651\u4e00\u5b9a\u7684\u5197\u4f59\uff0c\u5355\u5361\u591a\u7ec8\u7aef\u90e8\u7f72\u65f6\u4e3a\u4e86\u4fdd\u8bc1\u7a33\u5b9a\u6027\uff0c\u53ef\u4ee5\u989d\u5916\u4fdd\u7559\u4e00\u4e2aclient\u7aef\u7684\u663e\u5b58\u4f5c\u4e3a\u6574\u4f53\u5197\u4f59
-    \u5355\u4e2aclient\u7aef\u663e\u5b58\u5927\u5c0f | MINERU_HYBRID_BATCH_RATIO
+    \u5355\u4e2aclient\u7aef\u663e\u5b58\u5927\u5c0f | VSF_HYBRID_BATCH_RATIO
     ------------------|------------------------
     <= 6   GB         | 8
     <= 4   GB         | 4
     <= 3   GB         | 2
     <= 2   GB         | 1
     \u4f8b\u5982\uff1a
-    export MINERU_HYBRID_BATCH_RATIO=4
+    export VSF_HYBRID_BATCH_RATIO=4
     """
-    env_val = os.getenv("MINERU_HYBRID_BATCH_RATIO")
+    env_val = os.getenv("VSF_HYBRID_BATCH_RATIO")
     if env_val:
         try:
             batch_ratio = int(env_val)
             logger.info(f"hybrid batch ratio (from env): {batch_ratio}")
             return batch_ratio
         except ValueError as e:
-            logger.warning(f"Invalid MINERU_HYBRID_BATCH_RATIO value: {env_val}, switching to auto ratio. Error: {e}")
+            logger.warning(f"Invalid VSF_HYBRID_BATCH_RATIO value: {env_val}, switching to auto ratio. Error: {e}")
 
     # Implementation detail.
     """
@@ -889,7 +889,7 @@ def _close_images(images_list):
 def doc_analyze(
         pdf_bytes,
         image_writer: DataWriter | None,
-        predictor: MinerUClient | None = None,
+        predictor: VSFClient | None = None,
         backend="transformers",
         parse_method: str = 'auto',
         inline_formula_enable: bool = True,
@@ -1097,7 +1097,7 @@ def doc_analyze(
 async def aio_doc_analyze(
     pdf_bytes,
     image_writer: DataWriter | None,
-    predictor: MinerUClient | None = None,
+    predictor: VSFClient | None = None,
     backend="transformers",
     parse_method: str = 'auto',
     inline_formula_enable: bool = True,

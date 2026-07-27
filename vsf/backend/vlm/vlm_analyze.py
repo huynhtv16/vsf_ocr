@@ -19,9 +19,9 @@ from .model_output_to_middle_json import (
     finalize_middle_json,
     init_middle_json,
 )
-from mineru.backend.utils.runtime_utils import exclude_progress_bar_idle_time
+from vsf.backend.utils.runtime_utils import exclude_progress_bar_idle_time
 from ...data.data_reader_writer import DataWriter
-from mineru.utils.pdf_image_tools import (
+from vsf.utils.pdf_image_tools import (
     aio_load_images_from_pdf_bytes_range,
     load_images_from_pdf_doc,
 )
@@ -36,7 +36,7 @@ from ...utils.pdfium_guard import (
 )
 from ...utils.models_download_utils import auto_download_and_get_model_root_path
 
-from mineru_vl_utils import MinerUClient
+from mineru_vl_utils import MinerUClient as VSFClient
 from packaging import version
 
 
@@ -57,7 +57,7 @@ class ModelSingleton:
         model_path: str | None,
         server_url: str | None,
         **kwargs,
-    ) -> MinerUClient:
+    ) -> VSFClient:
         key = (backend, model_path, server_url)
         with self._lock:
             if key not in self._models:
@@ -136,8 +136,10 @@ class ModelSingleton:
                         if "model" not in kwargs:
                             kwargs["model"] = model_path
                         if enable_custom_logits_processors() and ("logits_processors" not in kwargs):
-                            from mineru_vl_utils import MinerULogitsProcessor
-                            kwargs["logits_processors"] = [MinerULogitsProcessor]
+                            from mineru_vl_utils import (
+                                MinerULogitsProcessor as VSFLogitsProcessor,
+                            )
+                            kwargs["logits_processors"] = [VSFLogitsProcessor]
                         # Initialize the component.
                         vllm_llm = vllm.LLM(**kwargs)
                     elif backend == "vllm-async-engine":
@@ -168,8 +170,10 @@ class ModelSingleton:
                         if "model" not in kwargs:
                             kwargs["model"] = model_path
                         if enable_custom_logits_processors() and ("logits_processors" not in kwargs):
-                            from mineru_vl_utils import MinerULogitsProcessor
-                            kwargs["logits_processors"] = [MinerULogitsProcessor]
+                            from mineru_vl_utils import (
+                                MinerULogitsProcessor as VSFLogitsProcessor,
+                            )
+                            kwargs["logits_processors"] = [VSFLogitsProcessor]
                         # Initialize the component.
                         vllm_async_llm = AsyncLLM.from_engine_args(AsyncEngineArgs(**kwargs))
                     elif backend == "lmdeploy-engine":
@@ -181,7 +185,7 @@ class ModelSingleton:
                         if "cache_max_entry_count" not in kwargs:
                             kwargs["cache_max_entry_count"] = 0.5
 
-                        device_type = os.getenv("MINERU_LMDEPLOY_DEVICE", "")
+                        device_type = os.getenv("VSF_LMDEPLOY_DEVICE", "")
                         if device_type == "":
                             if "lmdeploy_device" in kwargs:
                                 device_type = kwargs.pop("lmdeploy_device")
@@ -189,7 +193,7 @@ class ModelSingleton:
                                     raise ValueError(f"Unsupported lmdeploy device type: {device_type}")
                             else:
                                 device_type = "cuda"
-                        lm_backend = os.getenv("MINERU_LMDEPLOY_BACKEND", "")
+                        lm_backend = os.getenv("VSF_LMDEPLOY_BACKEND", "")
                         if lm_backend == "":
                             if "lmdeploy_backend" in kwargs:
                                 lm_backend = kwargs.pop("lmdeploy_backend")
@@ -219,7 +223,7 @@ class ModelSingleton:
                             backend=lm_backend,
                             backend_config=backend_config,
                         )
-                predictor = MinerUClient(
+                predictor = VSFClient(
                     backend=backend,
                     model=model,
                     processor=processor,
@@ -237,7 +241,7 @@ class ModelSingleton:
                     image_analysis=True,
                     enable_cross_page_table_merge=True,
                 )
-                predictor._mineru_runtime_handles = {
+                predictor._vsf_runtime_handles = {
                     "backend": backend,
                     "model": model,
                     "processor": processor,
@@ -267,7 +271,7 @@ async def _get_model_async(
     model_path: str | None,
     server_url: str | None,
     **kwargs,
-) -> MinerUClient:
+) -> VSFClient:
     return await asyncio.to_thread(
         ModelSingleton().get_model,
         backend,
@@ -277,8 +281,8 @@ async def _get_model_async(
     )
 
 
-def _iter_shutdown_candidates(predictor: MinerUClient):
-    runtime_handles = getattr(predictor, "_mineru_runtime_handles", {})
+def _iter_shutdown_candidates(predictor: VSFClient):
+    runtime_handles = getattr(predictor, "_vsf_runtime_handles", {})
     client = getattr(predictor, "client", None)
 
     seen_ids = set()
@@ -344,8 +348,8 @@ def _shutdown_runtime_handle(handle) -> None:
             return
 
 
-def _clear_predictor_references(predictor: MinerUClient) -> None:
-    runtime_handles = getattr(predictor, "_mineru_runtime_handles", {})
+def _clear_predictor_references(predictor: VSFClient) -> None:
+    runtime_handles = getattr(predictor, "_vsf_runtime_handles", {})
     for key in tuple(runtime_handles.keys()):
         runtime_handles[key] = None
 
@@ -356,7 +360,7 @@ def _clear_predictor_references(predictor: MinerUClient) -> None:
                 setattr(client, attr, None)
 
 
-def _shutdown_predictor_runtime(predictor: MinerUClient) -> None:
+def _shutdown_predictor_runtime(predictor: VSFClient) -> None:
     for handle in _iter_shutdown_candidates(predictor):
         _shutdown_runtime_handle(handle)
     _clear_predictor_references(predictor)
@@ -369,7 +373,7 @@ def shutdown_cached_models() -> None:
 atexit.register(shutdown_cached_models)
 
 
-def _predictor_uses_mlx(predictor: MinerUClient, backend: str | None = None) -> bool:
+def _predictor_uses_mlx(predictor: VSFClient, backend: str | None = None) -> bool:
     if backend == "mlx-engine":
         return True
     client = getattr(predictor, "client", None)
@@ -377,19 +381,19 @@ def _predictor_uses_mlx(predictor: MinerUClient, backend: str | None = None) -> 
 
 
 def _maybe_enable_serial_execution(
-    predictor: MinerUClient,
+    predictor: VSFClient,
     backend: str | None = None,
-) -> MinerUClient:
+) -> VSFClient:
     if _predictor_uses_mlx(predictor, backend) and not hasattr(
-        predictor, "_mineru_execution_lock"
+        predictor, "_vsf_execution_lock"
     ):
-        predictor._mineru_execution_lock = threading.Lock()
+        predictor._vsf_execution_lock = threading.Lock()
     return predictor
 
 
 @contextmanager
-def predictor_execution_guard(predictor: MinerUClient):
-    lock = getattr(predictor, "_mineru_execution_lock", None)
+def predictor_execution_guard(predictor: VSFClient):
+    lock = getattr(predictor, "_vsf_execution_lock", None)
     if lock is None:
         yield
         return
@@ -398,8 +402,8 @@ def predictor_execution_guard(predictor: MinerUClient):
 
 
 @asynccontextmanager
-async def aio_predictor_execution_guard(predictor: MinerUClient):
-    lock = getattr(predictor, "_mineru_execution_lock", None)
+async def aio_predictor_execution_guard(predictor: VSFClient):
+    lock = getattr(predictor, "_vsf_execution_lock", None)
     if lock is None:
         yield
         return
@@ -423,7 +427,7 @@ def _close_images(images_list):
 def doc_analyze(
     pdf_bytes,
     image_writer: DataWriter | None,
-    predictor: MinerUClient | None = None,
+    predictor: VSFClient | None = None,
     backend="transformers",
     model_path: str | None = None,
     server_url: str | None = None,
@@ -523,7 +527,7 @@ def doc_analyze(
 async def aio_doc_analyze(
     pdf_bytes,
     image_writer: DataWriter | None,
-    predictor: MinerUClient | None = None,
+    predictor: VSFClient | None = None,
     backend="transformers",
     model_path: str | None = None,
     server_url: str | None = None,

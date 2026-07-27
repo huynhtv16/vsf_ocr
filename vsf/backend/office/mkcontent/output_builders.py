@@ -1,8 +1,8 @@
 # Copyright (c) Opendatalab. All rights reserved.
 import re
 
-from mineru.utils.enum_class import MakeMode, BlockType, ContentType, ContentTypeV2
-from mineru.backend.office.mkcontent.inline_renderer import (
+from vsf.utils.enum_class import MakeMode, BlockType, ContentType, ContentTypeV2
+from vsf.backend.office.mkcontent.inline_renderer import (
     _append_hyperlink_part,
     _append_text_part,
     _apply_configured_style,

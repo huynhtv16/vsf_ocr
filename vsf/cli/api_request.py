@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 
 from fastapi import File, Form, HTTPException, Request, UploadFile
 
-from mineru.cli.backend_options import (
+from vsf.cli.backend_options import (
     BACKEND_SCHEMA_EXTRA,
     DEFAULT_BACKEND,
     DEFAULT_HYBRID_EFFORT,
@@ -12,8 +12,8 @@ from mineru.cli.backend_options import (
     validate_backend as validate_public_backend,
     validate_effort as validate_public_effort,
 )
-from mineru.cli.public_http_client_policy import validate_public_http_client_request
-from mineru.utils.ocr_language import (
+from vsf.cli.public_http_client_policy import validate_public_http_client_request
+from vsf.utils.ocr_language import (
     PUBLIC_OCR_LANGUAGE_SCHEMA_EXTRA,
     format_public_ocr_lang_description,
     validate_public_ocr_lang_list,

@@ -10,30 +10,30 @@ from typing import Sequence
 
 from loguru import logger
 
-from mineru.cli.backend_options import (
+from vsf.cli.backend_options import (
     DEFAULT_HYBRID_EFFORT,
     normalize_backend,
     validate_effort,
 )
-from mineru.data.data_reader_writer import FileBasedDataWriter
-from mineru.utils.draw_bbox import draw_layout_bbox, draw_span_bbox
-from mineru.utils.engine_utils import get_vlm_engine
-from mineru.utils.enum_class import MakeMode
-from mineru.utils.guess_suffix_or_lang import guess_suffix_by_bytes
-from mineru.utils.pdf_image_tools import images_bytes_to_pdf_bytes
-from mineru.backend.vlm.vlm_middle_json_mkcontent import union_make as vlm_union_make
-from mineru.backend.office.office_middle_json_mkcontent import union_make as office_union_make
-from mineru.backend.vlm.vlm_analyze import doc_analyze as vlm_doc_analyze
-from mineru.backend.vlm.vlm_analyze import aio_doc_analyze as aio_vlm_doc_analyze
-from mineru.backend.office.pptx_analyze import office_pptx_analyze
-from mineru.backend.office.xlsx_analyze import office_xlsx_analyze
-from mineru.utils.pdfium_guard import (
+from vsf.data.data_reader_writer import FileBasedDataWriter
+from vsf.utils.draw_bbox import draw_layout_bbox, draw_span_bbox
+from vsf.utils.engine_utils import get_vlm_engine
+from vsf.utils.enum_class import MakeMode
+from vsf.utils.guess_suffix_or_lang import guess_suffix_by_bytes
+from vsf.utils.pdf_image_tools import images_bytes_to_pdf_bytes
+from vsf.backend.vlm.vlm_middle_json_mkcontent import union_make as vlm_union_make
+from vsf.backend.office.office_middle_json_mkcontent import union_make as office_union_make
+from vsf.backend.vlm.vlm_analyze import doc_analyze as vlm_doc_analyze
+from vsf.backend.vlm.vlm_analyze import aio_doc_analyze as aio_vlm_doc_analyze
+from vsf.backend.office.pptx_analyze import office_pptx_analyze
+from vsf.backend.office.xlsx_analyze import office_xlsx_analyze
+from vsf.utils.pdfium_guard import (
     get_loadable_pdfium_page_indices,
     rewrite_pdf_bytes_with_pdfium,
 )
 
 os.environ["TORCH_CUDNN_V8_API_DISABLED"] = "1"
-if os.getenv("MINERU_LMDEPLOY_DEVICE", "") == "maca":
+if os.getenv("VSF_LMDEPLOY_DEVICE", "") == "maca":
     import torch
     torch.backends.cudnn.enabled = False
 
@@ -57,8 +57,8 @@ class HybridDependencyError(RuntimeError):
 
 def build_hybrid_dependency_error_message(backend: str) -> str:
     return (
-        f"`{backend}` requires local pipeline dependencies (`mineru[pipeline]`, "
-        "including `torch`). Install `mineru[pipeline]` or `mineru[core]`. "
+        f"`{backend}` requires local pipeline dependencies (`vsf[pipeline]`, "
+        "including `torch`). Install `vsf[pipeline]` or `vsf[core]`. "
         "If you need a lightweight remote client without local `torch`, "
         "use `vlm-http-client` instead."
     )
@@ -74,7 +74,7 @@ def ensure_backend_dependencies(backend: str) -> None:
 def _load_hybrid_analyze_entrypoint(entrypoint_name: str, backend: str):
     """Parse the input data."""
     ensure_backend_dependencies(backend)
-    module_name = "mineru.backend.hybrid.hybrid_analyze"
+    module_name = "vsf.backend.hybrid.hybrid_analyze"
     try:
         hybrid_analyze = importlib.import_module(module_name)
     except (ImportError, ModuleNotFoundError) as exc:
@@ -273,7 +273,7 @@ def _process_output(
         model_output=None,
         process_mode="vlm",
 ):
-    from mineru.backend.pipeline.pipeline_middle_json_mkcontent import union_make as pipeline_union_make
+    from vsf.backend.pipeline.pipeline_middle_json_mkcontent import union_make as pipeline_union_make
     if process_mode == "pipeline":
         make_func = pipeline_union_make
     elif process_mode == "vlm":
@@ -365,7 +365,7 @@ def _process_pipeline(
         client_side_output_generation=False,
 ):
     """Process the current item."""
-    from mineru.backend.pipeline.pipeline_analyze import doc_analyze_streaming as pipeline_doc_analyze_streaming
+    from vsf.backend.pipeline.pipeline_analyze import doc_analyze_streaming as pipeline_doc_analyze_streaming
 
     image_writer_list = []
     md_writer_list = []
@@ -724,8 +724,8 @@ def do_parse(
             if backend == "engine":
                 backend = get_vlm_engine(inference_engine='auto', is_async=False)
 
-            os.environ['MINERU_VLM_FORMULA_ENABLE'] = str(formula_enable)
-            os.environ['MINERU_VLM_TABLE_ENABLE'] = str(table_enable)
+            os.environ['VSF_VLM_FORMULA_ENABLE'] = str(formula_enable)
+            os.environ['VSF_VLM_TABLE_ENABLE'] = str(table_enable)
 
             _process_vlm(
                 output_dir, pdf_file_names, pdf_bytes_list, backend,
@@ -741,8 +741,8 @@ def do_parse(
             if backend == "engine":
                 backend = get_vlm_engine(inference_engine='auto', is_async=False)
 
-            os.environ['MINERU_VLM_TABLE_ENABLE'] = str(table_enable)
-            os.environ['MINERU_VLM_FORMULA_ENABLE'] = "true"
+            os.environ['VSF_VLM_TABLE_ENABLE'] = str(table_enable)
+            os.environ['VSF_VLM_FORMULA_ENABLE'] = "true"
 
             _process_hybrid(
                 output_dir, pdf_file_names, pdf_bytes_list, parse_method, formula_enable, backend,
@@ -819,8 +819,8 @@ async def aio_do_parse(
             if backend == "engine":
                 backend = get_vlm_engine(inference_engine='auto', is_async=True)
 
-            os.environ['MINERU_VLM_FORMULA_ENABLE'] = str(formula_enable)
-            os.environ['MINERU_VLM_TABLE_ENABLE'] = str(table_enable)
+            os.environ['VSF_VLM_FORMULA_ENABLE'] = str(formula_enable)
+            os.environ['VSF_VLM_TABLE_ENABLE'] = str(table_enable)
 
             await _async_process_vlm(
                 output_dir, pdf_file_names, pdf_bytes_list, backend,
@@ -836,8 +836,8 @@ async def aio_do_parse(
             if backend == "engine":
                 backend = get_vlm_engine(inference_engine='auto', is_async=True)
 
-            os.environ['MINERU_VLM_TABLE_ENABLE'] = str(table_enable)
-            os.environ['MINERU_VLM_FORMULA_ENABLE'] = "true"
+            os.environ['VSF_VLM_TABLE_ENABLE'] = str(table_enable)
+            os.environ['VSF_VLM_FORMULA_ENABLE'] = "true"
 
             await _async_process_hybrid(
                 output_dir, pdf_file_names, pdf_bytes_list, parse_method, formula_enable, backend,

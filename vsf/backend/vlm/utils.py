@@ -4,9 +4,9 @@ import os
 from loguru import logger
 from packaging import version
 
-from mineru.utils.check_sys_env import is_windows_environment, is_linux_environment
-from mineru.utils.config_reader import get_device
-from mineru.utils.model_utils import get_vram
+from vsf.utils.check_sys_env import is_windows_environment, is_linux_environment
+from vsf.utils.config_reader import get_device
+from vsf.utils.model_utils import get_vram
 
 
 def enable_custom_logits_processors() -> bool:
@@ -182,7 +182,7 @@ def mod_kwargs_by_device_type(kwargs_or_args: dict | list, vllm_mode: str) -> di
     Returns:
         Implementation detail.
     """
-    device_type = os.getenv("MINERU_VLLM_DEVICE", "")
+    device_type = os.getenv("VSF_VLLM_DEVICE", "")
     config = _get_device_config(device_type)
 
     if config is None:

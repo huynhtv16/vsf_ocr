@@ -8,7 +8,7 @@ from PIL import Image
 from loguru import logger
 from tqdm import tqdm
 
-from .model_init import MineruPipelineModel, PIPELINE_MODEL_INIT_LOCK
+from .model_init import VSFPipelineModel, PIPELINE_MODEL_INIT_LOCK
 from .model_json_to_middle_json import (
     apply_server_side_postprocess,
     append_batch_results_to_middle_json,
@@ -16,7 +16,7 @@ from .model_json_to_middle_json import (
     init_middle_json,
 )
 from ..utils.runtime_utils import exclude_progress_bar_idle_time
-from mineru.utils.config_reader import get_device, get_processing_window_size
+from vsf.utils.config_reader import get_device, get_processing_window_size
 from ...utils.enum_class import ImageType
 from ...utils.pdf_classify import classify
 from ...utils.pdf_image_tools import load_images_from_pdf_doc
@@ -77,7 +77,7 @@ def custom_model_init(
         'lang': lang,
     }
 
-    custom_model = MineruPipelineModel(**model_input)
+    custom_model = VSFPipelineModel(**model_input)
 
     model_init_cost = time.time() - model_init_start
     logger.info(f'model init cost: {model_init_cost}')
@@ -368,7 +368,7 @@ def batch_image_analyze(
     # Implementation detail.
     import torch
     from packaging import version
-    device_type = os.getenv("MINERU_LMDEPLOY_DEVICE", "")
+    device_type = os.getenv("VSF_LMDEPLOY_DEVICE", "")
     if device_type.lower() in ["corex"]:
         enable_ocr_det_batch = False
     else:

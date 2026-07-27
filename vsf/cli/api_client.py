@@ -23,15 +23,15 @@ import click
 import httpx
 from loguru import logger
 
-from mineru.cli.backend_options import DEFAULT_HYBRID_EFFORT
-from mineru.cli.api_protocol import (
+from vsf.cli.backend_options import DEFAULT_HYBRID_EFFORT
+from vsf.cli.api_protocol import (
     API_PROTOCOL_VERSION,
     DEFAULT_MAX_CONCURRENT_REQUESTS,
 )
-from mineru.utils.config_reader import (
+from vsf.utils.config_reader import (
     get_max_concurrent_requests as read_max_concurrent_requests,
 )
-from mineru.utils.check_sys_env import is_linux_environment
+from vsf.utils.check_sys_env import is_linux_environment
 
 HEALTH_ENDPOINT = "/health"
 TASKS_ENDPOINT = "/tasks"
@@ -40,11 +40,11 @@ LOCAL_API_SHUTDOWN_TIMEOUT_SECONDS = 10
 LOCAL_API_CLEANUP_RETRIES = 8
 LOCAL_API_CLEANUP_RETRY_INTERVAL_SECONDS = 0.25
 PROCESS_TREE_CLEANUP_GRACE_SECONDS = 0.1
-MINERU_LOCAL_API_LAUNCH_MODE_ENV = "MINERU_LOCAL_API_LAUNCH_MODE"
-MINERU_LMDEPLOY_DEVICE_ENV = "MINERU_LMDEPLOY_DEVICE"
+VSF_LOCAL_API_LAUNCH_MODE_ENV = "VSF_LOCAL_API_LAUNCH_MODE"
+VSF_LMDEPLOY_DEVICE_ENV = "VSF_LMDEPLOY_DEVICE"
 LOCAL_API_LAUNCH_MODE_SUBPROCESS = "subprocess"
 LOCAL_API_LAUNCH_MODE_SPAWN = "spawn"
-MINERU_SPAWN_DEVICE_LIST = ["ascend"]
+VSF_SPAWN_DEVICE_LIST = ["ascend"]
 
 ManagedProcess = subprocess.Popen[bytes] | multiprocessing.process.BaseProcess
 
@@ -77,7 +77,7 @@ def get_float_env(name: str, default: float, minimum: float = 0.0) -> float:
 
 def get_local_api_startup_timeout_seconds(default: float = 300.0) -> float:
     return get_float_env(
-        "MINERU_LOCAL_API_STARTUP_TIMEOUT_SECONDS",
+        "VSF_LOCAL_API_STARTUP_TIMEOUT_SECONDS",
         default,
         minimum=1.0,
     )
@@ -88,7 +88,7 @@ LOCAL_API_STARTUP_TIMEOUT_SECONDS = get_local_api_startup_timeout_seconds()
 
 def get_task_result_timeout_seconds(default: float = 3600.0) -> float:
     return get_float_env(
-        "MINERU_TASK_RESULT_TIMEOUT_SECONDS",
+        "VSF_TASK_RESULT_TIMEOUT_SECONDS",
         default,
         minimum=1.0,
     )
@@ -100,7 +100,7 @@ TASK_RESULT_TIMEOUT_SECONDS = get_task_result_timeout_seconds()
 def get_task_result_download_timeout_seconds(default: float = 600.0) -> float:
     """Extract the required value."""
     return get_float_env(
-        "MINERU_TASK_RESULT_DOWNLOAD_TIMEOUT_SECONDS",
+        "VSF_TASK_RESULT_DOWNLOAD_TIMEOUT_SECONDS",
         default,
         minimum=1.0,
     )
@@ -110,7 +110,7 @@ TASK_RESULT_DOWNLOAD_TIMEOUT_SECONDS = get_task_result_download_timeout_seconds(
 
 
 def get_local_api_launch_mode(default: str = LOCAL_API_LAUNCH_MODE_SUBPROCESS) -> str:
-    value = os.getenv(MINERU_LOCAL_API_LAUNCH_MODE_ENV)
+    value = os.getenv(VSF_LOCAL_API_LAUNCH_MODE_ENV)
     if value is None:
         return default
 
@@ -123,7 +123,7 @@ def get_local_api_launch_mode(default: str = LOCAL_API_LAUNCH_MODE_SUBPROCESS) -
 
     logger.warning(
         "Invalid {} value: {}. Expected one of ({}, {}), using default {}.",
-        MINERU_LOCAL_API_LAUNCH_MODE_ENV,
+        VSF_LOCAL_API_LAUNCH_MODE_ENV,
         value,
         LOCAL_API_LAUNCH_MODE_SUBPROCESS,
         LOCAL_API_LAUNCH_MODE_SPAWN,
@@ -135,11 +135,11 @@ def get_local_api_launch_mode(default: str = LOCAL_API_LAUNCH_MODE_SUBPROCESS) -
 def get_effective_local_api_launch_mode(
     default: str = LOCAL_API_LAUNCH_MODE_SUBPROCESS,
 ) -> str:
-    if os.getenv(MINERU_LOCAL_API_LAUNCH_MODE_ENV) is not None:
+    if os.getenv(VSF_LOCAL_API_LAUNCH_MODE_ENV) is not None:
         return get_local_api_launch_mode(default=default)
 
-    device_type = os.getenv(MINERU_LMDEPLOY_DEVICE_ENV, "")
-    if device_type.strip().lower() in MINERU_SPAWN_DEVICE_LIST:
+    device_type = os.getenv(VSF_LMDEPLOY_DEVICE_ENV, "")
+    if device_type.strip().lower() in VSF_SPAWN_DEVICE_LIST:
         return LOCAL_API_LAUNCH_MODE_SPAWN
 
     return default
@@ -171,7 +171,7 @@ def _signal_process_tree_pid(process_group_id: int, *, force: bool) -> None:
             )
         except Exception as exc:
             logger.debug(
-                "Failed to signal managed MinerU process tree {} on Windows: {}",
+                "Failed to signal managed VSF process tree {} on Windows: {}",
                 process_group_id,
                 exc,
             )
@@ -184,7 +184,7 @@ def _signal_process_tree_pid(process_group_id: int, *, force: bool) -> None:
         return
     except OSError as exc:
         logger.debug(
-            "Failed to signal managed MinerU process group {}: {}",
+            "Failed to signal managed VSF process group {}: {}",
             process_group_id,
             exc,
         )
@@ -250,7 +250,7 @@ def stop_managed_process(
             exited_via_stdin_eof = True
         except subprocess.TimeoutExpired:
             logger.debug(
-                "Managed MinerU process did not stop after stdin EOF within {}s. Falling back to process-tree termination.",
+                "Managed VSF process did not stop after stdin EOF within {}s. Falling back to process-tree termination.",
                 shutdown_timeout_seconds,
             )
 
@@ -269,7 +269,7 @@ def stop_managed_process(
             process.wait(timeout=shutdown_timeout_seconds)
         except subprocess.TimeoutExpired:
             logger.warning(
-                "Managed MinerU process {} did not exit after forceful stop.",
+                "Managed VSF process {} did not exit after forceful stop.",
                 process.pid,
             )
 
@@ -301,10 +301,10 @@ def _validate_local_api_launch_mode_platform(launch_mode: str) -> None:
 
     current_platform = platform.system() or os.name
     raise click.ClickException(
-        f"{MINERU_LOCAL_API_LAUNCH_MODE_ENV}=spawn is supported only on Linux. "
+        f"{VSF_LOCAL_API_LAUNCH_MODE_ENV}=spawn is supported only on Linux. "
         f"Current platform: {current_platform}. Unset "
-        f"{MINERU_LOCAL_API_LAUNCH_MODE_ENV} or set "
-        f"{MINERU_LOCAL_API_LAUNCH_MODE_ENV}={LOCAL_API_LAUNCH_MODE_SUBPROCESS}."
+        f"{VSF_LOCAL_API_LAUNCH_MODE_ENV} or set "
+        f"{VSF_LOCAL_API_LAUNCH_MODE_ENV}={LOCAL_API_LAUNCH_MODE_SUBPROCESS}."
     )
 
 
@@ -332,7 +332,7 @@ def _stop_spawn_managed_process(
 
         if process.exitcode is None:
             logger.warning(
-                "Managed MinerU spawn process {} did not exit after forceful stop.",
+                "Managed VSF spawn process {} did not exit after forceful stop.",
                 process.pid,
             )
         return
@@ -347,7 +347,7 @@ def _stop_spawn_managed_process(
         process.join(timeout=shutdown_timeout_seconds)
         if process.exitcode is None:
             logger.warning(
-                "Managed MinerU spawn process {} did not exit after forceful stop.",
+                "Managed VSF spawn process {} did not exit after forceful stop.",
                 process.pid,
             )
 
@@ -379,8 +379,8 @@ def _validate_local_api_launch_mode_cli_args(
         and _cli_args_include_flag(cli_args, "--reload")
     ):
         raise click.ClickException(
-            "Local mineru-api spawn launch mode does not support --reload. "
-            "Remove --reload or set MINERU_LOCAL_API_LAUNCH_MODE=subprocess."
+            "Local vsf-api spawn launch mode does not support --reload. "
+            "Remove --reload or set VSF_LOCAL_API_LAUNCH_MODE=subprocess."
         )
 
 
@@ -390,18 +390,18 @@ def _build_local_api_server_env(
     use_stdin_shutdown_watcher: bool,
 ) -> tuple[dict[str, str], tuple[str, ...]]:
     env = os.environ.copy()
-    env["MINERU_API_OUTPUT_ROOT"] = str(output_root)
-    env["MINERU_API_MAX_CONCURRENT_REQUESTS"] = str(
+    env["VSF_API_OUTPUT_ROOT"] = str(output_root)
+    env["VSF_API_MAX_CONCURRENT_REQUESTS"] = str(
         read_max_concurrent_requests(default=DEFAULT_MAX_CONCURRENT_REQUESTS)
     )
-    env["MINERU_API_DISABLE_ACCESS_LOG"] = "1"
+    env["VSF_API_DISABLE_ACCESS_LOG"] = "1"
 
     unset_env_names: list[str] = []
     if use_stdin_shutdown_watcher:
-        env["MINERU_API_SHUTDOWN_ON_STDIN_EOF"] = "1"
+        env["VSF_API_SHUTDOWN_ON_STDIN_EOF"] = "1"
     else:
-        env.pop("MINERU_API_SHUTDOWN_ON_STDIN_EOF", None)
-        unset_env_names.append("MINERU_API_SHUTDOWN_ON_STDIN_EOF")
+        env.pop("VSF_API_SHUTDOWN_ON_STDIN_EOF", None)
+        unset_env_names.append("VSF_API_SHUTDOWN_ON_STDIN_EOF")
 
     return env, tuple(unset_env_names)
 
@@ -417,21 +417,21 @@ def _run_local_api_via_spawn(
         os.environ.pop(name, None)
     os.environ.update(env_overrides)
     os.chdir(cwd)
-    sys.argv = ["mineru-api", *cli_args]
+    sys.argv = ["vsf-api", *cli_args]
 
     try:
         os.setsid()
     except OSError as exc:
         logger.warning(
-            "Failed to create a dedicated process group for spawned mineru-api: {}",
+            "Failed to create a dedicated process group for spawned vsf-api: {}",
             exc,
         )
 
-    from mineru.cli.fast_api import main as fast_api_main
+    from vsf.cli.fast_api import main as fast_api_main
 
     fast_api_main.main(
         args=list(cli_args),
-        prog_name="mineru-api",
+        prog_name="vsf-api",
         standalone_mode=False,
     )
 
@@ -466,7 +466,7 @@ class TaskStatusSnapshot:
 
 class LocalAPIServer:
     def __init__(self, extra_cli_args: Sequence[str] = ()):
-        self.temp_dir = tempfile.TemporaryDirectory(prefix="mineru-api-client-")
+        self.temp_dir = tempfile.TemporaryDirectory(prefix="vsf-api-client-")
         self.temp_root = Path(self.temp_dir.name)
         self.output_root = self.temp_root / "output"
         self.base_url: str | None = None
@@ -511,7 +511,7 @@ class LocalAPIServer:
             command = [
                 sys.executable,
                 "-m",
-                "mineru.cli.fast_api",
+                "vsf.cli.fast_api",
                 *cli_args,
             ]
             self.process = subprocess.Popen(
@@ -589,7 +589,7 @@ class LocalAPIServer:
 
         if last_error is not None:
             logger.warning(
-                "Failed to clean up temporary MinerU API directory {}: {}. "
+                "Failed to clean up temporary VSF API directory {}: {}. "
                 "You can remove it manually after processes release any open handles.",
                 self.temp_root,
                 last_error,
@@ -730,13 +730,13 @@ def validate_server_health_payload(payload: dict, base_url: str) -> ServerHealth
     status = payload.get("status")
     if status != "healthy":
         raise click.ClickException(
-            f"MinerU API at {base_url} is not healthy: {json.dumps(payload, ensure_ascii=False)}"
+            f"VSF API at {base_url} is not healthy: {json.dumps(payload, ensure_ascii=False)}"
         )
 
     protocol_version = payload.get("protocol_version")
     if protocol_version != API_PROTOCOL_VERSION:
         raise click.ClickException(
-            f"MinerU API at {base_url} returned protocol_version={protocol_version}, "
+            f"VSF API at {base_url} returned protocol_version={protocol_version}, "
             f"expected {API_PROTOCOL_VERSION}"
         )
 
@@ -744,11 +744,11 @@ def validate_server_health_payload(payload: dict, base_url: str) -> ServerHealth
     processing_window_size = payload.get("processing_window_size")
     if not isinstance(max_concurrent_requests, int) or max_concurrent_requests <= 0:
         raise click.ClickException(
-            f"MinerU API at {base_url} did not return a valid positive max_concurrent_requests"
+            f"VSF API at {base_url} did not return a valid positive max_concurrent_requests"
         )
     if not isinstance(processing_window_size, int):
         raise click.ClickException(
-            f"MinerU API at {base_url} did not return a valid processing_window_size"
+            f"VSF API at {base_url} did not return a valid processing_window_size"
         )
 
     return ServerHealth(
@@ -765,7 +765,7 @@ async def fetch_server_health(
     response = await client.get(f"{base_url}{HEALTH_ENDPOINT}")
     if response.status_code != 200:
         raise click.ClickException(
-            f"Failed to query MinerU API health from {base_url}: "
+            f"Failed to query VSF API health from {base_url}: "
             f"{response.status_code} {response_detail(response)}"
         )
     return validate_server_health_payload(response.json(), base_url)
@@ -786,7 +786,7 @@ async def wait_for_local_api_ready(
             if local_server._launch_mode == LOCAL_API_LAUNCH_MODE_SPAWN:
                 local_server.stop()
             raise click.ClickException(
-                "Local mineru-api exited before becoming healthy."
+                "Local vsf-api exited before becoming healthy."
             )
         try:
             return await fetch_server_health(client, local_server.base_url)
@@ -796,7 +796,7 @@ async def wait_for_local_api_ready(
             last_error = str(exc)
         await asyncio.sleep(TASK_STATUS_POLL_INTERVAL_SECONDS)
 
-    message = "Timed out waiting for local mineru-api to become healthy."
+    message = "Timed out waiting for local vsf-api to become healthy."
     if last_error:
         message = f"{message} {last_error}"
     raise click.ClickException(message)
@@ -916,7 +916,7 @@ def submit_parse_task_sync(
         or not isinstance(status_url, str)
         or not isinstance(result_url, str)
     ):
-        raise click.ClickException("MinerU API returned an invalid task payload")
+        raise click.ClickException("VSF API returned an invalid task payload")
 
     normalized_file_names: tuple[str, ...] = ()
     if isinstance(file_names, list) and all(isinstance(name, str) for name in file_names):
@@ -996,7 +996,7 @@ async def download_result_zip(
     submit_response: SubmitResponse,
     task_label: str,
 ) -> Path:
-    zip_fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="mineru_cli_result_")
+    zip_fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="vsf_cli_result_")
     os.close(zip_fd)
     zip_file_path = Path(zip_path)
     try:

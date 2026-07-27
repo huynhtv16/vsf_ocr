@@ -1,6 +1,6 @@
 # Copyright (c) Opendatalab. All rights reserved.
 
-from mineru.utils.char_utils import full_to_half
+from vsf.utils.char_utils import full_to_half
 
 
 CONTINUATION_END_MARKERS = [

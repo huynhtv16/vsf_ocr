@@ -11,7 +11,7 @@ except ImportError:
 
 
 # Process the file path.
-CONFIG_FILE_NAME = os.getenv('MINERU_TOOLS_CONFIG_JSON', 'mineru.json')
+CONFIG_FILE_NAME = os.getenv('VSF_TOOLS_CONFIG_JSON', 'vsf.json')
 
 
 def read_config():
@@ -103,7 +103,7 @@ def parse_bucket_key(s3_full_path: str):
 
 
 def get_device():
-    device_mode = os.getenv('MINERU_DEVICE_MODE', None)
+    device_mode = os.getenv('VSF_DEVICE_MODE', None)
     if device_mode is not None:
         return device_mode
     else:
@@ -138,32 +138,32 @@ def get_device():
 
 
 def get_formula_enable(formula_enable):
-    formula_enable_env = os.getenv('MINERU_FORMULA_ENABLE')
+    formula_enable_env = os.getenv('VSF_FORMULA_ENABLE')
     formula_enable = formula_enable if formula_enable_env is None else formula_enable_env.lower() == 'true'
     return formula_enable
 
 
 def get_table_enable(table_enable):
-    table_enable_env = os.getenv('MINERU_TABLE_ENABLE')
+    table_enable_env = os.getenv('VSF_TABLE_ENABLE')
     table_enable = table_enable if table_enable_env is None else table_enable_env.lower() == 'true'
     return table_enable
 
 
 def get_ocr_det_mask_inline_formula_enable(enable):
-    enable_env = os.getenv('MINERU_OCR_DET_MASK_INLINE_FORMULA_ENABLE')
+    enable_env = os.getenv('VSF_OCR_DET_MASK_INLINE_FORMULA_ENABLE')
     enable = enable if enable_env is None else enable_env.lower() == 'true'
     return enable
 
 
 def get_processing_window_size(default: int = 64) -> int:
-    value = os.getenv('MINERU_PROCESSING_WINDOW_SIZE')
+    value = os.getenv('VSF_PROCESSING_WINDOW_SIZE')
     if value is None:
         return default
     try:
         window_size = int(value)
     except ValueError:
         logger.warning(
-            f"Invalid MINERU_PROCESSING_WINDOW_SIZE value: {value}, use default {default}"
+            f"Invalid VSF_PROCESSING_WINDOW_SIZE value: {value}, use default {default}"
         )
         return default
     return max(1, window_size)
@@ -174,19 +174,19 @@ def get_max_concurrent_requests(default: int = 3) -> int:
         raise ValueError(
             f"default max_concurrent_requests must be a positive integer, got {default}"
         )
-    value = os.getenv('MINERU_API_MAX_CONCURRENT_REQUESTS')
+    value = os.getenv('VSF_API_MAX_CONCURRENT_REQUESTS')
     if value is None:
         return default
     try:
         max_concurrent_requests = int(value)
     except ValueError as exc:
         raise ValueError(
-            "Invalid MINERU_API_MAX_CONCURRENT_REQUESTS value: "
+            "Invalid VSF_API_MAX_CONCURRENT_REQUESTS value: "
             f"{value}. Expected a positive integer."
         ) from exc
     if max_concurrent_requests <= 0:
         raise ValueError(
-            "Invalid MINERU_API_MAX_CONCURRENT_REQUESTS value: "
+            "Invalid VSF_API_MAX_CONCURRENT_REQUESTS value: "
             f"{value}. Expected a positive integer."
         )
     return max_concurrent_requests

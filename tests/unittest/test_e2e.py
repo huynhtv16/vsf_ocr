@@ -5,17 +5,17 @@ from pathlib import Path
 from loguru import logger
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
-from mineru.cli.common import (
+from vsf.cli.common import (
     convert_pdf_bytes_to_bytes,
     prepare_env,
     read_fn,
 )
-from mineru.data.data_reader_writer import FileBasedDataWriter
-from mineru.utils.enum_class import MakeMode
-from mineru.backend.pipeline.pipeline_analyze import (
+from vsf.data.data_reader_writer import FileBasedDataWriter
+from vsf.utils.enum_class import MakeMode
+from vsf.backend.pipeline.pipeline_analyze import (
     doc_analyze_streaming as pipeline_doc_analyze_streaming,
 )
-from mineru.backend.pipeline.pipeline_middle_json_mkcontent import (
+from vsf.backend.pipeline.pipeline_middle_json_mkcontent import (
     union_make as pipeline_union_make,
 )
 
@@ -32,7 +32,7 @@ def test_pipeline_with_two_config():
         if doc_path.suffix in pdf_suffixes + image_suffixes:
             doc_path_list.append(doc_path)
 
-    # os.environ["MINERU_MODEL_SOURCE"] = "modelscope"
+    # os.environ["VSF_MODEL_SOURCE"] = "modelscope"
 
     pdf_file_names = []
     pdf_bytes_list = []

@@ -10,12 +10,12 @@ import numpy as np
 import yaml
 from loguru import logger
 
-from mineru.model.ocr.seal_crop import CropByPolys, SortPolyBoxes
-from mineru.utils.config_reader import get_device
-from mineru.utils.enum_class import ModelPath
-from mineru.utils.models_download_utils import auto_download_and_get_model_root_path
-from mineru.utils.ocr_language import normalize_ocr_model_lang
-from mineru.utils.ocr_utils import (
+from vsf.model.ocr.seal_crop import CropByPolys, SortPolyBoxes
+from vsf.utils.config_reader import get_device
+from vsf.utils.enum_class import ModelPath
+from vsf.utils.models_download_utils import auto_download_and_get_model_root_path
+from vsf.utils.ocr_language import normalize_ocr_model_lang
+from vsf.utils.ocr_utils import (
     check_img,
     preprocess_image,
     sorted_boxes,
@@ -23,8 +23,8 @@ from mineru.utils.ocr_utils import (
     update_det_boxes,
     get_rotate_crop_image_for_text_rec,
 )
-from mineru.model.utils.tools.infer.predict_system import TextSystem
-from mineru.model.utils.tools.infer import pytorchocr_utility as utility
+from vsf.model.utils.tools.infer.predict_system import TextSystem
+from vsf.model.utils.tools.infer import pytorchocr_utility as utility
 import argparse
 
 
@@ -115,11 +115,11 @@ class PytorchPaddleOCR(TextSystem):
         if not self.is_seal:
             return None
 
-        debug_dir = os.getenv("MINERU_SEAL_OCR_DEBUG_DIR")
+        debug_dir = os.getenv("VSF_SEAL_OCR_DEBUG_DIR")
         if debug_dir:
             return debug_dir
 
-        debug_enable = os.getenv("MINERU_SEAL_OCR_DEBUG", "").lower()
+        debug_enable = os.getenv("VSF_SEAL_OCR_DEBUG", "").lower()
         if debug_enable in {"1", "true", "yes", "on"}:
             return DEFAULT_SEAL_DEBUG_DIR
 

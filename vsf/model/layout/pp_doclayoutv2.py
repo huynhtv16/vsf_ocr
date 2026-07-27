@@ -25,7 +25,7 @@ from transformers.models.rt_detr.configuration_rt_detr import RTDetrConfig
 from transformers.models.rt_detr.modeling_rt_detr import RTDetrForObjectDetection, RTDetrModel, RTDetrPreTrainedModel
 from transformers.utils import ModelOutput
 
-from mineru.utils.bbox_utils import normalize_to_int_bbox
+from vsf.utils.bbox_utils import normalize_to_int_bbox
 
 DEFAULT_IMAGE_SIZE = (800, 800)
 DEFAULT_RESCALE_FACTOR = 1.0 / 255.0
@@ -1686,12 +1686,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.device is None:
-        from mineru.utils.config_reader import get_device
+        from vsf.utils.config_reader import get_device
         args.device = get_device()
 
     if args.model is None:
-        from mineru.utils.enum_class import ModelPath
-        from mineru.utils.models_download_utils import auto_download_and_get_model_root_path
+        from vsf.utils.enum_class import ModelPath
+        from vsf.utils.models_download_utils import auto_download_and_get_model_root_path
         args.model = str(
                 os.path.join(auto_download_and_get_model_root_path(ModelPath.pp_doclayout_v2), ModelPath.pp_doclayout_v2)
             )

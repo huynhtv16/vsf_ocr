@@ -1,17 +1,17 @@
 () => {
     const POPOVER_SCRIPT_VERSION = "office-preview-dismiss-v1";
-    if (window.__mineruAdvancedPopoverInstalled === POPOVER_SCRIPT_VERSION) {
+    if (window.__vsfAdvancedPopoverInstalled === POPOVER_SCRIPT_VERSION) {
         return;
     }
-    window.__mineruAdvancedPopoverInstalled = POPOVER_SCRIPT_VERSION;
+    window.__vsfAdvancedPopoverInstalled = POPOVER_SCRIPT_VERSION;
 
-    const POPOVER_OPEN_CLASS = "mineru-advanced-popover-open";
-    const CLIENT_OPTIONS_VISIBLE_CLASS = "mineru-show-client-options";
-    const IMAGE_ANALYSIS_VISIBLE_CLASS = "mineru-show-image-analysis";
-    const OCR_LANGUAGE_VISIBLE_CLASS = "mineru-show-ocr-language";
-    const FORCE_OCR_HIDDEN_CLASS = "mineru-hide-force-ocr";
-    const HYBRID_EFFORT_HIDDEN_CLASS = "mineru-hide-hybrid-effort";
-    const OFFICE_PREVIEW_NOTICE_STORAGE_KEY = "mineru.officePreviewNoticeIgnored";
+    const POPOVER_OPEN_CLASS = "vsf-advanced-popover-open";
+    const CLIENT_OPTIONS_VISIBLE_CLASS = "vsf-show-client-options";
+    const IMAGE_ANALYSIS_VISIBLE_CLASS = "vsf-show-image-analysis";
+    const OCR_LANGUAGE_VISIBLE_CLASS = "vsf-show-ocr-language";
+    const FORCE_OCR_HIDDEN_CLASS = "vsf-hide-force-ocr";
+    const HYBRID_EFFORT_HIDDEN_CLASS = "vsf-hide-hybrid-effort";
+    const OFFICE_PREVIEW_NOTICE_STORAGE_KEY = "vsf.officePreviewNoticeIgnored";
     const OPEN_DELAY_MS = 120;
     const CLOSE_DELAY_MS = 280;
     const ANIMATION_DELAY_MS = 140;
@@ -27,7 +27,7 @@
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
     };
     // Implementation detail.
-    const normalizeMineruLocale = (locale) => {
+    const normalizeVSFLocale = (locale) => {
         const normalized = String(locale || "").toLowerCase();
         if (normalized.startsWith("zh")) {
             return "zh";
@@ -36,23 +36,23 @@
     };
 
     // Implementation detail.
-    const resolveMineruLocale = () => {
+    const resolveVSFLocale = () => {
         if (typeof navigator !== "undefined") {
             const languages = Array.from(navigator.languages || []);
             const primaryLocale = languages[0] || navigator.language;
             if (primaryLocale) {
-                return normalizeMineruLocale(primaryLocale);
+                return normalizeVSFLocale(primaryLocale);
             }
         }
-        return normalizeMineruLocale(document.documentElement.getAttribute("lang"));
+        return normalizeVSFLocale(document.documentElement.getAttribute("lang"));
     };
 
     // Implementation detail.
-    const localizeMineruCustomText = () => {
-        const locale = resolveMineruLocale();
-        document.querySelectorAll("[data-mineru-i18n-key]").forEach((item) => {
-            const localizedText = item.getAttribute(`data-mineru-i18n-${locale}`)
-                || item.getAttribute("data-mineru-i18n-en");
+    const localizeVSFCustomText = () => {
+        const locale = resolveVSFLocale();
+        document.querySelectorAll("[data-vsf-i18n-key]").forEach((item) => {
+            const localizedText = item.getAttribute(`data-vsf-i18n-${locale}`)
+                || item.getAttribute("data-vsf-i18n-en");
             if (localizedText !== null && item.textContent !== localizedText) {
                 item.textContent = localizedText;
             }
@@ -92,19 +92,19 @@
     };
 
     // Implementation detail.
-    const refreshMineruCustomHtml = () => {
-        localizeMineruCustomText();
+    const refreshVSFCustomHtml = () => {
+        localizeVSFCustomText();
         applyOfficePreviewNoticePreference();
-        refreshMineruOptionVisibility();
+        refreshVSFOptionVisibility();
     };
 
     // Implementation detail.
     const findButton = () => document.querySelector(
-        "button.mineru-advanced-open, .mineru-advanced-open button, .mineru-advanced-open"
+        "button.vsf-advanced-open, .vsf-advanced-open button, .vsf-advanced-open"
     );
-    const findPopover = () => document.querySelector(".mineru-advanced-popover");
-    const findBackendRoot = () => document.querySelector(".mineru-backend-select");
-    const findEffortRoot = () => document.querySelector(".mineru-hybrid-effort");
+    const findPopover = () => document.querySelector(".vsf-advanced-popover");
+    const findBackendRoot = () => document.querySelector(".vsf-backend-select");
+    const findEffortRoot = () => document.querySelector(".vsf-hybrid-effort");
     let openTimer = null;
     let closeTimer = null;
     let visibilityTimer = null;
@@ -127,7 +127,7 @@
     };
 
     // Implementation detail.
-    const refreshMineruOptionVisibility = () => {
+    const refreshVSFOptionVisibility = () => {
         const backend = getBackendValue();
         const effort = getEffortValue();
         const showClientOptions = backend.endsWith("http-client");
@@ -148,14 +148,14 @@
     };
 
     // Implementation detail.
-    const queueMineruOptionVisibilityRefresh = () => {
+    const queueVSFOptionVisibilityRefresh = () => {
         requestAnimationFrame(() => {
-            refreshMineruOptionVisibility();
-            requestAnimationFrame(refreshMineruOptionVisibility);
+            refreshVSFOptionVisibility();
+            requestAnimationFrame(refreshVSFOptionVisibility);
         });
     };
     const findUploadFileInput = () => {
-        const uploadRoot = document.querySelector(".mineru-upload-file");
+        const uploadRoot = document.querySelector(".vsf-upload-file");
         if (!uploadRoot) {
             return null;
         }
@@ -412,8 +412,8 @@
             Math.max(18, window.innerHeight - measuredHeight - 18)
         );
 
-        popover.style.setProperty("--mineru-popover-left", `${left}px`);
-        popover.style.setProperty("--mineru-popover-top", `${top}px`);
+        popover.style.setProperty("--vsf-popover-left", `${left}px`);
+        popover.style.setProperty("--vsf-popover-top", `${top}px`);
     };
 
     // Calculate the result.
@@ -483,15 +483,15 @@
         hoverHandlersInstalled = true;
     };
 
-    refreshMineruCustomHtml();
+    refreshVSFCustomHtml();
     installHoverPopoverHandlers();
     requestAnimationFrame(() => {
-        refreshMineruCustomHtml();
+        refreshVSFCustomHtml();
         installHoverPopoverHandlers();
     });
     if (typeof MutationObserver !== "undefined") {
         const uiObserver = new MutationObserver(() => {
-            refreshMineruCustomHtml();
+            refreshVSFCustomHtml();
             installHoverPopoverHandlers();
         });
         uiObserver.observe(document.body, { childList: true, subtree: true });
@@ -502,7 +502,7 @@
         if (!(target instanceof Element)) {
             return;
         }
-        queueMineruOptionVisibilityRefresh();
+        queueVSFOptionVisibilityRefresh();
         if (target.closest(".office-preview-ignore-forever")) {
             const notice = target.closest(".office-preview-notice");
             if (setOfficePreviewNoticeIgnored()) {
@@ -516,7 +516,7 @@
             target.closest(".office-preview-notice")?.classList.add("is-dismissed");
             return;
         }
-        if (target.closest(".mineru-advanced-open")) {
+        if (target.closest(".vsf-advanced-open")) {
             if (document.body.classList.contains(POPOVER_OPEN_CLASS)) {
                 closePopover();
             } else {
@@ -524,31 +524,31 @@
             }
             return;
         }
-        if (target.closest(".mineru-advanced-popover")) {
+        if (target.closest(".vsf-advanced-popover")) {
             queueDropdownPosition();
         }
-        if (!target.closest(".mineru-advanced-popover")) {
+        if (!target.closest(".vsf-advanced-popover")) {
             closePopover();
         }
     });
 
     document.addEventListener("focusin", (event) => {
         const target = event.target;
-        if (target instanceof Element && target.closest(".mineru-advanced-popover")) {
+        if (target instanceof Element && target.closest(".vsf-advanced-popover")) {
             queueDropdownPosition();
         }
     });
 
     document.addEventListener("input", (event) => {
         const target = event.target;
-        queueMineruOptionVisibilityRefresh();
-        if (target instanceof Element && target.closest(".mineru-advanced-popover")) {
+        queueVSFOptionVisibilityRefresh();
+        if (target instanceof Element && target.closest(".vsf-advanced-popover")) {
             queueDropdownPosition();
         }
     });
 
     document.addEventListener("change", () => {
-        queueMineruOptionVisibilityRefresh();
+        queueVSFOptionVisibilityRefresh();
     });
 
     document.addEventListener("keydown", (event) => {
@@ -557,7 +557,7 @@
             return;
         }
         const target = event.target;
-        if (target instanceof Element && target.closest(".mineru-advanced-popover")) {
+        if (target instanceof Element && target.closest(".vsf-advanced-popover")) {
             queueDropdownPosition();
         }
     });

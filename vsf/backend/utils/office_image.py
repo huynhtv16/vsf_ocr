@@ -7,8 +7,8 @@ from typing import Final
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 from loguru import logger
 
-from mineru.utils.check_sys_env import is_windows_environment
-from mineru.utils.pdf_reader import image_to_b64str
+from vsf.utils.check_sys_env import is_windows_environment
+from vsf.utils.pdf_reader import image_to_b64str
 
 
 VECTOR_IMAGE_FORMATS = frozenset({"WMF", "EMF"})

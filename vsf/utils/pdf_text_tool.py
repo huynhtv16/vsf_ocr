@@ -8,7 +8,7 @@ from pdftext.pdf.chars import deduplicate_chars, get_chars
 from pdftext.pdf.pages import assign_scripts, get_blocks, get_lines, get_spans
 from pdftext.schema import Bbox
 
-from mineru.utils.pdfium_guard import close_pdfium_child, pdfium_guard
+from vsf.utils.pdfium_guard import close_pdfium_child, pdfium_guard
 
 try:
     from pdftext.pdf.chars import PageChars

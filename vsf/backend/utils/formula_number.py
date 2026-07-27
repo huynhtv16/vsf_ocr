@@ -2,13 +2,13 @@
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
-from mineru.utils.boxbase import (
+from vsf.utils.boxbase import (
     calculate_overlap_area_2_minbox_area_ratio,
     calculate_overlap_area_in_bbox1_area_ratio,
 )
-from mineru.utils.char_utils import full_to_half
-from mineru.utils.enum_class import BlockType, ContentType
-from mineru.utils.visual_magic_model_utils import isolated_formula_clean
+from vsf.utils.char_utils import full_to_half
+from vsf.utils.enum_class import BlockType, ContentType
+from vsf.utils.visual_magic_model_utils import isolated_formula_clean
 
 Block = dict[str, Any]
 

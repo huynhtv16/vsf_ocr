@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
-from mineru.utils.os_env_config import get_op_num_threads
+from vsf.utils.os_env_config import get_op_num_threads
 from .table_structure_utils import (
     OrtInferSession,
     TableLabelDecode,
@@ -30,8 +30,8 @@ class TableStructurer:
         self.preprocess_op = TablePreprocess()
         self.batch_preprocess_op = BatchTablePreprocess()
 
-        config["intra_op_num_threads"] = get_op_num_threads("MINERU_INTRA_OP_NUM_THREADS")
-        config["inter_op_num_threads"] = get_op_num_threads("MINERU_INTER_OP_NUM_THREADS")
+        config["intra_op_num_threads"] = get_op_num_threads("VSF_INTRA_OP_NUM_THREADS")
+        config["inter_op_num_threads"] = get_op_num_threads("VSF_INTER_OP_NUM_THREADS")
 
         self.session = OrtInferSession(config)
 

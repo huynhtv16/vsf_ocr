@@ -4,12 +4,12 @@ from html import unescape
 
 from loguru import logger
 
-from mineru.utils.char_utils import full_to_half_exclude_marks, is_hyphen_at_line_end
-from mineru.utils.config_reader import get_latex_delimiter_config
-from mineru.backend.pipeline.para_split import ListLineTag
-from mineru.utils.enum_class import BlockType, ContentType, ContentTypeV2, MakeMode
-from mineru.utils.language import detect_lang
-from mineru.backend.utils.markdown_utils import (
+from vsf.utils.char_utils import full_to_half_exclude_marks, is_hyphen_at_line_end
+from vsf.utils.config_reader import get_latex_delimiter_config
+from vsf.backend.pipeline.para_split import ListLineTag
+from vsf.utils.enum_class import BlockType, ContentType, ContentTypeV2, MakeMode
+from vsf.utils.language import detect_lang
+from vsf.backend.utils.markdown_utils import (
     escape_conservative_markdown_text,
     escape_text_block_markdown_prefix,
 )

@@ -6,8 +6,8 @@ from urllib.parse import urlparse
 
 from loguru import logger
 
-from mineru.utils.enum_class import ContentType, BlockType
-from mineru.utils.magic_model_utils import tie_up_category_by_index
+from vsf.utils.enum_class import ContentType, BlockType
+from vsf.utils.magic_model_utils import tie_up_category_by_index
 
 
 class MagicModel:

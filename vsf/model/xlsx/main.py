@@ -1,7 +1,7 @@
 # Copyright (c) Opendatalab. All rights reserved.
 from typing import BinaryIO
 
-from mineru.model.xlsx.xlsx_converter import XlsxConverter
+from vsf.model.xlsx.xlsx_converter import XlsxConverter
 
 
 def convert_path(file_path: str):

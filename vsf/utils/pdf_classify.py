@@ -7,7 +7,7 @@ import pypdfium2 as pdfium
 import pypdfium2.raw as pdfium_c
 from loguru import logger
 from pypdf import PdfReader
-from mineru.utils.pdfium_guard import (
+from vsf.utils.pdfium_guard import (
     close_pdfium_child,
     close_pdfium_document,
     open_pdfium_document,

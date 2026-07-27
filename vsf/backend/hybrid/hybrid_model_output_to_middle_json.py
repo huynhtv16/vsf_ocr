@@ -4,29 +4,29 @@ import os
 
 from tqdm import tqdm
 
-from mineru.backend.utils.html_image_utils import replace_inline_table_images
-from mineru.backend.utils.para_block_utils import (
+from vsf.backend.utils.html_image_utils import replace_inline_table_images
+from vsf.backend.utils.para_block_utils import (
     OCR_DET_LINES_KEY,
     build_para_blocks_from_preproc,
     cleanup_internal_para_block_metadata,
     iter_block_spans,
     merge_para_text_blocks,
 )
-from mineru.backend.hybrid.hybrid_magic_model import MagicModel
-from mineru.backend.utils.runtime_utils import cross_page_table_merge
-from mineru.backend.pipeline.model_init import run_ocr_inference
-from mineru.utils.config_reader import get_table_enable
-from mineru.utils.cut_image import cut_image_and_table
-from mineru.utils.enum_class import ContentType, BlockType
-from mineru.utils.hash_utils import bytes_md5
-from mineru.utils.ocr_utils import OcrConfidence, rotate_vertical_crop_if_needed
-from mineru.utils.span_pre_proc import (
+from vsf.backend.hybrid.hybrid_magic_model import MagicModel
+from vsf.backend.utils.runtime_utils import cross_page_table_merge
+from vsf.backend.pipeline.model_init import run_ocr_inference
+from vsf.utils.config_reader import get_table_enable
+from vsf.utils.cut_image import cut_image_and_table
+from vsf.utils.enum_class import ContentType, BlockType
+from vsf.utils.hash_utils import bytes_md5
+from vsf.utils.ocr_utils import OcrConfidence, rotate_vertical_crop_if_needed
+from vsf.utils.span_pre_proc import (
     _clear_post_ocr_fallback,
     _restore_post_ocr_fallback,
 )
-from mineru.utils.title_level_postprocess import apply_title_leveling_to_pdf_info
-from mineru.utils.pdfium_guard import close_pdfium_child, close_pdfium_document, pdfium_guard
-from mineru.version import __version__
+from vsf.utils.title_level_postprocess import apply_title_leveling_to_pdf_info
+from vsf.utils.pdfium_guard import close_pdfium_child, close_pdfium_document, pdfium_guard
+from vsf.version import __version__
 
 
 def _resolve_title_line_avg_height(title_block):
@@ -263,7 +263,7 @@ def finalize_middle_json_from_preproc(pdf_info_list, effort="medium"):
         auto_merge_vertical_by_det=effort == "medium",
     )
 
-    table_enable = get_table_enable(os.getenv('MINERU_VLM_TABLE_ENABLE', 'True').lower() == 'true')
+    table_enable = get_table_enable(os.getenv('VSF_VLM_TABLE_ENABLE', 'True').lower() == 'true')
     if table_enable:
         cross_page_table_merge(pdf_info_list)
 

@@ -3,21 +3,21 @@ import os
 
 from tqdm import tqdm
 
-from mineru.backend.utils.html_image_utils import replace_inline_table_images
-from mineru.backend.utils.para_block_utils import (
+from vsf.backend.utils.html_image_utils import replace_inline_table_images
+from vsf.backend.utils.para_block_utils import (
     build_para_blocks_from_preproc,
     cleanup_internal_para_block_metadata,
     merge_para_text_blocks,
 )
-from mineru.backend.utils.runtime_utils import cross_page_table_merge
-from mineru.backend.vlm.vlm_magic_model import MagicModel
-from mineru.utils.config_reader import get_table_enable
-from mineru.utils.cut_image import cut_image_and_table
-from mineru.utils.enum_class import ContentType
-from mineru.utils.hash_utils import bytes_md5
-from mineru.utils.title_level_postprocess import apply_title_leveling_to_pdf_info
-from mineru.utils.pdfium_guard import close_pdfium_child, close_pdfium_document, pdfium_guard
-from mineru.version import __version__
+from vsf.backend.utils.runtime_utils import cross_page_table_merge
+from vsf.backend.vlm.vlm_magic_model import MagicModel
+from vsf.utils.config_reader import get_table_enable
+from vsf.utils.cut_image import cut_image_and_table
+from vsf.utils.enum_class import ContentType
+from vsf.utils.hash_utils import bytes_md5
+from vsf.utils.title_level_postprocess import apply_title_leveling_to_pdf_info
+from vsf.utils.pdfium_guard import close_pdfium_child, close_pdfium_document, pdfium_guard
+from vsf.version import __version__
 
 
 def blocks_to_page_info(page_blocks, image_dict, page, image_writer, page_index) -> dict:
@@ -108,7 +108,7 @@ def finalize_middle_json(pdf_info_list):
     build_para_blocks_from_preproc(pdf_info_list)
     merge_para_text_blocks(pdf_info_list)
 
-    table_enable = get_table_enable(os.getenv('MINERU_VLM_TABLE_ENABLE', 'True').lower() == 'true')
+    table_enable = get_table_enable(os.getenv('VSF_VLM_TABLE_ENABLE', 'True').lower() == 'true')
     if table_enable:
         cross_page_table_merge(pdf_info_list)
 

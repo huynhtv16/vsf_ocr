@@ -8,11 +8,11 @@ import cv2
 import numpy as np
 from loguru import logger
 
-from mineru.utils.boxbase import calculate_overlap_area_in_bbox1_area_ratio
-from mineru.utils.enum_class import BlockType, ContentType
-from mineru.utils.pdf_image_tools import get_crop_img
-from mineru.utils.pdf_text_tool import get_lines_from_chars, get_page_chars
-from mineru.utils.pdfium_guard import close_pdfium_child, pdfium_guard
+from vsf.utils.boxbase import calculate_overlap_area_in_bbox1_area_ratio
+from vsf.utils.enum_class import BlockType, ContentType
+from vsf.utils.pdf_image_tools import get_crop_img
+from vsf.utils.pdf_text_tool import get_lines_from_chars, get_page_chars
+from vsf.utils.pdfium_guard import close_pdfium_child, pdfium_guard
 
 MAX_NATIVE_TEXT_CHARS_PER_PAGE = 65535
 PRIVATE_USE_AREA_START = 0xE000

@@ -6,7 +6,7 @@ from typing import Any, Callable, Sequence, TypeVar
 
 from loguru import logger
 
-from mineru.utils.pdf_page_id import get_end_page_id
+from vsf.utils.pdf_page_id import get_end_page_id
 
 
 _pdfium_lock = threading.RLock()

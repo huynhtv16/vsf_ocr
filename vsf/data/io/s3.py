@@ -9,7 +9,7 @@ def _load_s3_client_dependencies():
         from botocore.config import Config
     except ImportError as exc:
         raise ModuleNotFoundError(
-            "S3 IO requires optional dependencies. Install them with `pip install 'mineru[s3]'`."
+            "S3 IO requires optional dependencies. Install them with `pip install 'vsf[s3]'`."
         ) from exc
 
     return boto3, Config

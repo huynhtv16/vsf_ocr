@@ -25,7 +25,7 @@ from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from mineru.cli.api_client import (
+from vsf.cli.api_client import (
     LOCAL_API_CLEANUP_RETRIES,
     LOCAL_API_CLEANUP_RETRY_INTERVAL_SECONDS,
     LOCAL_API_STARTUP_TIMEOUT_SECONDS,
@@ -40,17 +40,17 @@ from mineru.cli.api_client import (
     strip_local_api_network_args,
     response_detail,
 )
-from mineru.cli.api_protocol import API_PROTOCOL_VERSION
-from mineru.cli.api_request import ParseRequestOptions, parse_request_form
-from mineru.cli.common import normalize_upload_filename
-from mineru.cli.public_http_client_policy import (
+from vsf.cli.api_protocol import API_PROTOCOL_VERSION
+from vsf.cli.api_request import ParseRequestOptions, parse_request_form
+from vsf.cli.common import normalize_upload_filename
+from vsf.cli.public_http_client_policy import (
     configure_public_http_client_policy,
     is_public_bind_host,
     validate_public_http_client_request,
     warn_if_public_http_client_policy as _warn_if_public_http_client_policy,
 )
-from mineru.cli.vlm_preload import build_local_api_cli_args
-from mineru.version import __version__
+from vsf.cli.vlm_preload import build_local_api_cli_args
+from vsf.version import __version__
 
 TASK_PENDING = "pending"
 TASK_PROCESSING = "processing"
@@ -59,10 +59,10 @@ TASK_FAILED = "failed"
 TASK_TERMINAL_STATES = {TASK_COMPLETED, TASK_FAILED}
 DEFAULT_TASK_RETENTION_SECONDS = 24 * 60 * 60
 DEFAULT_TASK_CLEANUP_INTERVAL_SECONDS = 5 * 60
-FILE_PARSE_TASK_ID_HEADER = "X-MinerU-Task-Id"
-FILE_PARSE_TASK_STATUS_HEADER = "X-MinerU-Task-Status"
-FILE_PARSE_TASK_STATUS_URL_HEADER = "X-MinerU-Task-Status-Url"
-FILE_PARSE_TASK_RESULT_URL_HEADER = "X-MinerU-Task-Result-Url"
+FILE_PARSE_TASK_ID_HEADER = "X-VSF-Task-Id"
+FILE_PARSE_TASK_STATUS_HEADER = "X-VSF-Task-Status"
+FILE_PARSE_TASK_STATUS_URL_HEADER = "X-VSF-Task-Status-Url"
+FILE_PARSE_TASK_RESULT_URL_HEADER = "X-VSF-Task-Result-Url"
 HEALTH_ENDPOINT = "/health"
 TASKS_ENDPOINT = "/tasks"
 SOURCE_LOCAL = "local"
@@ -74,8 +74,8 @@ UPSTREAM_FAILURE_THRESHOLD = 3
 WORKER_REFRESH_INTERVAL_SECONDS = 2.0
 WORKER_HEALTH_FAILURE_RESTART_THRESHOLD = 5
 MIN_HEALTHY_PROCESSING_WINDOW_SIZE = 1
-MINERU_ROUTER_PUBLIC_BIND_EXPOSED_ENV = "MINERU_ROUTER_PUBLIC_BIND_EXPOSED"
-MINERU_ROUTER_ALLOW_PUBLIC_HTTP_CLIENT_ENV = "MINERU_ROUTER_ALLOW_PUBLIC_HTTP_CLIENT"
+VSF_ROUTER_PUBLIC_BIND_EXPOSED_ENV = "VSF_ROUTER_PUBLIC_BIND_EXPOSED"
+VSF_ROUTER_ALLOW_PUBLIC_HTTP_CLIENT_ENV = "VSF_ROUTER_ALLOW_PUBLIC_HTTP_CLIENT"
 
 
 def utc_now_iso() -> str:
@@ -114,7 +114,7 @@ def _parse_json_object_response(
 
 def get_task_retention_seconds() -> int:
     return get_int_env(
-        "MINERU_API_TASK_RETENTION_SECONDS",
+        "VSF_API_TASK_RETENTION_SECONDS",
         DEFAULT_TASK_RETENTION_SECONDS,
         minimum=0,
     )
@@ -122,7 +122,7 @@ def get_task_retention_seconds() -> int:
 
 def get_task_cleanup_interval_seconds() -> int:
     return get_int_env(
-        "MINERU_API_TASK_CLEANUP_INTERVAL_SECONDS",
+        "VSF_API_TASK_CLEANUP_INTERVAL_SECONDS",
         DEFAULT_TASK_CLEANUP_INTERVAL_SECONDS,
         minimum=1,
     )
@@ -220,7 +220,7 @@ def normalize_local_device_type(device: str | None) -> str:
 def get_local_device_type() -> str:
     """Extract the required value."""
     try:
-        from mineru.utils.config_reader import get_device
+        from vsf.utils.config_reader import get_device
 
         return normalize_local_device_type(get_device())
     except Exception as exc:
@@ -314,14 +314,14 @@ class RouterSettings:
     @classmethod
     def from_env(cls) -> "RouterSettings":
         return cls(
-            upstream_urls=parse_json_env("MINERU_ROUTER_UPSTREAM_URLS_JSON"),
-            local_gpus=os.getenv("MINERU_ROUTER_LOCAL_GPUS", LOCAL_GPU_AUTO),
-            worker_host=os.getenv("MINERU_ROUTER_WORKER_HOST", "127.0.0.1"),
+            upstream_urls=parse_json_env("VSF_ROUTER_UPSTREAM_URLS_JSON"),
+            local_gpus=os.getenv("VSF_ROUTER_LOCAL_GPUS", LOCAL_GPU_AUTO),
+            worker_host=os.getenv("VSF_ROUTER_WORKER_HOST", "127.0.0.1"),
             enable_vlm_preload=env_flag_enabled(
-                "MINERU_ROUTER_ENABLE_VLM_PRELOAD",
+                "VSF_ROUTER_ENABLE_VLM_PRELOAD",
                 default=False,
             ),
-            worker_extra_args=parse_json_env("MINERU_ROUTER_WORKER_ARGS_JSON"),
+            worker_extra_args=parse_json_env("VSF_ROUTER_WORKER_ARGS_JSON"),
             task_retention_seconds=get_task_retention_seconds(),
             task_cleanup_interval_seconds=get_task_cleanup_interval_seconds(),
         )
@@ -420,15 +420,15 @@ class ManagedLocalServer:
         )
         self.base_url = f"http://{self.connect_host}:{resolved_port}"
         env = os.environ.copy()
-        env["MINERU_API_OUTPUT_ROOT"] = str(output_root)
-        env["MINERU_API_DISABLE_ACCESS_LOG"] = "1"
+        env["VSF_API_OUTPUT_ROOT"] = str(output_root)
+        env["VSF_API_DISABLE_ACCESS_LOG"] = "1"
         if self.gpu is not None:
             env[get_local_device_visible_env_name()] = str(self.gpu)
 
         command = [
             sys.executable,
             "-m",
-            "mineru.cli.fast_api",
+            "vsf.cli.fast_api",
             "--host",
             self.worker_host,
             "--port",
@@ -606,7 +606,7 @@ class WorkerPool:
 
         await self.refresh_all()
         if self._monitor_task is None or self._monitor_task.done():
-            self._monitor_task = asyncio.create_task(self._monitor_loop(), name="mineru-router-worker-monitor")
+            self._monitor_task = asyncio.create_task(self._monitor_loop(), name="vsf-router-worker-monitor")
 
     async def _start_local_server(self, server: WorkerState, port: int) -> None:
         """Implementation detail."""
@@ -825,7 +825,7 @@ class WorkerPool:
             "servers": servers,
         }
         if not healthy_servers:
-            payload["error"] = "No healthy upstream MinerU API servers are available"
+            payload["error"] = "No healthy upstream VSF API servers are available"
         return bool(healthy_servers), payload
 
 
@@ -846,7 +846,7 @@ class RouterTaskRegistry:
         if self.task_retention_seconds <= 0:
             return
         if self._cleanup_task is None or self._cleanup_task.done():
-            self._cleanup_task = asyncio.create_task(self._cleanup_loop(), name="mineru-router-task-cleanup")
+            self._cleanup_task = asyncio.create_task(self._cleanup_loop(), name="vsf-router-task-cleanup")
 
     async def shutdown(self) -> None:
         if self._cleanup_task is not None:
@@ -976,7 +976,7 @@ class RouterTaskRegistry:
 def warn_if_router_preload_ignored(settings: RouterSettings) -> None:
     if settings.enable_vlm_preload and not parse_local_gpus(settings.local_gpus):
         logger.warning(
-            "Ignoring --enable-vlm-preload because mineru-router is not launching any local mineru-api workers."
+            "Ignoring --enable-vlm-preload because vsf-router is not launching any local vsf-api workers."
         )
 
 
@@ -999,7 +999,7 @@ async def startup_router_state(app: FastAPI, settings: RouterSettings) -> None:
             raise RuntimeError(
                 payload.get(
                     "error",
-                    "No healthy upstream MinerU API servers are available",
+                    "No healthy upstream VSF API servers are available",
                 )
             )
     except Exception:
@@ -1057,7 +1057,7 @@ def build_upload_destination(upload_dir: str, filename: str) -> Path:
 
 
 async def stage_multipart_request(request: Request) -> MultipartPayload:
-    temp_dir = tempfile.mkdtemp(prefix="mineru-router-request-")
+    temp_dir = tempfile.mkdtemp(prefix="vsf-router-request-")
     uploads: list[StagedUpload] = []
     fields: list[tuple[str, str]] = []
 
@@ -1094,15 +1094,15 @@ async def stage_multipart_request(request: Request) -> MultipartPayload:
 
 def parse_submit_response(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict):
-        raise ValueError("MinerU upstream returned an invalid submit payload")
+        raise ValueError("VSF upstream returned an invalid submit payload")
     task_id = payload.get("task_id")
     status = payload.get("status")
     backend = payload.get("backend")
     created_at = payload.get("created_at")
     if not isinstance(task_id, str) or not isinstance(status, str) or not isinstance(backend, str):
-        raise ValueError("MinerU upstream returned an invalid submit payload")
+        raise ValueError("VSF upstream returned an invalid submit payload")
     if created_at is not None and not isinstance(created_at, str):
-        raise ValueError("MinerU upstream returned an invalid submit payload")
+        raise ValueError("VSF upstream returned an invalid submit payload")
     return {
         "task_id": task_id,
         "status": status,
@@ -1195,7 +1195,7 @@ async def submit_router_task(
         server = await worker_pool.acquire_submission_server(excluded_server_ids=attempted_servers)
         if server is None:
             if last_error is None:
-                raise HTTPException(status_code=503, detail="No healthy upstream MinerU API servers are available")
+                raise HTTPException(status_code=503, detail="No healthy upstream VSF API servers are available")
             raise HTTPException(status_code=503, detail=last_error)
 
         try:
@@ -1426,7 +1426,7 @@ def build_sync_task_headers(task: RouterTaskRecord, request: Request) -> dict[st
 
 def create_app(settings: RouterSettings | None = None) -> FastAPI:
     resolved_settings = settings or RouterSettings.from_env()
-    enable_docs = env_flag_enabled("MINERU_API_ENABLE_FASTAPI_DOCS", default=True)
+    enable_docs = env_flag_enabled("VSF_API_ENABLE_FASTAPI_DOCS", default=True)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -1446,11 +1446,11 @@ def create_app(settings: RouterSettings | None = None) -> FastAPI:
     configure_public_http_client_policy(
         app,
         public_bind_exposed=env_flag_enabled(
-            MINERU_ROUTER_PUBLIC_BIND_EXPOSED_ENV,
+            VSF_ROUTER_PUBLIC_BIND_EXPOSED_ENV,
             default=False,
         ),
         allow_public_http_client=env_flag_enabled(
-            MINERU_ROUTER_ALLOW_PUBLIC_HTTP_CLIENT_ENV,
+            VSF_ROUTER_ALLOW_PUBLIC_HTTP_CLIENT_ENV,
             default=False,
         ),
     )
@@ -1461,7 +1461,7 @@ def create_app(settings: RouterSettings | None = None) -> FastAPI:
         status_code=202,
         summary="Submit an asynchronous parse task through the router",
         description=(
-            "Submit files and parse options to a healthy upstream MinerU API "
+            "Submit files and parse options to a healthy upstream VSF API "
             "server selected by the router, then return a router task id."
         ),
     )
@@ -1521,7 +1521,7 @@ def create_app(settings: RouterSettings | None = None) -> FastAPI:
         status_code=200,
         summary="Synchronously parse uploaded files through the router",
         description=(
-            "Submit files and parse options to a healthy upstream MinerU API "
+            "Submit files and parse options to a healthy upstream VSF API "
             "server selected by the router, wait for completion, and proxy the "
             "final result in the same response."
         ),
@@ -1584,7 +1584,7 @@ app = create_app()
     "--upstream-url",
     "upstream_urls",
     multiple=True,
-    help="Existing MinerU FastAPI base URL. Repeat to add multiple upstream servers.",
+    help="Existing VSF FastAPI base URL. Repeat to add multiple upstream servers.",
 )
 @click.option(
     "--local-gpus",
@@ -1594,14 +1594,14 @@ app = create_app()
 @click.option(
     "--worker-host",
     default="127.0.0.1",
-    help="Host for router-managed mineru-api workers (default: 127.0.0.1).",
+    help="Host for router-managed vsf-api workers (default: 127.0.0.1).",
 )
 @click.option(
     "--enable-vlm-preload",
     "enable_vlm_preload",
     type=bool,
     default=False,
-    help="Preload the local VLM model in router-managed mineru-api workers.",
+    help="Preload the local VLM model in router-managed vsf-api workers.",
 )
 def main(
     ctx: click.Context,
@@ -1630,28 +1630,28 @@ def main(
         public_bind_exposed=public_bind_exposed,
         allow_public_http_client=allow_public_http_client,
     )
-    os.environ["MINERU_ROUTER_UPSTREAM_URLS_JSON"] = json.dumps(list(settings.upstream_urls))
-    os.environ["MINERU_ROUTER_LOCAL_GPUS"] = settings.local_gpus
-    os.environ["MINERU_ROUTER_WORKER_HOST"] = settings.worker_host
-    os.environ["MINERU_ROUTER_ENABLE_VLM_PRELOAD"] = (
+    os.environ["VSF_ROUTER_UPSTREAM_URLS_JSON"] = json.dumps(list(settings.upstream_urls))
+    os.environ["VSF_ROUTER_LOCAL_GPUS"] = settings.local_gpus
+    os.environ["VSF_ROUTER_WORKER_HOST"] = settings.worker_host
+    os.environ["VSF_ROUTER_ENABLE_VLM_PRELOAD"] = (
         "1" if settings.enable_vlm_preload else "0"
     )
-    os.environ["MINERU_ROUTER_WORKER_ARGS_JSON"] = json.dumps(list(settings.worker_extra_args))
-    os.environ[MINERU_ROUTER_PUBLIC_BIND_EXPOSED_ENV] = (
+    os.environ["VSF_ROUTER_WORKER_ARGS_JSON"] = json.dumps(list(settings.worker_extra_args))
+    os.environ[VSF_ROUTER_PUBLIC_BIND_EXPOSED_ENV] = (
         "1" if public_bind_exposed else "0"
     )
-    os.environ[MINERU_ROUTER_ALLOW_PUBLIC_HTTP_CLIENT_ENV] = (
+    os.environ[VSF_ROUTER_ALLOW_PUBLIC_HTTP_CLIENT_ENV] = (
         "1" if allow_public_http_client else "0"
     )
     warn_if_public_http_client_policy(host, allow_public_http_client)
 
-    access_log = not env_flag_enabled("MINERU_API_DISABLE_ACCESS_LOG")
-    print(f"Start MinerU Router Service: http://{host}:{port}")
+    access_log = not env_flag_enabled("VSF_API_DISABLE_ACCESS_LOG")
+    print(f"Start VSF Router Service: http://{host}:{port}")
     print(f"API documentation: http://{host}:{port}/docs")
 
     if reload:
         uvicorn.run(
-            "mineru.cli.router:app",
+            "vsf.cli.router:app",
             host=host,
             port=port,
             reload=True,

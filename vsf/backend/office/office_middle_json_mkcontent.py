@@ -1,5 +1,5 @@
 # Copyright (c) Opendatalab. All rights reserved.
-from mineru.backend.office.mkcontent.inline_renderer import (
+from vsf.backend.office.mkcontent.inline_renderer import (
     display_left_delimiter,
     display_right_delimiter,
     get_title_level,
@@ -7,7 +7,7 @@ from mineru.backend.office.mkcontent.inline_renderer import (
     inline_right_delimiter,
     merge_para_with_text,
 )
-from mineru.backend.office.mkcontent.output_builders import (
+from vsf.backend.office.mkcontent.output_builders import (
     get_body_data,
     make_blocks_to_content_list,
     make_blocks_to_content_list_v2,

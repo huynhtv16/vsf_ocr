@@ -1,8 +1,8 @@
 # Copyright (c) Opendatalab. All rights reserved.
 import copy
 
-from mineru.utils.enum_class import BlockType, SplitFlag
-from mineru.utils.span_block_fix import is_vertical_text_block_by_spans
+from vsf.utils.enum_class import BlockType, SplitFlag
+from vsf.utils.span_block_fix import is_vertical_text_block_by_spans
 
 
 LINE_STOP_FLAG = ('.', '!', '?', '\u3002', '\uff01', '\uff1f', ')', '\uff09', '"', '\u201d', ':', '\uff1a', ';', '\uff1b')

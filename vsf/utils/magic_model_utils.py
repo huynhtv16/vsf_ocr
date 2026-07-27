@@ -5,7 +5,7 @@ Implementation detail.
 from typing import List, Dict, Any, Callable
 
 from loguru import logger
-from mineru.utils.boxbase import bbox_distance, bbox_center_distance, is_in
+from vsf.utils.boxbase import bbox_distance, bbox_center_distance, is_in
 
 
 def reduct_overlap(bboxes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

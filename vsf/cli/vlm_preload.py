@@ -4,7 +4,7 @@ from typing import Any
 
 from loguru import logger
 
-from mineru.utils.engine_utils import get_vlm_engine
+from vsf.utils.engine_utils import get_vlm_engine
 
 SERVICE_CONFIG_DEFAULTS: dict[str, Any] = {
     "enable_vlm_preload": False,
@@ -48,7 +48,7 @@ def resolve_gradio_local_api_cli_args(
 ) -> tuple[str, ...]:
     if enable_vlm_preload and api_url:
         logger.warning(
-            "Ignoring --enable-vlm-preload because --api-url points to an existing MinerU FastAPI service."
+            "Ignoring --enable-vlm-preload because --api-url points to an existing VSF FastAPI service."
         )
         return tuple(extra_cli_args)
 
@@ -62,7 +62,7 @@ def preload_vlm_model(*, model_kwargs: Mapping[str, Any] | None = None) -> str:
     vlm_engine = get_vlm_engine("auto", is_async=True)
     logger.info(f"Start init {vlm_engine}...")
 
-    from mineru.backend.vlm.vlm_analyze import ModelSingleton
+    from vsf.backend.vlm.vlm_analyze import ModelSingleton
 
     model_singleton = ModelSingleton()
     model_singleton.get_model(

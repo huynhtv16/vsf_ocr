@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
-from mineru.utils.enum_class import MakeMode
-from mineru.utils.title_level_postprocess import finalize_client_side_middle_json
+from vsf.utils.enum_class import MakeMode
+from vsf.utils.title_level_postprocess import finalize_client_side_middle_json
 
 
 PDF_BACKENDS = {"pipeline", "vlm", "hybrid"}
@@ -16,15 +16,15 @@ SUPPORTED_BACKENDS = {*PDF_BACKENDS, "office"}
 def _select_union_make(backend: str) -> Callable[[list, str, str], Any]:
     """Implementation detail."""
     if backend == "pipeline":
-        from mineru.backend.pipeline.pipeline_middle_json_mkcontent import union_make
+        from vsf.backend.pipeline.pipeline_middle_json_mkcontent import union_make
 
         return union_make
     if backend in {"vlm", "hybrid"}:
-        from mineru.backend.vlm.vlm_middle_json_mkcontent import union_make
+        from vsf.backend.vlm.vlm_middle_json_mkcontent import union_make
 
         return union_make
     if backend == "office":
-        from mineru.backend.office.office_middle_json_mkcontent import union_make
+        from vsf.backend.office.office_middle_json_mkcontent import union_make
 
         return union_make
 

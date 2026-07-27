@@ -31,7 +31,7 @@ from loguru import logger
 
 from base64 import b64encode
 
-from mineru.cli.common import (
+from vsf.cli.common import (
     aio_do_parse,
     do_parse,
     image_suffixes,
@@ -42,36 +42,36 @@ from mineru.cli.common import (
     read_fn,
     uniquify_task_stems,
 )
-from mineru.cli.api_request import ParseRequestOptions, parse_request_form
-from mineru.cli.public_http_client_policy import (
+from vsf.cli.api_request import ParseRequestOptions, parse_request_form
+from vsf.cli.public_http_client_policy import (
     configure_public_http_client_policy,
     is_public_bind_host,
     warn_if_public_http_client_policy as _warn_if_public_http_client_policy,
 )
-from mineru.cli.output_paths import resolve_parse_dir
-from mineru.cli.api_protocol import (
+from vsf.cli.output_paths import resolve_parse_dir
+from vsf.cli.api_protocol import (
     API_PROTOCOL_VERSION,
     DEFAULT_MAX_CONCURRENT_REQUESTS,
     DEFAULT_PROCESSING_WINDOW_SIZE,
 )
-from mineru.cli.backend_options import DEFAULT_HYBRID_EFFORT
-from mineru.cli.vlm_preload import (
+from vsf.cli.backend_options import DEFAULT_HYBRID_EFFORT
+from vsf.cli.vlm_preload import (
     maybe_preload_vlm_model,
     split_service_and_model_config,
 )
-from mineru.backend.vlm.vlm_analyze import shutdown_cached_models
-from mineru.utils.cli_parser import arg_parse
-from mineru.utils.check_sys_env import is_mac_environment
-from mineru.utils.config_reader import (
+from vsf.backend.vlm.vlm_analyze import shutdown_cached_models
+from vsf.utils.cli_parser import arg_parse
+from vsf.utils.check_sys_env import is_mac_environment
+from vsf.utils.config_reader import (
     get_max_concurrent_requests as read_max_concurrent_requests,
     get_processing_window_size,
 )
-from mineru.utils.guess_suffix_or_lang import guess_suffix_by_path
-from mineru.utils.pdf_image_tools import shutdown_pdf_render_executor
-from mineru.version import __version__
+from vsf.utils.guess_suffix_or_lang import guess_suffix_by_path
+from vsf.utils.pdf_image_tools import shutdown_pdf_render_executor
+from vsf.version import __version__
 
 os.environ["TORCH_CUDNN_V8_API_DISABLED"] = "1"
-log_level = os.getenv("MINERU_LOG_LEVEL", "INFO").upper()
+log_level = os.getenv("VSF_LOG_LEVEL", "INFO").upper()
 logger.remove()
 logger.add(sys.stderr, level=log_level)
 
@@ -85,12 +85,12 @@ RESULT_IMAGE_SUFFIXES = set(image_suffixes) | {"svg"}
 DEFAULT_TASK_RETENTION_SECONDS = 24 * 60 * 60
 DEFAULT_TASK_CLEANUP_INTERVAL_SECONDS = 5 * 60
 DEFAULT_OUTPUT_ROOT = "./output"
-FILE_PARSE_TASK_ID_HEADER = "X-MinerU-Task-Id"
-FILE_PARSE_TASK_STATUS_HEADER = "X-MinerU-Task-Status"
-FILE_PARSE_TASK_STATUS_URL_HEADER = "X-MinerU-Task-Status-Url"
-FILE_PARSE_TASK_RESULT_URL_HEADER = "X-MinerU-Task-Result-Url"
-MINERU_API_PUBLIC_BIND_EXPOSED_ENV = "MINERU_API_PUBLIC_BIND_EXPOSED"
-MINERU_API_ALLOW_PUBLIC_HTTP_CLIENT_ENV = "MINERU_API_ALLOW_PUBLIC_HTTP_CLIENT"
+FILE_PARSE_TASK_ID_HEADER = "X-VSF-Task-Id"
+FILE_PARSE_TASK_STATUS_HEADER = "X-VSF-Task-Status"
+FILE_PARSE_TASK_STATUS_URL_HEADER = "X-VSF-Task-Status-Url"
+FILE_PARSE_TASK_RESULT_URL_HEADER = "X-VSF-Task-Result-Url"
+VSF_API_PUBLIC_BIND_EXPOSED_ENV = "VSF_API_PUBLIC_BIND_EXPOSED"
+VSF_API_ALLOW_PUBLIC_HTTP_CLIENT_ENV = "VSF_API_ALLOW_PUBLIC_HTTP_CLIENT"
 
 # Implementation detail.
 _request_semaphore: Optional[asyncio.Semaphore] = None
@@ -112,7 +112,7 @@ def is_main_multiprocessing_process() -> bool:
 
 
 def install_stdin_shutdown_watcher(server: uvicorn.Server) -> None:
-    if not env_flag_enabled("MINERU_API_SHUTDOWN_ON_STDIN_EOF"):
+    if not env_flag_enabled("VSF_API_SHUTDOWN_ON_STDIN_EOF"):
         return
 
     def _watch_stdin_for_eof() -> None:
@@ -125,7 +125,7 @@ def install_stdin_shutdown_watcher(server: uvicorn.Server) -> None:
 
     watcher = threading.Thread(
         target=_watch_stdin_for_eof,
-        name="mineru-api-stdin-shutdown",
+        name="vsf-api-stdin-shutdown",
         daemon=True,
     )
     watcher.start()
@@ -211,8 +211,8 @@ async def lifespan(app: FastAPI):
 
 def create_app():
     # By default, the OpenAPI documentation endpoints (openapi_url, docs_url, redoc_url) are enabled.
-    # To disable the FastAPI docs and schema endpoints, set the environment variable MINERU_API_ENABLE_FASTAPI_DOCS=0.
-    enable_docs = env_flag_enabled("MINERU_API_ENABLE_FASTAPI_DOCS", default=True)
+    # To disable the FastAPI docs and schema endpoints, set the environment variable VSF_API_ENABLE_FASTAPI_DOCS=0.
+    enable_docs = env_flag_enabled("VSF_API_ENABLE_FASTAPI_DOCS", default=True)
     app = FastAPI(
         openapi_url="/openapi.json" if enable_docs else None,
         docs_url="/docs" if enable_docs else None,
@@ -237,17 +237,17 @@ def create_app():
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.state.public_bind_exposed = env_flag_enabled(
-        MINERU_API_PUBLIC_BIND_EXPOSED_ENV,
+        VSF_API_PUBLIC_BIND_EXPOSED_ENV,
         default=False,
     )
     app.state.allow_public_http_client = env_flag_enabled(
-        MINERU_API_ALLOW_PUBLIC_HTTP_CLIENT_ENV,
+        VSF_API_ALLOW_PUBLIC_HTTP_CLIENT_ENV,
         default=False,
     )
     default_service_config, default_model_config = split_service_and_model_config(
         {
             "enable_vlm_preload": env_flag_enabled(
-                "MINERU_API_ENABLE_VLM_PRELOAD",
+                "VSF_API_ENABLE_VLM_PRELOAD",
                 default=False,
             )
         }
@@ -320,7 +320,7 @@ def get_max_concurrent_requests() -> int:
 
 def get_task_retention_seconds() -> int:
     return get_int_env(
-        "MINERU_API_TASK_RETENTION_SECONDS",
+        "VSF_API_TASK_RETENTION_SECONDS",
         DEFAULT_TASK_RETENTION_SECONDS,
         minimum=0,
     )
@@ -328,14 +328,14 @@ def get_task_retention_seconds() -> int:
 
 def get_task_cleanup_interval_seconds() -> int:
     return get_int_env(
-        "MINERU_API_TASK_CLEANUP_INTERVAL_SECONDS",
+        "VSF_API_TASK_CLEANUP_INTERVAL_SECONDS",
         DEFAULT_TASK_CLEANUP_INTERVAL_SECONDS,
         minimum=1,
     )
 
 
 def get_output_root() -> Path:
-    root = Path(os.getenv("MINERU_API_OUTPUT_ROOT", DEFAULT_OUTPUT_ROOT)).expanduser()
+    root = Path(os.getenv("VSF_API_OUTPUT_ROOT", DEFAULT_OUTPUT_ROOT)).expanduser()
     root.mkdir(parents=True, exist_ok=True)
     return root.resolve()
 
@@ -501,7 +501,7 @@ def create_result_zip(
     return_images: bool,
     return_original_file: bool,
 ) -> str:
-    zip_fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="mineru_results_")
+    zip_fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="vsf_results_")
     os.close(zip_fd)
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
@@ -945,14 +945,14 @@ class AsyncTaskManager:
         self.manager_wakeup = asyncio.Event()
         if self.dispatcher_task is None or self.dispatcher_task.done():
             self.dispatcher_task = asyncio.create_task(
-                self._dispatcher_loop(), name="mineru-fastapi-task-dispatcher"
+                self._dispatcher_loop(), name="vsf-fastapi-task-dispatcher"
             )
         if (
             self.task_retention_seconds > 0
             and (self.cleanup_task is None or self.cleanup_task.done())
         ):
             self.cleanup_task = asyncio.create_task(
-                self._cleanup_loop(), name="mineru-fastapi-task-cleanup"
+                self._cleanup_loop(), name="vsf-fastapi-task-cleanup"
             )
 
     async def shutdown(self) -> None:
@@ -1099,7 +1099,7 @@ class AsyncTaskManager:
                 task_id = await self.queue.get()
                 processor = asyncio.create_task(
                     self._process_task(task_id),
-                    name=f"mineru-fastapi-task-{task_id}",
+                    name=f"vsf-fastapi-task-{task_id}",
                 )
                 self.active_tasks.add(processor)
                 processor.add_done_callback(self._on_processor_done)
@@ -1412,7 +1412,7 @@ async def health_check():
     "enable_vlm_preload",
     type=bool,
     default=False,
-    help="Preload the local VLM model during mineru-api startup.",
+    help="Preload the local VLM model during vsf-api startup.",
 )
 def main(
     ctx,
@@ -1436,22 +1436,22 @@ def main(
         public_bind_exposed=public_bind_exposed,
         allow_public_http_client=allow_public_http_client,
     )
-    os.environ["MINERU_API_ENABLE_VLM_PRELOAD"] = (
+    os.environ["VSF_API_ENABLE_VLM_PRELOAD"] = (
         "1" if service_config["enable_vlm_preload"] else "0"
     )
-    os.environ[MINERU_API_PUBLIC_BIND_EXPOSED_ENV] = "1" if public_bind_exposed else "0"
-    os.environ[MINERU_API_ALLOW_PUBLIC_HTTP_CLIENT_ENV] = (
+    os.environ[VSF_API_PUBLIC_BIND_EXPOSED_ENV] = "1" if public_bind_exposed else "0"
+    os.environ[VSF_API_ALLOW_PUBLIC_HTTP_CLIENT_ENV] = (
         "1" if allow_public_http_client else "0"
     )
     warn_if_public_http_client_policy(host, allow_public_http_client)
-    access_log = not env_flag_enabled("MINERU_API_DISABLE_ACCESS_LOG")
+    access_log = not env_flag_enabled("VSF_API_DISABLE_ACCESS_LOG")
 
-    print(f"Start MinerU FastAPI Service: http://{host}:{port}")
+    print(f"Start VSF FastAPI Service: http://{host}:{port}")
     print(f"API documentation: http://{host}:{port}/docs")
 
     if reload:
         uvicorn.run(
-            "mineru.cli.fast_api:app",
+            "vsf.cli.fast_api:app",
             host=host,
             port=port,
             reload=True,

@@ -3,7 +3,7 @@ import os
 
 from loguru import logger
 
-from mineru.utils.check_sys_env import is_mac_os_version_supported, is_windows_environment, is_mac_environment, \
+from vsf.utils.check_sys_env import is_mac_os_version_supported, is_windows_environment, is_mac_environment, \
     is_linux_environment
 
 

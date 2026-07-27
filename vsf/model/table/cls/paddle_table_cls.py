@@ -8,9 +8,9 @@ import onnxruntime
 from loguru import logger
 from tqdm import tqdm
 
-from mineru.backend.pipeline.model_list import AtomicModel
-from mineru.utils.enum_class import ModelPath
-from mineru.utils.models_download_utils import auto_download_and_get_model_root_path
+from vsf.backend.pipeline.model_list import AtomicModel
+from vsf.utils.enum_class import ModelPath
+from vsf.utils.models_download_utils import auto_download_and_get_model_root_path
 
 
 class PaddleTableClsModel:

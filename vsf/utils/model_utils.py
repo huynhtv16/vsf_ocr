@@ -215,7 +215,7 @@ def clean_vram(device, vram_threshold=8):
 
 
 def get_vram(device) -> int:
-    env_vram = os.getenv("MINERU_VIRTUAL_VRAM_SIZE")
+    env_vram = os.getenv("VSF_VIRTUAL_VRAM_SIZE")
 
     # Parse the input data.
     if env_vram is not None:
@@ -225,10 +225,10 @@ def get_vram(device) -> int:
                 return total_memory
             else:
                 logger.warning(
-                    f"MINERU_VIRTUAL_VRAM_SIZE value '{env_vram}' is not positive, falling back to auto-detection")
+                    f"VSF_VIRTUAL_VRAM_SIZE value '{env_vram}' is not positive, falling back to auto-detection")
         except ValueError:
             logger.warning(
-                f"MINERU_VIRTUAL_VRAM_SIZE value '{env_vram}' is not a valid integer, falling back to auto-detection")
+                f"VSF_VIRTUAL_VRAM_SIZE value '{env_vram}' is not a valid integer, falling back to auto-detection")
 
     # Extract the required value.
     total_memory = 1

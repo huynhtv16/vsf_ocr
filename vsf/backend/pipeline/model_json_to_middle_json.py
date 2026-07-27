@@ -3,23 +3,23 @@ import copy
 
 from tqdm import tqdm
 
-from mineru.backend.utils.html_image_utils import replace_inline_table_images
-from mineru.backend.utils.formula_number import optimize_formula_number_blocks
-from mineru.backend.utils.runtime_utils import cross_page_table_merge
-from mineru.backend.pipeline.model_init import (
+from vsf.backend.utils.html_image_utils import replace_inline_table_images
+from vsf.backend.utils.formula_number import optimize_formula_number_blocks
+from vsf.backend.utils.runtime_utils import cross_page_table_merge
+from vsf.backend.pipeline.model_init import (
     AtomModelSingleton,
     run_ocr_inference,
 )
-from mineru.backend.pipeline.para_split import para_split
-from mineru.utils.cut_image import cut_image_and_table
-from mineru.utils.enum_class import ContentType, BlockType
-from mineru.utils.title_level_postprocess import apply_title_leveling_to_pdf_info
-from mineru.backend.pipeline.pipeline_magic_model import MagicModel
-from mineru.utils.ocr_utils import OcrConfidence, rotate_vertical_crop_if_needed
-from mineru.version import __version__
-from mineru.utils.hash_utils import bytes_md5
-from mineru.utils.pdfium_guard import close_pdfium_child, close_pdfium_document, pdfium_guard
-from mineru.utils.span_pre_proc import (
+from vsf.backend.pipeline.para_split import para_split
+from vsf.utils.cut_image import cut_image_and_table
+from vsf.utils.enum_class import ContentType, BlockType
+from vsf.utils.title_level_postprocess import apply_title_leveling_to_pdf_info
+from vsf.backend.pipeline.pipeline_magic_model import MagicModel
+from vsf.utils.ocr_utils import OcrConfidence, rotate_vertical_crop_if_needed
+from vsf.version import __version__
+from vsf.utils.hash_utils import bytes_md5
+from vsf.utils.pdfium_guard import close_pdfium_child, close_pdfium_document, pdfium_guard
+from vsf.utils.span_pre_proc import (
     _clear_post_ocr_fallback,
     _restore_post_ocr_fallback,
 )

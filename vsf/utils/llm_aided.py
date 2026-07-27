@@ -5,8 +5,8 @@ import json_repair
 from loguru import logger
 from openai import OpenAI
 
-from mineru.backend.pipeline.pipeline_middle_json_mkcontent import merge_para_with_text
-from mineru.utils.enum_class import BlockType
+from vsf.backend.pipeline.pipeline_middle_json_mkcontent import merge_para_with_text
+from vsf.utils.enum_class import BlockType
 
 
 TITLE_BLOCK_TYPES = {

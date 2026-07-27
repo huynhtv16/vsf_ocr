@@ -26,30 +26,30 @@ os.environ["TORCH_CUDNN_V8_API_DISABLED"] = "1"
 _gradio_major_version = int(gr.__version__.split('.')[0])
 IS_GRADIO_6 = _gradio_major_version >= 6
 
-log_level = os.getenv("MINERU_LOG_LEVEL", "INFO").upper()
+log_level = os.getenv("VSF_LOG_LEVEL", "INFO").upper()
 logger.remove()  # Remove invalid or unnecessary data.
 logger.add(sys.stderr, level=log_level)  # Add the value to the result.
 
-from mineru.cli.common import (
+from vsf.cli.common import (
     image_suffixes,
     normalize_task_stem,
     office_suffixes,
     pdf_suffixes,
     read_fn,
 )
-from mineru.cli import api_client as _api_client
-from mineru.cli.backend_options import (
+from vsf.cli import api_client as _api_client
+from vsf.cli.backend_options import (
     DEFAULT_BACKEND,
     DEFAULT_HYBRID_EFFORT,
     HYBRID_EFFORT_CHOICES,
     HTTP_CLIENT_BACKEND_CHOICES,
     LOCAL_BACKEND_CHOICES,
 )
-from mineru.cli.client_side_output import regenerate_client_side_outputs
-from mineru.cli.output_paths import resolve_parse_dir
-from mineru.cli.vlm_preload import resolve_gradio_local_api_cli_args
-from mineru.cli.visualization import VisualizationJob, run_visualization_job
-from mineru.utils.ocr_language import PUBLIC_OCR_LANGUAGE_CHOICES
+from vsf.cli.client_side_output import regenerate_client_side_outputs
+from vsf.cli.output_paths import resolve_parse_dir
+from vsf.cli.vlm_preload import resolve_gradio_local_api_cli_args
+from vsf.cli.visualization import VisualizationJob, run_visualization_job
+from vsf.utils.ocr_language import PUBLIC_OCR_LANGUAGE_CHOICES
 
 _gradio_local_api_server = _api_client.ReusableLocalAPIServer()
 
@@ -246,7 +246,7 @@ STATUS_STEP_DEFINITIONS = [
 ]
 
 
-def normalize_mineru_locale(locale):
+def normalize_vsf_locale(locale):
     """Implementation detail."""
     normalized = str(locale or "").strip().lower()
     if normalized.startswith("zh"):
@@ -260,8 +260,8 @@ def resolve_i18n_text(i18n, key, locale=None):
         return key
     translations = getattr(i18n, "translations", None)
     if translations:
-        preferred_locale = normalize_mineru_locale(
-            locale or os.getenv("MINERU_GRADIO_DEFAULT_LOCALE", "zh")
+        preferred_locale = normalize_vsf_locale(
+            locale or os.getenv("VSF_GRADIO_DEFAULT_LOCALE", "zh")
         )
         preferred_text = translations.get(preferred_locale, {}).get(key)
         if preferred_text is not None:
@@ -307,15 +307,15 @@ def resolve_request_locale(request):
     if not language_candidates:
         return None
     _, _, preferred_language = min(language_candidates)
-    return normalize_mineru_locale(preferred_language)
+    return normalize_vsf_locale(preferred_language)
 
 
 def build_client_i18n_attrs(i18n, key):
     """Prepare the output value."""
-    attrs = [f'data-mineru-i18n-key="{html_lib.escape(key, quote=True)}"']
+    attrs = [f'data-vsf-i18n-key="{html_lib.escape(key, quote=True)}"']
     for locale in ("en", "zh"):
         text = resolve_i18n_text(i18n, key, locale)
-        attrs.append(f'data-mineru-i18n-{locale}="{html_lib.escape(text, quote=True)}"')
+        attrs.append(f'data-vsf-i18n-{locale}="{html_lib.escape(text, quote=True)}"')
     return " ".join(attrs)
 
 
@@ -451,11 +451,11 @@ APP_JS = load_resource_text('gradio_app.js')
 APP_HEAD = f"""
 <script>
 (() => {{
-    const installMineruAdvancedPopover = {APP_JS};
+    const installVSFAdvancedPopover = {APP_JS};
     if (document.readyState === "loading") {{
-        document.addEventListener("DOMContentLoaded", installMineruAdvancedPopover, {{ once: true }});
+        document.addEventListener("DOMContentLoaded", installVSFAdvancedPopover, {{ once: true }});
     }} else {{
-        installMineruAdvancedPopover();
+        installVSFAdvancedPopover();
     }}
 }})();
 </script>
@@ -928,7 +928,7 @@ async def resolve_server_health(http_client, api_url):
 
     local_server, started_now = _gradio_local_api_server.ensure_started()
     if started_now:
-        logger.info(f"Started local mineru-api at {local_server.base_url}")
+        logger.info(f"Started local vsf-api at {local_server.base_url}")
     return await _api_client.wait_for_local_api_ready(http_client, local_server)
 
 
@@ -937,7 +937,7 @@ async def ensure_local_api_ready_for_gradio_startup(
 ):
     local_server, started_now = _gradio_local_api_server.ensure_started()
     if started_now:
-        logger.info(f"Started local mineru-api at {local_server.base_url}")
+        logger.info(f"Started local vsf-api at {local_server.base_url}")
 
     async with httpx.AsyncClient(
         timeout=_api_client.build_http_timeout(),
@@ -1321,7 +1321,7 @@ def render_header_html(i18n):
         )
     rendered_header = rendered_header.replace(
         HEADER_GRADIO_VERSION_CLASS_PLACEHOLDER,
-        " mineru-gradio6-header" if IS_GRADIO_6 else "",
+        " vsf-gradio6-header" if IS_GRADIO_6 else "",
     )
     return rendered_header
 
@@ -1517,14 +1517,14 @@ def update_doc_show(file_path):
     '--api-url',
     'api_url',
     type=str,
-    help="MinerU FastAPI base URL. If omitted, gradio starts a reusable local mineru-api service.",
+    help="VSF FastAPI base URL. If omitted, gradio starts a reusable local vsf-api service.",
     default=None,
 )
 @click.option(
     '--enable-vlm-preload',
     'enable_vlm_preload',
     type=bool,
-    help="Preload the local VLM model when gradio starts a local mineru-api service.",
+    help="Preload the local VLM model when gradio starts a local vsf-api service.",
     default=False,
 )
 @click.option(
@@ -1563,9 +1563,9 @@ def main(ctx,
             "header_model_huggingface_link": "Hugging Face",
             "header_model_modelscope_link": "ModelScope",
             "header_paper_link": "Paper",
-            "header_paper_mineru_report": "MinerU \u00b7 arXiv: 2409.18839",
-            "header_paper_mineru25_report": "MinerU 2.5 \u00b7 arXiv: 2509.22186",
-            "header_paper_mineru25pro_report": "MinerU 2.5 Pro \u00b7 arXiv: 2604.04771",
+            "header_paper_vsf_report": "VSF \u00b7 arXiv: 2409.18839",
+            "header_paper_vsf25_report": "VSF 2.5 \u00b7 arXiv: 2509.22186",
+            "header_paper_vsf25pro_report": "VSF 2.5 Pro \u00b7 arXiv: 2604.04771",
             "header_homepage_link": "Homepage",
             "header_download_link": "Download",
             "max_pages": "Max convert pages",
@@ -1639,9 +1639,9 @@ def main(ctx,
             "header_model_huggingface_link": "Hugging Face",
             "header_model_modelscope_link": "ModelScope",
             "header_paper_link": "Paper",
-            "header_paper_mineru_report": "MinerU \u00b7 arXiv: 2409.18839",
-            "header_paper_mineru25_report": "MinerU 2.5 \u00b7 arXiv: 2509.22186",
-            "header_paper_mineru25pro_report": "MinerU 2.5 Pro \u00b7 arXiv: 2604.04771",
+            "header_paper_vsf_report": "VSF \u00b7 arXiv: 2409.18839",
+            "header_paper_vsf25_report": "VSF 2.5 \u00b7 arXiv: 2509.22186",
+            "header_paper_vsf25pro_report": "VSF 2.5 Pro \u00b7 arXiv: 2604.04771",
             "header_homepage_link": "Homepage",
             "header_download_link": "Download",
             "max_pages": "Max convert pages",
@@ -1810,13 +1810,13 @@ def main(ctx,
     if not IS_GRADIO_6:
         _blocks_kwargs.update({"css": APP_CSS, "js": APP_JS})
     with gr.Blocks(**_blocks_kwargs) as demo:
-        gr.HTML(render_header_html(i18n), elem_classes=["mineru-header-html"])
-        with gr.Row(elem_classes=["mineru-workspace-row"]):
-            with gr.Column(variant='panel', scale=2, min_width=280, elem_classes=["mineru-control-column"]):
+        gr.HTML(render_header_html(i18n), elem_classes=["vsf-header-html"])
+        with gr.Row(elem_classes=["vsf-workspace-row"]):
+            with gr.Column(variant='panel', scale=2, min_width=280, elem_classes=["vsf-control-column"]):
                 input_file = gr.File(
                     label=i18n("upload_file"),
                     file_types=suffixes,
-                    elem_classes=["mineru-upload-file"],
+                    elem_classes=["vsf-upload-file"],
                 )
                 preferred_option = DEFAULT_BACKEND
                 backend = gr.Dropdown(
@@ -1824,11 +1824,11 @@ def main(ctx,
                     label=i18n("backend"),
                     value=preferred_option,
                     info=get_backend_info(preferred_option),
-                    elem_classes=["mineru-backend-select"],
+                    elem_classes=["vsf-backend-select"],
                 )
                 with gr.Row(
                     visible=frontend_managed_initial_visibility(is_http_client_backend(preferred_option)),
-                    elem_classes=["mineru-client-options"],
+                    elem_classes=["vsf-client-options"],
                 ):
                     url = gr.Textbox(
                         label=i18n("server_url"),
@@ -1842,20 +1842,20 @@ def main(ctx,
                     gr.Button(
                         i18n("advanced_options"),
                         size="sm",
-                        elem_classes=["mineru-advanced-open"],
+                        elem_classes=["vsf-advanced-open"],
                     )
-                with gr.Row(elem_classes=["mineru-actions"]):
+                with gr.Row(elem_classes=["vsf-actions"]):
                     change_bu = gr.Button(i18n("convert"), variant="primary", scale=1, min_width=0)
                     clear_bu = gr.ClearButton(value=i18n("clear"), scale=1, min_width=0)
                 output_file = gr.File(
                     label=i18n("convert_result"),
                     interactive=False,
-                    elem_classes=["mineru-result-file"],
+                    elem_classes=["vsf-result-file"],
                 )
                 status_panel = gr.HTML(
                     value=render_status_steps_html("", i18n),
                     label=i18n("convert_status"),
-                    elem_classes=["mineru-status-panel"],
+                    elem_classes=["vsf-status-panel"],
                 )
 
             _doc_preview_label = "doc preview" if IS_GRADIO_6 else i18n("doc_preview")
@@ -1863,7 +1863,7 @@ def main(ctx,
             # Implementation detail.
             preview_content_height = 775
             pdf_preview_page_height = 720
-            with gr.Column(variant='panel', scale=4, min_width=340, elem_classes=["mineru-preview-pane"]):
+            with gr.Column(variant='panel', scale=4, min_width=340, elem_classes=["vsf-preview-pane"]):
                 doc_show = PDF(
                     label=_doc_preview_label,
                     interactive=False,
@@ -1874,18 +1874,18 @@ def main(ctx,
                     value="",
                     visible=False,
                     min_height=preview_content_height,
-                    elem_classes=["mineru-office-preview-html"],
+                    elem_classes=["vsf-office-preview-html"],
                 )
 
-            with gr.Column(variant='panel', scale=4, min_width=340, elem_classes=["mineru-markdown-pane"]):
+            with gr.Column(variant='panel', scale=4, min_width=340, elem_classes=["vsf-markdown-pane"]):
                 _md_copy_kwargs = {"buttons": ["copy"]} if IS_GRADIO_6 else {"show_copy_button": True}
                 _textarea_copy_kwargs = {"buttons": ["copy"]} if IS_GRADIO_6 else {"show_copy_button": True}
-                with gr.Tabs(elem_classes=["mineru-markdown-tabs"]):
+                with gr.Tabs(elem_classes=["vsf-markdown-tabs"]):
                     with gr.Tab(i18n("md_rendering")):
                         md = gr.Markdown(
                             label=i18n("md_rendering"),
                             height=preview_content_height,
-                            elem_classes=["mineru-markdown-output"],
+                            elem_classes=["vsf-markdown-output"],
                             latex_delimiters=latex_delimiters,
                             line_breaks=True,
                             **_md_copy_kwargs
@@ -1898,7 +1898,7 @@ def main(ctx,
                             interactive=False,
                             wrap_lines=True,
                             show_label=False,
-                            elem_classes=["mineru-markdown-text"],
+                            elem_classes=["vsf-markdown-text"],
                         )
                     with gr.Tab(i18n("content_list_json")):
                         content_list_json = gr.Code(
@@ -1908,7 +1908,7 @@ def main(ctx,
                             interactive=False,
                             wrap_lines=True,
                             show_label=False,
-                            elem_classes=["mineru-content-list-json"],
+                            elem_classes=["vsf-content-list-json"],
                         )
 
         if example_enable:
@@ -1919,16 +1919,16 @@ def main(ctx,
                     if _.endswith(tuple(suffixes))
                 ]
                 if example_files:
-                    with gr.Accordion(i18n("examples"), open=True, elem_classes=["mineru-examples-panel"]):
+                    with gr.Accordion(i18n("examples"), open=True, elem_classes=["vsf-examples-panel"]):
                         gr.Examples(
                             examples=example_files,
                             inputs=input_file,
-                            elem_id="mineru-example-files",
+                            elem_id="vsf-example-files",
                             label=None,
                         )
 
-        with gr.Column(elem_classes=["mineru-advanced-popover"]):
-            with gr.Column(elem_classes=["mineru-advanced-card"]):
+        with gr.Column(elem_classes=["vsf-advanced-popover"]):
+            with gr.Column(elem_classes=["vsf-advanced-card"]):
                 with gr.Group():
                     table_enable = gr.Checkbox(label=i18n("table_enable"), value=True, info=i18n("table_info"))
                     formula_enable = gr.Checkbox(label=get_formula_label(preferred_option), value=True, info=get_formula_info(preferred_option))
@@ -1939,19 +1939,19 @@ def main(ctx,
                             is_image_analysis_option_visible(preferred_option, DEFAULT_HYBRID_EFFORT)
                         ),
                         info=i18n("image_analysis_info"),
-                        elem_classes=["mineru-image-analysis-option"],
+                        elem_classes=["vsf-image-analysis-option"],
                     )
-                    with gr.Column(elem_classes=["mineru-hybrid-effort-option"]):
+                    with gr.Column(elem_classes=["vsf-hybrid-effort-option"]):
                         hybrid_effort = gr.Radio(
                             list(HYBRID_EFFORT_CHOICES),
                             label=i18n("hybrid_effort"),
                             value=DEFAULT_HYBRID_EFFORT,
                             info=i18n("hybrid_effort_info"),
-                            elem_classes=["mineru-hybrid-effort"],
+                            elem_classes=["vsf-hybrid-effort"],
                         )
-                with gr.Column(elem_classes=["mineru-force-ocr-option"]):
+                with gr.Column(elem_classes=["vsf-force-ocr-option"]):
                     with gr.Group():
-                        with gr.Column(elem_classes=["mineru-ocr-language-options"]):
+                        with gr.Column(elem_classes=["vsf-ocr-language-options"]):
                             language = gr.Dropdown(
                                 all_lang,
                                 label=i18n("ocr_language"),

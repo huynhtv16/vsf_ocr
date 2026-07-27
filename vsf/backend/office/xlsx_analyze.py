@@ -3,9 +3,9 @@ import time
 from io import BytesIO
 
 from loguru import logger
-from mineru.backend.office.model_output_to_middle_json import result_to_middle_json
+from vsf.backend.office.model_output_to_middle_json import result_to_middle_json
 
-from mineru.model.xlsx.main import convert_binary
+from vsf.model.xlsx.main import convert_binary
 
 
 def office_xlsx_analyze(file_bytes, image_writer=None):
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     xlsx_path = Path(args.xlsx)
-    from mineru.data.data_reader_writer import FileBasedDataWriter
+    from vsf.data.data_reader_writer import FileBasedDataWriter
 
     with open(xlsx_path, "rb") as f:
         file_bytes = f.read()

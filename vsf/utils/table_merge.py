@@ -5,10 +5,10 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
-from mineru.backend.vlm.vlm_middle_json_mkcontent import merge_para_with_text
-from mineru.utils.char_utils import full_to_half
-from mineru.utils.enum_class import BlockType, SplitFlag
-from mineru.utils.table_continuation import is_table_continuation_text
+from vsf.backend.vlm.vlm_middle_json_mkcontent import merge_para_with_text
+from vsf.utils.char_utils import full_to_half
+from vsf.utils.enum_class import BlockType, SplitFlag
+from vsf.utils.table_continuation import is_table_continuation_text
 
 
 MAX_HEADER_ROWS = 5

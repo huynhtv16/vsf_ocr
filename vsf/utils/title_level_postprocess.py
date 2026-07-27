@@ -7,8 +7,8 @@ from typing import Any
 
 from loguru import logger
 
-from mineru.utils.config_reader import get_llm_aided_config
-from mineru.utils.llm_aided import llm_aided_title
+from vsf.utils.config_reader import get_llm_aided_config
+from vsf.utils.llm_aided import llm_aided_title
 
 
 SUPPORTED_PDF_BACKENDS = {"pipeline", "vlm", "hybrid"}
@@ -52,7 +52,7 @@ def finalize_client_side_middle_json(middle_json: dict[str, Any]) -> dict[str, A
     pdf_info = middle_json.get("pdf_info")
 
     if backend == "pipeline":
-        from mineru.backend.pipeline.model_json_to_middle_json import (
+        from vsf.backend.pipeline.model_json_to_middle_json import (
             finalize_middle_json_from_preproc,
         )
 
@@ -60,7 +60,7 @@ def finalize_client_side_middle_json(middle_json: dict[str, Any]) -> dict[str, A
             pdf_info,
         )
     elif backend == "vlm":
-        from mineru.backend.vlm.model_output_to_middle_json import (
+        from vsf.backend.vlm.model_output_to_middle_json import (
             finalize_middle_json,
         )
 
@@ -68,7 +68,7 @@ def finalize_client_side_middle_json(middle_json: dict[str, Any]) -> dict[str, A
             pdf_info,
         )
     elif backend == "hybrid":
-        from mineru.backend.hybrid.hybrid_model_output_to_middle_json import (
+        from vsf.backend.hybrid.hybrid_model_output_to_middle_json import (
             finalize_middle_json_from_preproc,
         )
 

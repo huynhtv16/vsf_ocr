@@ -20,15 +20,15 @@ from loguru import logger
 from pydantic import PositiveInt, Field, BaseModel, NonNegativeInt
 from pydantic.dataclasses import dataclass
 
-from mineru.utils.enum_class import BlockType
-from mineru.backend.utils.office_image import (
+from vsf.utils.enum_class import BlockType
+from vsf.backend.utils.office_image import (
     is_vector_image,
     serialize_vector_image_with_placeholder,
 )
-from mineru.utils.pdf_reader import image_to_b64str
-from mineru.model.office_math.omml import oMath2Latex
-from mineru.model.office_stream import read_stream_bytes_from_start, rewind_stream
-from mineru.model.xlsx.package_normalizer import normalize_xlsx_package
+from vsf.utils.pdf_reader import image_to_b64str
+from vsf.model.office_math.omml import oMath2Latex
+from vsf.model.office_stream import read_stream_bytes_from_start, rewind_stream
+from vsf.model.xlsx.package_normalizer import normalize_xlsx_package
 
 AUTO_GAP_TOLERANCE_CANDIDATES = (0, 1, 2)
 AUTO_GAP_TOLERANCE_PREFERENCE = {1: 0, 0: 1, 2: 2}

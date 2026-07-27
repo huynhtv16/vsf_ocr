@@ -4,9 +4,9 @@ import re
 
 from loguru import logger
 
-from mineru.backend.utils.office_image import is_vector_image_part, serialize_office_image
-from mineru.utils.enum_class import BlockType, ContentType
-from mineru.utils.hash_utils import str_sha256
+from vsf.backend.utils.office_image import is_vector_image_part, serialize_office_image
+from vsf.utils.enum_class import BlockType, ContentType
+from vsf.utils.hash_utils import str_sha256
 
 
 INLINE_IMAGE_DATA_URI_RE = re.compile(r"data:image/([^;]+);base64,(.+)", re.DOTALL)
@@ -54,11 +54,11 @@ def _save_inline_vector_image(
 
 def _write_image_once(image_writer, img_path: str, img_bytes: bytes) -> None:
     """Process the file path."""
-    written_paths = getattr(image_writer, "_mineru_written_image_paths", None)
+    written_paths = getattr(image_writer, "_vsf_written_image_paths", None)
     if written_paths is None:
         written_paths = set()
         try:
-            setattr(image_writer, "_mineru_written_image_paths", written_paths)
+            setattr(image_writer, "_vsf_written_image_paths", written_paths)
         except Exception:
             image_writer.write(img_path, img_bytes)
             return

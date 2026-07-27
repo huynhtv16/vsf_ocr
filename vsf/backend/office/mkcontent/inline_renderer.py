@@ -3,12 +3,12 @@ from dataclasses import dataclass, field
 import unicodedata
 from html import escape
 
-from mineru.backend.utils.markdown_utils import (
+from vsf.backend.utils.markdown_utils import (
     escape_conservative_markdown_text,
     escape_text_block_markdown_prefix,
 )
-from mineru.utils.config_reader import get_latex_delimiter_config
-from mineru.utils.enum_class import BlockType, ContentType
+from vsf.utils.config_reader import get_latex_delimiter_config
+from vsf.utils.enum_class import BlockType, ContentType
 
 latex_delimiters_config = get_latex_delimiter_config()
 

@@ -3,7 +3,7 @@ from typing import Any, List, Sequence, Tuple
 
 from loguru import logger
 
-from mineru.utils.config_reader import get_device
+from vsf.utils.config_reader import get_device
 
 
 CPU_PROVIDER = "CPUExecutionProvider"

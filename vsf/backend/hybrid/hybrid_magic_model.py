@@ -4,12 +4,12 @@ import re
 
 from loguru import logger
 
-from mineru.utils.boxbase import calculate_overlap_area_in_bbox1_area_ratio
-from mineru.utils.enum_class import ContentType, BlockType, NotExtractType
-from mineru.utils.guess_suffix_or_lang import guess_language_by_text
-from mineru.utils.span_block_fix import fix_text_block
-from mineru.utils.span_pre_proc import SpanBlockMatcher, txt_spans_extract
-from mineru.utils.visual_magic_model_utils import (
+from vsf.utils.boxbase import calculate_overlap_area_in_bbox1_area_ratio
+from vsf.utils.enum_class import ContentType, BlockType, NotExtractType
+from vsf.utils.guess_suffix_or_lang import guess_language_by_text
+from vsf.utils.span_block_fix import fix_text_block
+from vsf.utils.span_pre_proc import SpanBlockMatcher, txt_spans_extract
+from vsf.utils.visual_magic_model_utils import (
     GENERIC_CHILD_TYPES,
     IMAGE_BLOCK_BODY,
     VISUAL_MAIN_TYPES,

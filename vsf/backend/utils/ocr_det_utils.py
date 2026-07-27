@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from loguru import logger
 
-from mineru.utils.pdf_image_tools import get_crop_img
+from vsf.utils.pdf_image_tools import get_crop_img
 
 OCR_DET_PADDING = 50
 
@@ -12,11 +12,11 @@ OCR_DET_PADDING = 50
 def get_ch_ocr_det_model():
     """Extract the required value."""
     try:
-        from mineru.backend.pipeline.model_init import AtomModelSingleton
+        from vsf.backend.pipeline.model_init import AtomModelSingleton
     except Exception as e:
         logger.error(
             "Failed to import AtomModelSingleton, OCR detection will not work. If you want to use OCR features, "
-            "please execute `pip install mineru[core]` to install the required packages."
+            "please execute `pip install vsf[core]` to install the required packages."
         )
         raise e
 

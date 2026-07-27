@@ -7,8 +7,8 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from mineru.model.utils.pytorchocr.base_ocr_v20 import BaseOCRV20
-from mineru.model.utils.tools.infer import pytorchocr_utility
+from vsf.model.utils.pytorchocr.base_ocr_v20 import BaseOCRV20
+from vsf.model.utils.tools.infer import pytorchocr_utility
 
 from ..utils import build_mfr_batch_groups
 from .processors import (

@@ -13,11 +13,11 @@ from PIL import Image
 from loguru import logger
 from bs4 import BeautifulSoup
 
-from mineru.utils.span_pre_proc import calculate_contrast
+from vsf.utils.span_pre_proc import calculate_contrast
 from .table_structure_unet import TSRUnet
 
-from mineru.utils.enum_class import ModelPath
-from mineru.utils.models_download_utils import auto_download_and_get_model_root_path
+from vsf.utils.enum_class import ModelPath
+from vsf.utils.models_download_utils import auto_download_and_get_model_root_path
 from .table_recover import TableRecover
 from .utils import InputType, LoadImage, VisTable
 from .utils_table_recover import (

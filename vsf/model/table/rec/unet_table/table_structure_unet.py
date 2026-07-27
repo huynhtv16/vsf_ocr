@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any, Tuple
 import cv2
 import numpy as np
 
-from mineru.utils.os_env_config import get_op_num_threads
+from vsf.utils.os_env_config import get_op_num_threads
 from .utils import OrtInferSession, resize_img
 from .utils_table_line_rec import (
     get_table_line,
@@ -31,8 +31,8 @@ class TSRUnet:
         self.inp_height = 1024
         self.inp_width = 1024
 
-        config["intra_op_num_threads"] = get_op_num_threads("MINERU_INTRA_OP_NUM_THREADS")
-        config["inter_op_num_threads"] = get_op_num_threads("MINERU_INTER_OP_NUM_THREADS")
+        config["intra_op_num_threads"] = get_op_num_threads("VSF_INTRA_OP_NUM_THREADS")
+        config["inter_op_num_threads"] = get_op_num_threads("VSF_INTER_OP_NUM_THREADS")
 
         self.session = OrtInferSession(config)
 

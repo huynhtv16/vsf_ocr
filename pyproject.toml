@@ -3,10 +3,8 @@ requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mineru"
+name = "vsf"
 dynamic = ["version"]
-license = "LicenseRef-MinerU-Open-Source-License"
-license-files = ["LICENSE.md"]
 description = "VSF OCR converts PDF, images, PPTX, and XLSX into structured Markdown and JSON"
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
@@ -60,7 +58,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "mineru[core]",
+    "vsf[core]",
     "pytest",
     "pytest-cov",
     "coverage",
@@ -102,49 +100,49 @@ gradio = [
     "gradio-pdf>=0.0.22",
 ]
 core = [
-    "mineru[vlm]",
-    "mineru[pipeline]",
-    "mineru[gradio]",
+    "vsf[vlm]",
+    "vsf[pipeline]",
+    "vsf[gradio]",
 ]
 all = [
-    "mineru[core]",
-    "mineru[s3]",
-    "mineru[mlx] ; sys_platform == 'darwin'",
-    "mineru[vllm] ; sys_platform == 'linux'",
-    "mineru[lmdeploy] ; sys_platform == 'win32'",
+    "vsf[core]",
+    "vsf[s3]",
+    "vsf[mlx] ; sys_platform == 'darwin'",
+    "vsf[vllm] ; sys_platform == 'linux'",
+    "vsf[lmdeploy] ; sys_platform == 'win32'",
 ]
 
 [project.scripts]
-mineru = "mineru.cli.client:main"
-mineru-vllm-server = "mineru.cli.vlm_server:vllm_server"
-mineru-lmdeploy-server = "mineru.cli.vlm_server:lmdeploy_server"
-mineru-openai-server = "mineru.cli.vlm_server:openai_server"
-mineru-models-download = "mineru.cli.models_download:download_models"
-mineru-api = "mineru.cli.fast_api:main"
-mineru-router = "mineru.cli.router:main"
-mineru-gradio = "mineru.cli.gradio_app:main"
+vsf = "vsf.cli.client:main"
+vsf-vllm-server = "vsf.cli.vlm_server:vllm_server"
+vsf-lmdeploy-server = "vsf.cli.vlm_server:lmdeploy_server"
+vsf-openai-server = "vsf.cli.vlm_server:openai_server"
+vsf-models-download = "vsf.cli.models_download:download_models"
+vsf-api = "vsf.cli.fast_api:main"
+vsf-router = "vsf.cli.router:main"
+vsf-gradio = "vsf.cli.gradio_app:main"
 
 [tool.setuptools.dynamic]
-version = { attr = "mineru.version.__version__" }
+version = { attr = "vsf.version.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["mineru*"]
+include = ["vsf*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-"mineru" = ["resources/**"]
-"mineru.model.utils.pytorchocr.utils" = ["resources/**"]
+"vsf" = ["resources/**"]
+"vsf.model.utils.pytorchocr.utils" = ["resources/**"]
 
 [tool.setuptools]
 include-package-data = true
 zip-safe = false
 
 [tool.pytest.ini_options]
-addopts = "-s --cov=mineru --cov-report html"
+addopts = "-s --cov=vsf --cov-report html"
 
 [tool.coverage.run]
 command_line = "-m pytest tests/unittest/test_e2e.py"
-source = ["mineru/"]
+source = ["vsf/"]
 omit = [
     "*/gradio_app.py",
     "*/models_download.py",

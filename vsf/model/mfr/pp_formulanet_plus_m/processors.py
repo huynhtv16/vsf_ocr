@@ -12,7 +12,7 @@ from loguru import logger
 from tokenizers import AddedToken
 from tokenizers import Tokenizer as TokenizerFast
 
-from mineru.model.mfr.utils import fix_latex_left_right, fix_latex_environments, remove_up_commands, \
+from vsf.model.mfr.utils import fix_latex_left_right, fix_latex_environments, remove_up_commands, \
     remove_unsupported_commands
 
 

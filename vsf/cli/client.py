@@ -14,11 +14,11 @@ import httpx
 import pypdfium2 as pdfium
 from loguru import logger
 
-from mineru.cli.api_protocol import (
+from vsf.cli.api_protocol import (
     DEFAULT_MAX_CONCURRENT_REQUESTS,
     DEFAULT_PROCESSING_WINDOW_SIZE,
 )
-from mineru.cli.backend_options import (
+from vsf.cli.backend_options import (
     DEFAULT_BACKEND,
     DEFAULT_HYBRID_EFFORT,
     HYBRID_EFFORT_CHOICES,
@@ -26,20 +26,20 @@ from mineru.cli.backend_options import (
     normalize_backend,
     validate_effort,
 )
-from mineru.utils.config_reader import (
+from vsf.utils.config_reader import (
     get_max_concurrent_requests as read_max_concurrent_requests,
 )
-from mineru.utils.guess_suffix_or_lang import guess_suffix_by_path
-from mineru.utils.ocr_language import PUBLIC_OCR_LANGUAGES, validate_public_ocr_lang
-from mineru.utils.pdf_page_id import get_end_page_id
-from mineru.utils.pdfium_guard import (
+from vsf.utils.guess_suffix_or_lang import guess_suffix_by_path
+from vsf.utils.ocr_language import PUBLIC_OCR_LANGUAGES, validate_public_ocr_lang
+from vsf.utils.pdf_page_id import get_end_page_id
+from vsf.utils.pdfium_guard import (
     close_pdfium_document,
     get_pdfium_document_page_count,
     open_pdfium_document,
 )
 
-from mineru.version import __version__
-from mineru.cli.common import (
+from vsf.version import __version__
+from vsf.cli.common import (
     HybridDependencyError,
     ensure_backend_dependencies,
     image_suffixes,
@@ -47,16 +47,16 @@ from mineru.cli.common import (
     pdf_suffixes,
     uniquify_task_stems,
 )
-from mineru.cli import api_client as _api_client
-from mineru.cli.client_side_output import regenerate_client_side_outputs
-from mineru.cli.output_paths import resolve_parse_dir
-from mineru.cli.visualization import (
+from vsf.cli import api_client as _api_client
+from vsf.cli.client_side_output import regenerate_client_side_outputs
+from vsf.cli.output_paths import resolve_parse_dir
+from vsf.cli.visualization import (
     VisualizationJob,
     run_visualization_job,
 )
 
 os.environ["TORCH_CUDNN_V8_API_DISABLED"] = "1"
-log_level = os.getenv("MINERU_LOG_LEVEL", "INFO").upper()
+log_level = os.getenv("VSF_LOG_LEVEL", "INFO").upper()
 
 @dataclass(frozen=True)
 class InputDocument:
@@ -950,7 +950,7 @@ async def run_orchestrated_cli(
             if api_url is None:
                 local_server = LocalAPIServer(extra_cli_args=extra_cli_args)
                 base_url = local_server.start()
-                logger.info(f"Started local mineru-api at {base_url}")
+                logger.info(f"Started local vsf-api at {base_url}")
                 server_health = await wait_for_local_api_ready(http_client, local_server)
                 effective_max_concurrent_requests = (
                     server_health.max_concurrent_requests
@@ -1058,7 +1058,7 @@ async def run_orchestrated_cli(
     "api_url",
     type=str,
     default=None,
-    help="MinerU FastAPI base URL. If omitted, mineru starts a temporary local mineru-api service.",
+    help="VSF FastAPI base URL. If omitted, vsf starts a temporary local vsf-api service.",
 )
 @click.option(
     "-m",

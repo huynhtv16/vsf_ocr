@@ -8,12 +8,12 @@ from loguru import logger
 from modelscope import snapshot_download as ms_snapshot_download
 import requests
 
-from mineru.utils.config_reader import get_configured_model_source, get_local_models_dir
-from mineru.utils.enum_class import ModelPath
+from vsf.utils.config_reader import get_configured_model_source, get_local_models_dir
+from vsf.utils.enum_class import ModelPath
 
-MODEL_SOURCE_ENV_VAR = 'MINERU_MODEL_SOURCE'
+MODEL_SOURCE_ENV_VAR = 'VSF_MODEL_SOURCE'
 CONFIG_TEMPLATE_URL = 'https://gcore.jsdelivr.net/gh/opendatalab/MinerU@master/mineru.template.json'
-MINERU_CONFIG_VERSION = '1.3.2'
+VSF_CONFIG_VERSION = '1.3.2'
 HUGGINGFACE_MODELS_PAGE_URL = "https://huggingface.co/models"
 HUGGINGFACE_MODELS_PAGE_TIMEOUT = 3
 HUGGINGFACE_MODELS_PAGE_MAX_ATTEMPTS = 2
@@ -22,7 +22,7 @@ REMOTE_MODEL_SOURCES = ("huggingface", "modelscope")
 
 def get_tools_config_file_path() -> str:
     """Extract the required value."""
-    config_file_name = os.getenv('MINERU_TOOLS_CONFIG_JSON', 'mineru.json')
+    config_file_name = os.getenv('VSF_TOOLS_CONFIG_JSON', 'vsf.json')
     if os.path.isabs(config_file_name):
         return config_file_name
     return os.path.join(os.path.expanduser('~'), config_file_name)
@@ -45,7 +45,7 @@ def is_config_version_outdated(config_version):
         return tuple(parts)
 
     current_version = version_tuple(config_version)
-    target_version = version_tuple(MINERU_CONFIG_VERSION)
+    target_version = version_tuple(VSF_CONFIG_VERSION)
     max_len = max(len(current_version), len(target_version))
     current_version += (0,) * (max_len - len(current_version))
     target_version += (0,) * (max_len - len(target_version))

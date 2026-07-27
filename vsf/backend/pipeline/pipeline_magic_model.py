@@ -1,13 +1,13 @@
 # Copyright (c) Opendatalab. All rights reserved.
-from mineru.backend.pipeline.para_split import ListLineTag
-from mineru.backend.pipeline.pipeline_middle_json_mkcontent import _merge_para_text
-from mineru.backend.utils.formula_number import formula_number_max_overlap_ratio
-from mineru.utils.enum_class import ContentType, BlockType
-from mineru.utils.guess_suffix_or_lang import guess_language_by_text
-from mineru.utils.span_block_fix import merge_spans_to_vertical_line, vertical_line_sort_spans_from_top_to_bottom, \
+from vsf.backend.pipeline.para_split import ListLineTag
+from vsf.backend.pipeline.pipeline_middle_json_mkcontent import _merge_para_text
+from vsf.backend.utils.formula_number import formula_number_max_overlap_ratio
+from vsf.utils.enum_class import ContentType, BlockType
+from vsf.utils.guess_suffix_or_lang import guess_language_by_text
+from vsf.utils.span_block_fix import merge_spans_to_vertical_line, vertical_line_sort_spans_from_top_to_bottom, \
     merge_spans_to_line, line_sort_spans_by_left_to_right, is_vertical_text_block_by_spans
-from mineru.utils.span_pre_proc import SpanBlockMatcher, txt_spans_extract
-from mineru.utils.visual_magic_model_utils import (
+from vsf.utils.span_pre_proc import SpanBlockMatcher, txt_spans_extract
+from vsf.utils.visual_magic_model_utils import (
     fallback_inline_caption_fragments,
     fallback_leading_table_continuation_captions,
     find_best_visual_parent,

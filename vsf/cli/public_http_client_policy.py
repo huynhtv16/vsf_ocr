@@ -47,7 +47,7 @@ def warn_if_public_http_client_policy(
         return
     if allow_public_http_client:
         logger.warning(
-            "MinerU {} is listening on {} with --allow-public-http-client enabled. "
+            "VSF {} is listening on {} with --allow-public-http-client enabled. "
             "Requests may supply remote HTTP inference endpoints and turn the service "
             "into an externally driven outbound request primitive, creating SSRF and "
             "internal network probing risk.",
@@ -56,7 +56,7 @@ def warn_if_public_http_client_policy(
         )
         return
     logger.warning(
-        "MinerU {} is listening on {}. Disabling *-http-client backends and "
+        "VSF {} is listening on {}. Disabling *-http-client backends and "
         "server_url by default because these inputs let callers choose remote HTTP "
         "inference endpoints; when the API is publicly reachable, that creates SSRF "
         "and internal network probing risk.",

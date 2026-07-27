@@ -22,7 +22,7 @@ ORIENTATION_SCORE_TIE_THRESHOLD = 0.08
 ORIENTATION_SCORE_LABELS = ("0", "90", "270")
 
 
-class MineruTableOrientationClsModel:
+class VSFTableOrientationClsModel:
     def __init__(self, ocr_engine):
         self.ocr_engine = ocr_engine
 
@@ -69,7 +69,7 @@ class MineruTableOrientationClsModel:
         """Calculate the result."""
         vertical_count = 0
         for box_ocr_res in det_boxes:
-            width, height = MineruTableOrientationClsModel._box_width_height(box_ocr_res)
+            width, height = VSFTableOrientationClsModel._box_width_height(box_ocr_res)
             aspect_ratio = width / height if height > 0 else 1.0
 
             # Implementation detail.

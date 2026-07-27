@@ -90,7 +90,7 @@ def render_algorithm_html_from_lines(
         return ""
 
     return (
-        '<div class="mineru-algorithm" style="white-space: pre-wrap; font-family:monospace;">\n'
+        '<div class="vsf-algorithm" style="white-space: pre-wrap; font-family:monospace;">\n'
         f"{html_body}\n"
         "</div>"
     )

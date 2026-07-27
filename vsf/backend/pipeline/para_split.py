@@ -1,7 +1,7 @@
 # Copyright (c) Opendatalab. All rights reserved.
 import copy
-from mineru.utils.enum_class import ContentType, BlockType, SplitFlag
-from mineru.utils.language import detect_lang
+from vsf.utils.enum_class import ContentType, BlockType, SplitFlag
+from vsf.utils.language import detect_lang
 
 
 LINE_STOP_FLAG = ('.', '!', '?', '\u3002', '\uff01', '\uff1f', ')', '\uff09', '"', '\u201d', ':', '\uff1a', ';', '\uff1b')

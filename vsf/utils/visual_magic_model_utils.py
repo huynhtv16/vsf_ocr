@@ -1,13 +1,13 @@
 # Copyright (c) Opendatalab. All rights reserved.
 import re
 
-from mineru.utils.boxbase import (
+from vsf.utils.boxbase import (
     bbox_center_distance,
     bbox_distance,
     calculate_overlap_area_in_bbox1_area_ratio,
 )
-from mineru.utils.enum_class import BlockType
-from mineru.utils.table_continuation import is_table_continuation_text
+from vsf.utils.enum_class import BlockType
+from vsf.utils.table_continuation import is_table_continuation_text
 
 
 IMAGE_BLOCK_BODY = "image_block_body"

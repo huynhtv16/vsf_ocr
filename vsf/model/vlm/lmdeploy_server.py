@@ -4,8 +4,8 @@ import sys
 
 from loguru import logger
 
-from mineru.backend.vlm.utils import set_lmdeploy_backend
-from mineru.utils.models_download_utils import auto_download_and_get_model_root_path
+from vsf.backend.vlm.utils import set_lmdeploy_backend
+from vsf.utils.models_download_utils import auto_download_and_get_model_root_path
 
 
 def main():
@@ -54,12 +54,12 @@ def main():
     if not has_log_level_arg:
         args.extend(["--log-level", "ERROR"])
 
-    device_type = os.getenv("MINERU_LMDEPLOY_DEVICE", device_type)
+    device_type = os.getenv("VSF_LMDEPLOY_DEVICE", device_type)
     if device_type == "":
         device_type = "cuda"
     elif device_type not in ["cuda", "ascend", "maca", "camb"]:
         raise ValueError(f"Unsupported lmdeploy device type: {device_type}")
-    lm_backend = os.getenv("MINERU_LMDEPLOY_BACKEND", lm_backend)
+    lm_backend = os.getenv("VSF_LMDEPLOY_BACKEND", lm_backend)
     if lm_backend == "":
         lm_backend = set_lmdeploy_backend(device_type)
     elif lm_backend not in ["pytorch", "turbomind"]:

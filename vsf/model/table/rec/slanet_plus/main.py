@@ -14,8 +14,8 @@ from tqdm import tqdm
 
 from .matcher import TableMatch
 from .table_structure import TableStructurer
-from mineru.utils.enum_class import ModelPath
-from mineru.utils.models_download_utils import auto_download_and_get_model_root_path
+from vsf.utils.enum_class import ModelPath
+from vsf.utils.models_download_utils import auto_download_and_get_model_root_path
 
 
 @dataclass

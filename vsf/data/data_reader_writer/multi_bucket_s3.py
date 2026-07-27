@@ -12,7 +12,7 @@ def _load_s3_io_classes():
         from ..io.s3 import S3Reader, S3Writer
     except ModuleNotFoundError as exc:
         raise ModuleNotFoundError(
-            "S3 reader/writer requires optional dependencies. Install them with `pip install 'mineru[s3]'`."
+            "S3 reader/writer requires optional dependencies. Install them with `pip install 'vsf[s3]'`."
         ) from exc
 
     return S3Reader, S3Writer

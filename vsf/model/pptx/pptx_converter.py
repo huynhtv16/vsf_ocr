@@ -12,22 +12,22 @@ from pptx.oxml.text import CT_TextLineBreak
 from loguru import logger
 from PIL import Image
 
-from mineru.utils.enum_class import BlockType
-from mineru.backend.utils.office_image import (
+from vsf.utils.enum_class import BlockType
+from vsf.backend.utils.office_image import (
     PIL_IMAGE_LOAD_ERRORS,
     is_vector_image,
     serialize_vector_image_with_placeholder,
 )
-from mineru.model.office_math.omml import oMath2Latex
-from mineru.backend.utils.office_chart import extract_chart_html_from_ooxml
-from mineru.model.office_stream import read_stream_bytes_from_start, rewind_stream
-from mineru.model.pptx.package_normalizer import normalize_pptx_package
-from mineru.model.pptx.xycut_pp_sorter import sort_entries
-from mineru.utils.office_rich_text import (
+from vsf.model.office_math.omml import oMath2Latex
+from vsf.backend.utils.office_chart import extract_chart_html_from_ooxml
+from vsf.model.office_stream import read_stream_bytes_from_start, rewind_stream
+from vsf.model.pptx.package_normalizer import normalize_pptx_package
+from vsf.model.pptx.xycut_pp_sorter import sort_entries
+from vsf.utils.office_rich_text import (
     OfficeRichTextSegment,
     build_rich_text_from_segments,
 )
-from mineru.utils.pdf_reader import image_to_b64str
+from vsf.utils.pdf_reader import image_to_b64str
 
 IGNORED_NOTES_PLACEHOLDER_TYPES: Final = {
     PP_PLACEHOLDER.SLIDE_IMAGE,

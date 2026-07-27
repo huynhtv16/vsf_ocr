@@ -12,15 +12,15 @@ import pypdfium2 as pdfium
 from loguru import logger
 from PIL import Image, ImageOps
 
-from mineru.data.data_reader_writer import FileBasedDataWriter
-from mineru.utils.check_sys_env import is_windows_environment
-from mineru.utils.bbox_utils import normalize_to_int_bbox
-from mineru.utils.os_env_config import get_load_images_timeout, get_load_images_threads
-from mineru.utils.pdf_reader import image_to_b64str, image_to_bytes, page_to_image
-from mineru.utils.enum_class import ImageType
-from mineru.utils.hash_utils import str_sha256
-from mineru.utils.pdf_page_id import get_end_page_id
-from mineru.utils.pdfium_guard import (
+from vsf.data.data_reader_writer import FileBasedDataWriter
+from vsf.utils.check_sys_env import is_windows_environment
+from vsf.utils.bbox_utils import normalize_to_int_bbox
+from vsf.utils.os_env_config import get_load_images_timeout, get_load_images_threads
+from vsf.utils.pdf_reader import image_to_b64str, image_to_bytes, page_to_image
+from vsf.utils.enum_class import ImageType
+from vsf.utils.hash_utils import str_sha256
+from vsf.utils.pdf_page_id import get_end_page_id
+from vsf.utils.pdfium_guard import (
     close_pdfium_child,
     close_pdfium_document,
     get_pdfium_document_page_count,

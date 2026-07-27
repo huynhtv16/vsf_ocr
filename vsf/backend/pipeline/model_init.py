@@ -9,9 +9,9 @@ from .model_list import AtomicModel
 from ...model.layout.pp_doclayoutv2 import PPDocLayoutV2LayoutModel
 from ...model.mfr.unimernet.Unimernet import UnimernetModel
 from ...model.mfr.pp_formulanet_plus_m.predict_formula import FormulaRecognizer
-from mineru.model.ocr.pytorch_paddle import PytorchPaddleOCR
+from vsf.model.ocr.pytorch_paddle import PytorchPaddleOCR
 from ...model.table.cls.paddle_table_cls import PaddleTableClsModel
-from ...model.table.cls.mineru_table_ori_cls import MineruTableOrientationClsModel
+from ...model.table.cls.vsf_table_ori_cls import VSFTableOrientationClsModel
 from ...model.table.rec.slanet_plus.main import PaddleTableModel
 from ...model.table.rec.unet_table.main import UnetTableModel
 from ...utils.config_reader import get_device
@@ -26,7 +26,7 @@ PIPELINE_MFR_INFERENCE_LOCK = threading.RLock()
 PIPELINE_OCR_INFERENCE_LOCK = threading.RLock()
 # Implementation detail.
 PIPELINE_INFERENCE_LOCKS_ENABLED = os.getenv(
-    'MINERU_ENABLE_PIPELINE_INFERENCE_LOCKS', 'False'
+    'VSF_ENABLE_PIPELINE_INFERENCE_LOCKS', 'False'
 ).lower() in ['true', '1', 'yes']
 
 
@@ -59,13 +59,13 @@ def run_ocr_inference(inference_callable, *args, **kwargs):
         PIPELINE_OCR_INFERENCE_LOCK, inference_callable, *args, **kwargs
     )
 
-MFR_MODEL = os.getenv('MINERU_FORMULA_CH_SUPPORT', 'False')
+MFR_MODEL = os.getenv('VSF_FORMULA_CH_SUPPORT', 'False')
 if MFR_MODEL.lower() in ['true', '1', 'yes']:
     MFR_MODEL = "pp_formulanet_plus_m"
 elif MFR_MODEL.lower() in ['false', '0', 'no']:
     MFR_MODEL = "unimernet_small"
 else:
-    logger.warning(f"Invalid MINERU_FORMULA_CH_SUPPORT value: {MFR_MODEL}, set to default 'False'")
+    logger.warning(f"Invalid VSF_FORMULA_CH_SUPPORT value: {MFR_MODEL}, set to default 'False'")
     MFR_MODEL = "unimernet_small"
 
 
@@ -78,7 +78,7 @@ def table_orientation_cls_model_init():
         lang="ch",
         enable_merge_det_boxes=False
     )
-    cls_model = MineruTableOrientationClsModel(ocr_engine)
+    cls_model = VSFTableOrientationClsModel(ocr_engine)
     return cls_model
 
 
@@ -228,7 +228,7 @@ def atom_model_init(model_name: str, **kwargs):
         return atom_model
 
 
-class MineruPipelineModel:
+class VSFPipelineModel:
     def __init__(self, **kwargs):
         self.formula_config = kwargs.get('formula_config')
         self.apply_formula = self.formula_config.get('enable', True)
@@ -310,7 +310,7 @@ class HybridModelSingleton:
         key = (lang, formula_enable)
         with self._lock:
             if key not in self._models:
-                self._models[key] = MineruHybridModel(
+                self._models[key] = VSFHybridModel(
                     lang=lang,
                     formula_enable=formula_enable,
                 )
@@ -319,7 +319,7 @@ class HybridModelSingleton:
 def ocr_det_batch_setting():
     import torch
     from packaging import version
-    device_type = os.getenv("MINERU_LMDEPLOY_DEVICE", "")
+    device_type = os.getenv("VSF_LMDEPLOY_DEVICE", "")
     if device_type.lower() in ["corex"]:
         enable_ocr_det_batch = False
     else:
@@ -329,7 +329,7 @@ def ocr_det_batch_setting():
 
     return enable_ocr_det_batch
 
-class MineruHybridModel:
+class VSFHybridModel:
     def __init__(
             self,
             device=None,

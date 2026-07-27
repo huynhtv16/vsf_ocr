@@ -80,7 +80,7 @@ nvidia-smi
 
 ```bash
 git clone <URL_REPOSITORY_CUA_BAN>
-cd MinerU
+cd vsf_ocr
 ```
 
 ### 2. Tạo virtual environment
@@ -114,7 +114,7 @@ pip install -e ".[all]"
 Tải model cho backend `pipeline`:
 
 ```bash
-mineru-models-download \
+vsf-models-download \
   --source huggingface \
   --model_type pipeline
 ```
@@ -122,21 +122,21 @@ mineru-models-download \
 Nếu cần VLM và máy có đủ VRAM:
 
 ```bash
-mineru-models-download \
+vsf-models-download \
   --source huggingface \
   --model_type vlm
 ```
 
-Sau khi tải, đường dẫn model được lưu trong `mineru.json` tại thư mục người
+Sau khi tải, đường dẫn model được lưu trong `vsf.json` tại thư mục người
 dùng.
 
 ## Chạy WebUI bằng GPU
 
 ```bash
-MINERU_MODEL_SOURCE=local \
-MINERU_DEVICE_MODE=cuda \
-MINERU_API_MAX_CONCURRENT_REQUESTS=1 \
-mineru-gradio \
+VSF_MODEL_SOURCE=local \
+VSF_DEVICE_MODE=cuda \
+VSF_API_MAX_CONCURRENT_REQUESTS=1 \
+vsf-gradio \
   --server-name 127.0.0.1 \
   --server-port 7860
 ```
@@ -160,7 +160,7 @@ Trong giao diện:
 Phân tích một tài liệu:
 
 ```bash
-mineru \
+vsf \
   -p input/document.pdf \
   -o output \
   -b pipeline
@@ -169,7 +169,7 @@ mineru \
 Phân tích toàn bộ tài liệu trong một thư mục:
 
 ```bash
-mineru \
+vsf \
   -p input \
   -o output \
   -b pipeline
@@ -178,7 +178,7 @@ mineru \
 Chỉ xử lý trang đầu tiên:
 
 ```bash
-mineru \
+vsf \
   -p input/document.pdf \
   -o output \
   -b pipeline \
@@ -189,9 +189,9 @@ mineru \
 Buộc sử dụng CUDA:
 
 ```bash
-MINERU_MODEL_SOURCE=local \
-MINERU_DEVICE_MODE=cuda \
-mineru \
+VSF_MODEL_SOURCE=local \
+VSF_DEVICE_MODE=cuda \
+vsf \
   -p input/document.pdf \
   -o output \
   -b pipeline
@@ -202,10 +202,10 @@ mineru \
 Khởi động FastAPI:
 
 ```bash
-MINERU_MODEL_SOURCE=local \
-MINERU_DEVICE_MODE=cuda \
-MINERU_API_MAX_CONCURRENT_REQUESTS=1 \
-mineru-api \
+VSF_MODEL_SOURCE=local \
+VSF_DEVICE_MODE=cuda \
+VSF_API_MAX_CONCURRENT_REQUESTS=1 \
+vsf-api \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -292,7 +292,7 @@ Ví dụ với hóa đơn, lớp nghiệp vụ phía sau có thể lấy:
 }
 ```
 
-MinerU chịu trách nhiệm đọc và chuẩn hóa tài liệu. Schema, quy tắc kiểm tra và
+VSF chịu trách nhiệm đọc và chuẩn hóa tài liệu. Schema, quy tắc kiểm tra và
 quy trình phê duyệt cần được xây dựng theo từng bài toán.
 
 ## Khắc phục lỗi thường gặp
@@ -311,7 +311,7 @@ pipeline
 Nếu máy có đủ VRAM và thực sự cần VLM:
 
 ```bash
-mineru-models-download \
+vsf-models-download \
   --source huggingface \
   --model_type vlm
 ```
@@ -336,7 +336,7 @@ Nếu kết quả là `False`, kiểm tra lại NVIDIA driver và phiên bản P
 - Giới hạn số request đồng thời:
 
   ```bash
-  export MINERU_API_MAX_CONCURRENT_REQUESTS=1
+  export VSF_API_MAX_CONCURRENT_REQUESTS=1
   ```
 
 - Tắt nhận diện công thức hoặc bảng nếu không cần.
@@ -344,14 +344,14 @@ Nếu kết quả là `False`, kiểm tra lại NVIDIA driver và phiên bản P
 
 ### Lần chạy đầu tiên chậm
 
-Lần đầu MinerU cần tải và khởi tạo model. Sử dụng
-`mineru-models-download` trước khi khởi động service để tránh tải model trong
+Lần đầu VSF cần tải và khởi tạo model. Sử dụng
+`vsf-models-download` trước khi khởi động service để tránh tải model trong
 lúc xử lý tài liệu.
 
 ## Cấu trúc mã nguồn
 
 ```text
-mineru/
+vsf/
 ├── backend/
 │   ├── pipeline/    # Pipeline OCR, layout, bảng và công thức
 │   ├── vlm/         # Vision-Language Model
