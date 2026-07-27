@@ -27,9 +27,10 @@ PDF / Hình ảnh / PPTX / XLSX
        RAG / LLM / Search / IDP / ETL
 ```
 
-VSF OCR không phải là một nền tảng IDP nghiệp vụ hoàn
-chỉnh. Dự án cung cấp lõi đọc tài liệu; các hệ thống sử dụng nó có thể bổ sung
-schema nghiệp vụ, validation, human review và tích hợp ERP/CRM.
+Ngoài lõi OCR, dự án có một lớp IDP HCNS dạng MVP để phân loại hồ sơ, trích
+xuất trường, chuẩn hóa và kiểm tra dữ liệu. Những kết quả có độ tin cậy thấp
+được đánh dấu để HR kiểm tra; giao diện human review và tích hợp HRM vẫn là
+các lớp nghiệp vụ cần phát triển thêm.
 
 ## Tính năng
 
@@ -175,6 +176,31 @@ vsf \
   -b pipeline
 ```
 
+Phân tích và trích xuất dữ liệu HCNS:
+
+```bash
+vsf \
+  -p input/hop-dong.pdf \
+  -o output \
+  -b pipeline \
+  --idp \
+  --idp-document-type auto
+```
+
+IDP tự động nhận mọi tài liệu thuộc các định dạng đầu vào được hỗ trợ. Các mẫu
+trích xuất chuyên sâu hiện có:
+
+- `identity_card`: CCCD/CMND.
+- `cv`: CV hoặc sơ yếu lý lịch.
+- `labor_contract`: hợp đồng lao động.
+- `hr_decision`: quyết định nhân sự.
+- `leave_request`: đơn xin nghỉ phép.
+- `degree_certificate`: bằng cấp hoặc chứng chỉ.
+- `other_document`: tài liệu khác, dùng schema chung thay vì từ chối xử lý.
+
+Trên giao diện web, IDP được bật mặc định với chế độ `auto`. Người dùng có thể
+bỏ dấu tích IDP khi chỉ muốn OCR và chuyển đổi tài liệu.
+
 Chỉ xử lý trang đầu tiên:
 
 ```bash
@@ -232,6 +258,8 @@ Ví dụ gửi tài liệu:
 curl -X POST http://127.0.0.1:8000/tasks \
   -F "files=@input/document.pdf" \
   -F "backend=pipeline" \
+  -F "enable_idp=true" \
+  -F "idp_document_type=auto" \
   -F "return_md=true"
 ```
 
@@ -246,6 +274,7 @@ Tùy backend và tham số, thư mục kết quả có thể chứa:
 | `document_content_list.json` | Danh sách nội dung theo thứ tự đọc |
 | `document_content_list_v2.json` | Định dạng danh sách nội dung phiên bản mới |
 | `document_model.json` | Kết quả suy luận thô của model |
+| `document_idp.json` | Phân loại, trường HCNS, bằng chứng và kết quả validation |
 | `document_layout.pdf` | PDF trực quan hóa vùng bố cục |
 | `document_span.pdf` | PDF trực quan hóa text span |
 | `images/` | Hình ảnh và vùng nội dung được trích xuất |
@@ -261,39 +290,60 @@ output/
         ├── document_content_list.json
         ├── document_content_list_v2.json
         ├── document_model.json
+        ├── document_idp.json
         ├── document_layout.pdf
         ├── document_span.pdf
         └── images/
 ```
 
-## Ứng dụng IDP
+## IDP tài liệu
 
-Dự án có thể làm parsing engine cho một hệ thống IDP:
+IDP được thực thi sau khi Pipeline, VLM hoặc Hybrid đã tạo `middle_json`:
 
 ```text
 Tài liệu đầu vào
 → VSF OCR
-→ Markdown/JSON
-→ Trích xuất theo schema
+→ Content list có page/bbox
+→ Phân loại theo mẫu chuyên sâu hoặc schema tài liệu chung
+→ Trích xuất và chuẩn hóa trường
 → Validation
-→ Human review
-→ Database/ERP/CRM
+→ document_idp.json
 ```
 
-Ví dụ với hóa đơn, lớp nghiệp vụ phía sau có thể lấy:
+IDP có thể tự phân loại hoặc nhận loại tài liệu do người dùng chỉ định. Mỗi
+trường giữ cả giá trị, confidence, trang, bounding box và đoạn văn bản nguồn
+để phục vụ kiểm tra thủ công.
+
+Ví dụ kết quả rút gọn:
 
 ```json
 {
-  "invoice_number": "INV-2026-001",
-  "invoice_date": "2026-07-24",
-  "vendor": "Example Company",
-  "total": 1250000,
-  "currency": "VND"
+  "classification": {
+    "document_type": "labor_contract",
+    "confidence": 0.97
+  },
+  "fields": {
+    "employee_name": {
+      "value": "Nguyễn Văn A",
+      "confidence": 0.94,
+      "evidence": {
+        "page": 1,
+        "bbox": [100, 220, 780, 270],
+        "source_text": "Người lao động: Nguyễn Văn A"
+      }
+    }
+  },
+  "validation": {
+    "status": "valid",
+    "requires_review": false,
+    "issues": []
+  }
 }
 ```
 
-VSF chịu trách nhiệm đọc và chuẩn hóa tài liệu. Schema, quy tắc kiểm tra và
-quy trình phê duyệt cần được xây dựng theo từng bài toán.
+Phiên bản hiện tại dùng luật và regex xác định, không gọi dịch vụ LLM bên
+ngoài. Kết quả `needs_review` không nên được tự động ghi vào hệ thống HRM
+trước khi có người dùng xác nhận.
 
 ## Khắc phục lỗi thường gặp
 
@@ -359,6 +409,7 @@ vsf/
 │   └── office/      # PPTX và XLSX
 ├── cli/             # CLI, FastAPI, Gradio và router
 ├── data/            # Lớp đọc/ghi dữ liệu
+├── idp/             # Phân loại, trích xuất và validation HCNS
 ├── model/           # Model và inference adapter
 ├── resources/       # Tài nguyên giao diện và ngôn ngữ
 └── utils/           # Hàm tiện ích dùng chung
@@ -376,6 +427,12 @@ Chạy bài test end-to-end:
 
 ```bash
 pytest tests/unittest/test_e2e.py
+```
+
+Chạy riêng kiểm thử IDP HCNS:
+
+```bash
+pytest tests/unittest/idp/test_hr_idp.py
 ```
 
 ## Người duy trì

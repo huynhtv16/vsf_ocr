@@ -25,6 +25,9 @@ dist/
 output/
 output_gpu_test/
 
+# Local documents may contain personal or confidential data
+input/
+
 # Editor and operating-system files
 .idea/
 .vscode/
