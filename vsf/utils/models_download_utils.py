@@ -288,10 +288,13 @@ def auto_download_and_get_model_root_path(relative_path: str, repo_mode='pipelin
     model_source = resolve_model_source()
 
     if model_source == 'local':
-        local_models_config = get_local_models_dir()
+        local_models_config = get_local_models_dir() or {}
         root_path = local_models_config.get(repo_mode, None)
         if not root_path:
-            raise ValueError(f"Local path for repo_mode '{repo_mode}' is not configured.")
+            raise ValueError(
+                f"Local path for repo_mode '{repo_mode}' is not configured. "
+                "Set VSF_MODEL_SOURCE=huggingface or run vsf-models-download first."
+            )
         return root_path
 
     # Process the file path.

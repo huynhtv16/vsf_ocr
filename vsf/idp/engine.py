@@ -19,8 +19,16 @@ from vsf.idp.schemas import (
     get_document_schema,
     validate_document_type,
 )
+from vsf.idp.quality import (
+    add_semantic_validation_issues,
+    build_quality_report,
+    build_review_decision,
+    classification_margin,
+    normalized_classification_scores,
+)
+from vsf.idp.records import extract_structured_tables
 
-IDP_SCHEMA_VERSION = "1.0"
+IDP_SCHEMA_VERSION = "2.0"
 _SPACE_RE = re.compile(r"[ \t]+")
 _TAG_RE = re.compile(r"<[^>]+>")
 _DATE_VALUE = (
@@ -160,6 +168,10 @@ def _classification(
         "quyet dinh khen thuong",
         "quyet dinh ky luat",
         "quyet dinh thoi viec",
+        "bang luong",
+        "payroll",
+        "bang cham cong",
+        "attendance sheet",
     )
     has_hr_title = any(
         anchor in _search_text(block.text)
@@ -202,7 +214,7 @@ COMMON_PATTERNS: dict[str, tuple[str, ...]] = {
         r"\b(\d{12})\b",
     ),
     "date_of_birth": (
-        rf"(?:ngày sinh(?:\s*/\s*date of birth)?|sinh ngày|date of birth|dob)\s*[:\-]?\s*({_DATE_VALUE})",
+        rf"(?:ngày sinh(?:\s*/\s*date of bi(?:r)?th)?|sinh ngày|date of bi(?:r)?th|dob)\s*[:\-]?\s*({_DATE_VALUE})",
     ),
     "gender": (
         r"(?:giới tính(?:\s*/\s*sex)?|sex|gender)\s*[:\-]?\s*(nam|nữ|male|female)",
@@ -311,7 +323,71 @@ COMMON_PATTERNS: dict[str, tuple[str, ...]] = {
     "organization": (
         r"(?:cơ quan|đơn vị|tổ chức|organization|company)\s*[:\-]\s*([^\n|;]{2,180})",
     ),
+    "payroll_period": (
+        r"(?:kỳ lương|bảng lương tháng|payroll period)\s*[:\-]?\s*([^\n|;]{2,40})",
+        r"\b(tháng\s+\d{1,2}\s*(?:[/\-]\s*\d{4})?)\b",
+    ),
+    "attendance_period": (
+        r"(?:kỳ công|bảng chấm công tháng|attendance period)\s*[:\-]?\s*([^\n|;]{2,40})",
+        r"\b(tháng\s+\d{1,2}\s*(?:[/\-]\s*\d{4})?)\b",
+    ),
+    "total_payroll": (
+        rf"(?:tổng quỹ lương|tổng lương|total payroll)\s*[:\-]?\s*{_MONEY_VALUE}",
+    ),
 }
+
+
+_IDENTITY_LOCATION_LABEL_RE = re.compile(
+    r"(?P<place_of_origin>"
+    r"que\s*quan(?:\s*/\s*place\s+of\s+origin)?|place\s+of\s+origin"
+    r")|(?P<address>"
+    r"noi\s*thuong\s*tru(?:\s*/\s*place\s+of\s+residence)?|"
+    r"place\s+of\s+residence"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _search_text_with_source_map(value: str) -> tuple[str, list[int]]:
+    """Normalize OCR text while retaining indexes into the original string."""
+
+    normalized_chars: list[str] = []
+    source_indexes: list[int] = []
+    for source_index, char in enumerate(value):
+        expanded = unicodedata.normalize("NFD", char.lower().replace("đ", "d"))
+        for normalized_char in expanded:
+            if unicodedata.category(normalized_char) == "Mn":
+                continue
+            normalized_chars.append(normalized_char)
+            source_indexes.append(source_index)
+    return "".join(normalized_chars), source_indexes
+
+
+def _find_identity_location(
+    field_name: str,
+    blocks: list[SourceBlock],
+) -> tuple[str | None, SourceBlock | None]:
+    """Split origin and residence even when OCR joins both CCCD labels."""
+
+    for block in blocks:
+        searchable, source_indexes = _search_text_with_source_map(block.text)
+        labels = list(_IDENTITY_LOCATION_LABEL_RE.finditer(searchable))
+        for label_index, label in enumerate(labels):
+            if label.lastgroup != field_name or not source_indexes:
+                continue
+            value_start = source_indexes[label.end() - 1] + 1
+            value_end = (
+                source_indexes[labels[label_index + 1].start()]
+                if label_index + 1 < len(labels)
+                else len(block.text)
+            )
+            value = block.text[value_start:value_end]
+            value = re.sub(r"^[\s:;/|\-]+", "", value)
+            value = re.sub(r"[\s:;/|\-]+$", "", value)
+            value = re.sub(r"\s+", " ", value).strip()
+            if len(value) >= 3:
+                return value[:300], block
+    return None, None
 
 
 def _document_specific_value(field_name: str, text: str) -> str | None:
@@ -455,6 +531,11 @@ def _find_field(
     field: FieldSchema,
     blocks: list[SourceBlock],
 ) -> tuple[str | None, SourceBlock | None, str, float]:
+    if field.name in {"place_of_origin", "address"}:
+        value, source = _find_identity_location(field.name, blocks)
+        if value is not None:
+            return value, source, "identity_label_boundary_rule", 0.9
+
     patterns = COMMON_PATTERNS.get(field.name, ())
     for block in blocks:
         for pattern_index, pattern in enumerate(patterns):
@@ -719,7 +800,9 @@ class HRIDPProcessor:
         document_name: str | None = None,
     ) -> dict[str, Any]:
         requested_type = validate_document_type(document_type)
-        blocks = build_source_blocks(content_list)
+        content_items = list(content_list)
+        blocks = build_source_blocks(content_items)
+        structured_tables = extract_structured_tables(content_items)
         detected_type, confidence, method, scores = _classification(
             blocks,
             requested_type,
@@ -733,11 +816,25 @@ class HRIDPProcessor:
         )
         _apply_document_fallbacks(detected_type, fields, document_name)
         status, issues = _validate_fields(schema, fields)
-        requires_review = (
-            status != "valid"
-            or detected_type == DOCUMENT_TYPE_UNKNOWN
-            or confidence < 0.75
+        add_semantic_validation_issues(detected_type, fields, issues)
+        status = "valid" if not issues else "needs_review"
+        quality = build_quality_report(
+            document_type=detected_type,
+            classification_confidence=confidence,
+            schema=schema,
+            fields=fields,
+            blocks=blocks,
+            issues=issues,
+            structured_tables=structured_tables,
         )
+        review = build_review_decision(
+            document_type=detected_type,
+            fields=fields,
+            issues=issues,
+            quality=quality,
+        )
+        requires_review = review["required"]
+        normalized_scores = normalized_classification_scores(scores)
         return {
             "schema_version": IDP_SCHEMA_VERSION,
             "domain": (
@@ -752,16 +849,35 @@ class HRIDPProcessor:
                 "confidence": confidence,
                 "method": method,
                 "scores": scores,
+                "normalized_scores": normalized_scores,
+                "score_margin": classification_margin(normalized_scores),
             },
             "fields": fields,
+            "structured_tables": structured_tables,
+            "quality": quality,
+            "review": review,
             "validation": {
                 "status": status,
                 "requires_review": requires_review,
+                "risk_level": review["priority"],
                 "issues": issues,
             },
             "metadata": {
                 "source_block_count": len(blocks),
-                "processor": "vsf_hr_rules_v1",
+                "table_count": len(structured_tables),
+                "structured_record_count": sum(
+                    table["record_count"] for table in structured_tables
+                ),
+                "processor": "vsf_idp_v2",
+                "stages": [
+                    "content_normalization",
+                    "document_classification",
+                    "field_extraction",
+                    "table_record_normalization",
+                    "semantic_validation",
+                    "quality_scoring",
+                    "review_decision",
+                ],
             },
         }
 

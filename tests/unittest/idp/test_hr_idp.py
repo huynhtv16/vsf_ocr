@@ -80,13 +80,14 @@ def test_forced_identity_schema_reports_missing_required_fields():
         document_type="identity_card",
     )
 
-    assert result["classification"] == {
-        "document_type": "identity_card",
-        "label": "Căn cước công dân/CMND",
-        "confidence": 1.0,
-        "method": "user_selected",
-        "scores": {"identity_card": 1.0},
-    }
+    classification = result["classification"]
+    assert classification["document_type"] == "identity_card"
+    assert classification["label"] == "Căn cước công dân/CMND"
+    assert classification["confidence"] == 1.0
+    assert classification["method"] == "user_selected"
+    assert classification["scores"] == {"identity_card": 1.0}
+    assert classification["normalized_scores"] == {"identity_card": 1.0}
+    assert classification["score_margin"] == 1.0
     assert result["fields"]["full_name"]["value"] == "Lê Văn C"
     missing = {
         issue["field"]
@@ -111,7 +112,10 @@ def test_unrecognized_document_uses_generic_schema():
         "Biên bản kiểm kê thiết bị tại kho số 3"
     )
     assert result["validation"]["status"] == "valid"
-    assert result["validation"]["requires_review"] is False
+    assert result["validation"]["requires_review"] is True
+    assert result["review"]["required"] is True
+    assert result["review"]["priority"] == "medium"
+    assert result["quality"]["grade"] in {"medium", "high"}
 
 
 def test_extracts_bilingual_identity_card_labels():
@@ -131,6 +135,37 @@ def test_extracts_bilingual_identity_card_labels():
     assert result["fields"]["full_name"]["value"] == "NGUYỄN VĂN AN"
     assert result["fields"]["identity_number"]["value"] == "079095001234"
     assert result["fields"]["date_of_birth"]["value"] == "1995-06-20"
+
+
+def test_identity_card_splits_noisy_origin_and_residence_labels():
+    result = process_hr_document(
+        [
+            text_item("CÃN CUÓC CÔNG DÂN"),
+            text_item("Só/No.: 079206032383"),
+            text_item("Ho và tên / Full name: NGUYÊN QUÓC VIÊT"),
+            text_item("Ngày sinh / Date of bith: 26/08/2006"),
+            text_item(
+                "Quê quán / Place of origin:   \n"
+                "Vinh Thanh, Phú Vang, Tha Thiên Hu "
+                "Noi thuòng trú / Place of residence:65/6   \n"
+                "Quy,Tân Sơn Nhi, Tân Phú, TP.H Chi Minh",
+                bbox=[304, 747, 926, 969],
+            ),
+        ],
+        document_name="cccd_pilot_008",
+    )
+
+    assert result["fields"]["date_of_birth"]["value"] == "2006-08-26"
+    assert result["fields"]["place_of_origin"]["value"] == (
+        "Vinh Thanh, Phú Vang, Tha Thiên Hu"
+    )
+    assert result["fields"]["address"]["value"] == (
+        "65/6 Quy,Tân Sơn Nhi, Tân Phú, TP.H Chi Minh"
+    )
+    assert result["fields"]["address"]["extraction_method"] == (
+        "identity_label_boundary_rule"
+    )
+    assert result["fields"]["address"]["evidence"]["bbox"] == [304, 747, 926, 969]
 
 
 def test_extracts_hr_appointment_decision():
@@ -267,3 +302,80 @@ def test_cv_without_contact_or_profile_sections_requires_review():
     assert "CV_CONTACT_MISSING" in issue_codes
     assert "CV_PROFILE_SECTION_MISSING" in issue_codes
     assert result["validation"]["status"] == "needs_review"
+
+
+def test_idp_v2_extracts_normalized_payroll_records():
+    result = process_hr_document(
+        [
+            text_item("BẢNG LƯƠNG THÁNG 07/2026"),
+            {
+                "type": "table",
+                "table_body": (
+                    "<table>"
+                    "<tr><th>Mã NV</th><th>Họ và tên</th>"
+                    "<th>Lương cơ bản</th><th>Phụ cấp</th>"
+                    "<th>Khấu trừ</th><th>Thực lĩnh</th></tr>"
+                    "<tr><td>NV001</td><td>Nguyễn Văn An</td>"
+                    "<td>15.000.000</td><td>1.000.000</td>"
+                    "<td>500.000</td><td>15.500.000</td></tr>"
+                    "<tr><td>NV002</td><td>Trần Thị Bình</td>"
+                    "<td>12.000.000</td><td>500.000</td>"
+                    "<td>300.000</td><td>12.200.000</td></tr>"
+                    "</table>"
+                ),
+                "page_idx": 0,
+                "bbox": [10, 20, 900, 700],
+            },
+        ],
+        document_name="Bang luong thang 07-2026",
+    )
+
+    assert result["schema_version"] == "2.0"
+    assert result["classification"]["document_type"] == "payroll"
+    assert result["fields"]["payroll_period"]["value"] == "07/2026"
+    assert result["metadata"]["processor"] == "vsf_idp_v2"
+    assert result["metadata"]["structured_record_count"] == 2
+    table = result["structured_tables"][0]
+    assert table["normalized_headers"] == [
+        "employee_id",
+        "employee_name",
+        "base_salary",
+        "allowance",
+        "deduction",
+        "net_salary",
+    ]
+    assert table["records"][0]["employee_id"] == "NV001"
+    assert table["records"][0]["base_salary"] == {
+        "amount": 15000000,
+        "currency": "VND",
+    }
+    assert table["records"][1]["net_salary"]["amount"] == 12200000
+    assert result["quality"]["grade"] == "high"
+    assert result["review"]["required"] is False
+
+
+def test_idp_v2_semantic_validation_and_review_priority():
+    result = process_hr_document(
+        [
+            text_item("SƠ YẾU LÝ LỊCH"),
+            text_item(
+                "Họ và tên: Nguyễn Văn 123\n"
+                "Ngày sinh: 01/01/2099\n"
+                "Email: invalid-email\n"
+                "Điện thoại: 1234567890123456"
+            ),
+            text_item("Education"),
+            text_item("Example University"),
+        ],
+        document_name="CV - Nguyen Van An",
+    )
+
+    issue_codes = {issue["code"] for issue in result["validation"]["issues"]}
+    assert "INVALID_PERSON_NAME" in issue_codes
+    assert "FUTURE_DATE_OF_BIRTH" in issue_codes
+    assert "INVALID_PHONE" in issue_codes
+    assert result["validation"]["status"] == "needs_review"
+    assert result["validation"]["risk_level"] == "high"
+    assert result["review"]["required"] is True
+    assert result["review"]["priority"] == "high"
+    assert result["quality"]["overall_score"] < 0.8

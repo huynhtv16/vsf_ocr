@@ -2308,8 +2308,6 @@ def main(ctx,
             idp_result_json,
             output_file,
             is_ocr,
-            enable_idp,
-            idp_document_type,
             office_html,
             status_panel,
         ])
@@ -2322,13 +2320,23 @@ def main(ctx,
                 gr.update(value="", visible=False),
                 gr.update(value=render_status_steps_html("", i18n)),
                 gr.update(value=""),
+                gr.update(value=True),
+                gr.update(value="auto"),
             )
 
         # Implementation detail.
         clear_bu.click(
             fn=reset_primary_ui,
             inputs=[],
-            outputs=[options_group, doc_show, office_html, status_panel, content_list_json],
+            outputs=[
+                options_group,
+                doc_show,
+                office_html,
+                status_panel,
+                content_list_json,
+                enable_idp,
+                idp_document_type,
+            ],
             **_private_api_kwargs
         )
 

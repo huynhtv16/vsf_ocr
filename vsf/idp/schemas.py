@@ -181,6 +181,42 @@ DOCUMENT_SCHEMAS: dict[str, DocumentSchema] = {
             FieldSchema("certificate_number"),
         ),
     ),
+    "payroll": DocumentSchema(
+        document_type="payroll",
+        label="Bảng lương",
+        keywords=(
+            ("bảng lương", 1.0),
+            ("payroll", 1.0),
+            ("lương cơ bản", 0.35),
+            ("thực lĩnh", 0.45),
+            ("lương thực nhận", 0.45),
+            ("khấu trừ", 0.25),
+            ("phụ cấp", 0.2),
+        ),
+        fields=(
+            FieldSchema("payroll_period"),
+            FieldSchema("organization"),
+            FieldSchema("department"),
+            FieldSchema("total_payroll", "money", sensitive=True),
+        ),
+    ),
+    "attendance_sheet": DocumentSchema(
+        document_type="attendance_sheet",
+        label="Bảng chấm công",
+        keywords=(
+            ("bảng chấm công", 1.0),
+            ("attendance sheet", 1.0),
+            ("ngày công", 0.4),
+            ("công chuẩn", 0.3),
+            ("giờ tăng ca", 0.35),
+            ("overtime", 0.25),
+        ),
+        fields=(
+            FieldSchema("attendance_period"),
+            FieldSchema("organization"),
+            FieldSchema("department"),
+        ),
+    ),
     DOCUMENT_TYPE_OTHER: DocumentSchema(
         document_type=DOCUMENT_TYPE_OTHER,
         label="Tài liệu khác (không giới hạn mẫu)",

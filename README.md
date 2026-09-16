@@ -1,90 +1,223 @@
 # VSF OCR
 
-> Công cụ phân tích tài liệu thông minh được duy trì bởi **Tran Van Huynh**.
+VSF OCR là một hệ thống xử lý tài liệu hướng tới OCR, nhận diện bố cục, trích xuất bảng và công thức, và chuyển đổi tài liệu đầu vào thành Markdown/JSON có cấu trúc.
 
-Dự án chuyển đổi PDF, hình ảnh và tài liệu Office thành Markdown hoặc JSON có
-cấu trúc. Kết quả có thể được sử dụng để xây dựng hệ thống RAG, tìm kiếm tài
-liệu, trích xuất thông tin và các quy trình Intelligent Document Processing
-(IDP).
+Dự án này không chỉ dừng ở việc "đọc chữ" trên trang PDF hoặc ảnh. Nó cố gắng hiểu từng phần của tài liệu: tiêu đề, đoạn văn, danh sách, bảng, hình ảnh, chú thích, footnote, công thức toán học, và thứ tự đọc tự nhiên của trang. Từ đó, tài liệu được chuẩn hóa thành định dạng dễ làm nghiệp vụ, tìm kiếm, lọc, hay đưa vào hệ thống OCR/IDP/ETL.
 
-## Mục tiêu
+## Mục tiêu của dự án
 
-Dự án tập trung vào lớp đọc và chuẩn hóa tài liệu:
+VSF tập trung vào tầng xử lý tài liệu thực tế:
 
 ```text
-PDF / Hình ảnh / PPTX / XLSX
-                    │
-                    ▼
-        OCR và phân tích bố cục
-                    │
-                    ▼
-    Văn bản / Bảng / Hình / Công thức
-                    │
-                    ▼
-          Markdown và JSON có cấu trúc
-                    │
-                    ▼
-       RAG / LLM / Search / IDP / ETL
+PDF / ảnh / PPTX / XLSX
+        │
+        ▼
+   OCR + layout detection
+        │
+        ▼
+  text / table / image / formula
+        │
+        ▼
+   Markdown + JSON có cấu trúc
+        │
+        ▼
+  Search / Automation / IDP / review workflows
 ```
 
-Ngoài lõi OCR, dự án có một lớp IDP HCNS dạng MVP để phân loại hồ sơ, trích
-xuất trường, chuẩn hóa và kiểm tra dữ liệu. Những kết quả có độ tin cậy thấp
-được đánh dấu để HR kiểm tra; giao diện human review và tích hợp HRM vẫn là
-các lớp nghiệp vụ cần phát triển thêm.
+Điểm quan trọng là: dự án này xây dựng một pipeline tài liệu từ đầu vào đến đầu ra, không phải một hệ thống RAG đơn thuần. Mỗi trang được phân tích như một "bộ dữ liệu tài liệu" có structure, bounding box, block ordering, và metadata.
 
-## Tính năng
+---
 
-- Đọc PDF thông thường và PDF scan.
-- Hỗ trợ PNG, JPG, JPEG, TIFF, WebP, GIF, BMP và JP2.
-- Đọc trực tiếp PPTX và XLSX.
-- Nhận diện bố cục một cột, nhiều cột và bố cục phức tạp.
+## Tính năng chính
+
+- Hỗ trợ PDF thông thường và PDF scan.
+- Hỗ trợ ảnh: PNG, JPG, JPEG, TIFF, WebP, GIF, BMP, JP2.
+- Hỗ trợ đọc trực tiếp các tài liệu Office: PPTX, XLSX.
+- Nhận diện layout trang: 1 cột, nhiều cột, bố cục phức tạp.
 - Sắp xếp nội dung theo thứ tự đọc tự nhiên.
-- Loại bỏ header, footer, số trang và một số nội dung thừa.
-- Nhận diện tiêu đề, đoạn văn, danh sách và mục lục.
+- Loại bỏ header, footer, số trang và các nội dung không cần thiết.
+- Nhận diện tiêu đề, đoạn văn, danh sách, mục lục.
 - Trích xuất hình ảnh, biểu đồ, chú thích và footnote.
-- Chuyển công thức toán học thành LaTeX.
-- Chuyển bảng thành HTML và JSON có cấu trúc.
-- OCR đa ngôn ngữ.
-- Chạy bằng CPU, NVIDIA CUDA hoặc Apple Silicon.
-- Cung cấp CLI, REST API, Gradio WebUI và router đa GPU.
+- Chuyển công thức toán học sang LaTeX.
+- Chuyển bảng sang HTML/JSON có cấu trúc.
+- Hỗ trợ OCR đa ngôn ngữ.
+- Có thể chạy trên CPU, CUDA, Apple Silicon hoặc môi trường không GPU.
+- Cung cấp CLI, REST API, Gradio UI, và router.
 
-## Các backend
+---
 
-| Backend | Mô tả | Phần cứng phù hợp |
+## Kiến trúc xử lý
+
+### 1. Input layer
+
+Dự án chấp nhận các đầu vào phổ biến:
+
+- PDF
+- Hình ảnh
+- PPTX
+- XLSX
+
+### 2. Tải và chuẩn hóa trang
+
+Đối với PDF, hệ thống mở tài liệu bằng PDFium, xác định số trang, và chuyển từng trang sang hình ảnh để xử lý. Nếu tài liệu là scan hoặc có nhiều trang, hệ thống có thể xử lý từng trang hoặc theo từng window để giảm áp lực bộ nhớ.
+
+### 3. Phát hiện loại tài liệu
+
+Hệ thống kiểm tra liệu tài liệu có cần OCR hay không bằng cách phân loại PDF/image:
+
+- `auto`: tự động phát hiện nếu cần OCR
+- `ocr`: buộc OCR
+- `layout-only`: không OCR, chỉ xử lý bố cục nếu có thể
+
+Điều này rất quan trọng với các tài liệu scan hoặc ảnh có chữ mờ, chữ bị xoay, hoặc bản quét chất lượng thấp.
+
+### 4. Layout detection
+
+Mỗi trang được phân tích theo vùng nội dung:
+
+- text blocks
+- title
+- paragraph
+- list
+- table
+- formula
+- figure
+- footnote
+- header/footer
+
+Các block này được gắn metadata như vị trí, page index, và mức độ tin cậy. Sau đó, hệ thống sắp xếp lại theo thứ tự đọc hợp lý.
+
+### 5. OCR và trích xuất văn bản
+
+Sau khi xác định vùng cần OCR, hệ thống dùng OCR model để lấy text, bounding box và confidence score. Với bảng, text được OCR theo vùng ô. Với công thức, hệ thống ưu tiên tách ra khỏi text thông thường để nhận diện đúng dạng LaTeX.
+
+### 6. Bảng và công thức
+
+VSF không chỉ OCR text đơn thuần. Với bảng, nó cố gắng:
+
+- xác định vùng bảng
+- phân tích hàng/cột
+- nhận diện ô dữ liệu
+- chuẩn hóa thành HTML hoặc JSON
+
+Với công thức toán học:
+
+- phát hiện vùng công thức
+- OCR hoặc trích xuất thành dạng LaTeX
+- tách khỏi văn bản bình thường để tránh lẫn lộn
+
+### 7. Tổng hợp output
+
+Sau khi phân tích xong, hệ thống sinh các output chính:
+
+- Markdown cuối cùng
+- JSON trung gian theo trang/block
+- JSON danh sách nội dung theo thứ tự đọc
+- JSON mô tả layout / OCR raw
+- PDF minh họa bbox
+- ảnh trích xuất và các vùng nội dung
+
+### 8. IDP optional
+
+Nếu bật IDP, hệ thống sẽ tiếp tục làm các bước sau:
+
+- phân loại loại tài liệu
+- trích xuất trường dữ liệu quan trọng
+- chuẩn hóa giá trị
+- kiểm tra độ tin cậy
+- đánh dấu cần review nếu cần
+
+Tuy nhiên, đây là lớp nghiệp vụ bổ sung; lõi của dự án vẫn là OCR và chuẩn hóa tài liệu.
+
+---
+
+## Xử lý tài liệu lớn như thế nào?
+
+Với tài liệu nhiều trang, hệ thống không xử lý toàn bộ doc bằng một lần tải hết vào bộ nhớ. Dự án triển khai mô hình "window-based processing" để hỗ trợ các PDF lớn.
+
+### Cách hoạt động
+
+- Mở PDF bằng PDFium
+- Lấy total page count
+- Chia thành các batch theo window size
+- Với mỗi batch, lấy một nhóm trang, render ra ảnh, và xử lý song song/tuần tự theo cấu hình
+- Sau khi batch xong, gom kết quả vào `middle_json`
+- Tiếp tục xử lý batch tiếp theo cho đến hết tài liệu
+
+Trong code, đây là cách xử lý thực tế:
+
+- `doc_analyze_streaming(...)` đọc file đầu vào
+- `window_size = get_processing_window_size(default=64)`
+- `while processed_pages < total_pages:`
+- `batch_images` và `batch_slices` được xây dựng theo từng batch
+- `append_batch_results_to_middle_json(...)` dùng để ghép kết quả từng phần
+
+### Lợi ích
+
+- giảm RAM/VRAM tiêu thụ
+- tránh overflow khi PDF có hàng trăm trang
+- xử lý an toàn hơn trên GPU 4GB/8GB
+- tăng khả năng xử lý hàng loạt và API service
+
+### Biến môi trường quan trọng
+
+```bash
+export VSF_PROCESSING_WINDOW_SIZE=32
+export VSF_API_MAX_CONCURRENT_REQUESTS=1
+export VSF_DEVICE_MODE=cuda
+```
+
+- `VSF_PROCESSING_WINDOW_SIZE`: số trang xử lý mỗi window
+- `VSF_API_MAX_CONCURRENT_REQUESTS`: số request đồng thời tối đa
+- `VSF_DEVICE_MODE`: chọn `cuda`, `cpu`, `mps`, ...
+
+---
+
+## Các backend hỗ trợ
+
+| Backend | Mô tả | Mức độ phù hợp |
 |---|---|---|
-| `pipeline` | Kết hợp các model chuyên biệt cho layout, OCR, bảng và công thức | CPU hoặc GPU có VRAM thấp |
-| `vlm-engine` | Dùng Vision-Language Model để hiểu toàn bộ trang | GPU có VRAM lớn |
-| `hybrid-engine` | Kết hợp pipeline và VLM | GPU mạnh, ưu tiên độ chính xác |
-| `vlm-http-client` | Gửi suy luận VLM tới server tương thích OpenAI | Máy client cấu hình thấp |
-| `hybrid-http-client` | Pipeline cục bộ kết hợp VLM từ server từ xa | Client có PyTorch và server VLM |
+| `pipeline` | Pipeline OCR + layout + bảng + công thức | Dành cho GPU 4GB/8GB hoặc CPU |
+| `vlm-engine` | Dùng VLM hiểu cả trang | GPU mạnh, VRAM lớn |
+| `hybrid-engine` | Kết hợp pipeline + VLM | GPU mạnh, cần độ chính xác cao |
+| `vlm-http-client` | Gửi inference tới server OpenAI-compatible | Client nhẹ |
+| `hybrid-http-client` | Pipeline local + VLM remote | Cân bằng giữa local và remote |
 
-Với NVIDIA GTX 1650 4 GB, nên sử dụng `pipeline`. `vlm-engine` và
-`hybrid-engine` có thể vượt quá dung lượng VRAM.
+Khuyến nghị:
+
+- Với GPU 4GB, ưu tiên `pipeline`
+- Với GPU lớn và cần độ chính xác cao, có thể dùng `hybrid-engine`
+- Với máy yếu, dùng client HTTP hoặc backend nhẹ hơn
+
+---
 
 ## Yêu cầu hệ thống
 
-- Python từ 3.10 đến 3.13.
-- Linux, Windows hoặc macOS.
-- RAM khuyến nghị từ 8 GB.
-- Dung lượng trống dành cho dependency và model.
-- NVIDIA driver hoạt động nếu muốn sử dụng CUDA.
+- Python: 3.10 - 3.13
+- Linux / Windows / macOS
+- RAM khuyến nghị: 8GB+
+- Dung lượng đĩa: đủ cho model và cache
+- Nếu dùng CUDA: cần driver NVIDIA hợp lệ
 
 Kiểm tra GPU:
 
 ```bash
 nvidia-smi
+python -c "import torch; print(torch.cuda.is_available())"
 ```
+
+---
 
 ## Cài đặt
 
 ### 1. Clone repository
 
 ```bash
-git clone <URL_REPOSITORY_CUA_BAN>
+git clone <repo_url>
 cd vsf_ocr
 ```
 
-### 2. Tạo virtual environment
+### 2. Tạo môi trường ảo
 
 ```bash
 python3.12 -m venv .venv
@@ -98,13 +231,13 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 3. Cài pipeline và WebUI
+### 3. Cài đặt gói
 
 ```bash
 pip install -e ".[pipeline,gradio]"
 ```
 
-Để cài toàn bộ thành phần tùy chọn:
+Hoặc cài đầy đủ:
 
 ```bash
 pip install -e ".[all]"
@@ -112,15 +245,13 @@ pip install -e ".[all]"
 
 ### 4. Tải model
 
-Tải model cho backend `pipeline`:
-
 ```bash
 vsf-models-download \
   --source huggingface \
   --model_type pipeline
 ```
 
-Nếu cần VLM và máy có đủ VRAM:
+Nếu cần VLM:
 
 ```bash
 vsf-models-download \
@@ -128,10 +259,9 @@ vsf-models-download \
   --model_type vlm
 ```
 
-Sau khi tải, đường dẫn model được lưu trong `vsf.json` tại thư mục người
-dùng.
+---
 
-## Chạy WebUI bằng GPU
+## Chạy WebUI
 
 ```bash
 VSF_MODEL_SOURCE=local \
@@ -142,7 +272,7 @@ vsf-gradio \
   --server-port 7860
 ```
 
-Mở trình duyệt tại:
+Mở:
 
 ```text
 http://127.0.0.1:7860
@@ -150,15 +280,17 @@ http://127.0.0.1:7860
 
 Trong giao diện:
 
-1. Tải tài liệu lên.
-2. Chọn backend `pipeline` nếu GPU có 4 GB VRAM.
-3. Để parsing method là `auto`.
-4. Bật hoặc tắt nhận diện bảng và công thức tùy nhu cầu.
-5. Bắt đầu chuyển đổi và tải kết quả.
+1. Tải tài liệu lên
+2. Chọn backend phù hợp
+3. Chọn `parse_method=auto`
+4. Bật/tắt table/formula extraction nếu cần
+5. Bắt đầu xử lý và tải output
+
+---
 
 ## Sử dụng CLI
 
-Phân tích một tài liệu:
+### Xử lý một file
 
 ```bash
 vsf \
@@ -167,7 +299,7 @@ vsf \
   -b pipeline
 ```
 
-Phân tích toàn bộ tài liệu trong một thư mục:
+### Xử lý một thư mục
 
 ```bash
 vsf \
@@ -176,32 +308,7 @@ vsf \
   -b pipeline
 ```
 
-Phân tích và trích xuất dữ liệu HCNS:
-
-```bash
-vsf \
-  -p input/hop-dong.pdf \
-  -o output \
-  -b pipeline \
-  --idp \
-  --idp-document-type auto
-```
-
-IDP tự động nhận mọi tài liệu thuộc các định dạng đầu vào được hỗ trợ. Các mẫu
-trích xuất chuyên sâu hiện có:
-
-- `identity_card`: CCCD/CMND.
-- `cv`: CV hoặc sơ yếu lý lịch.
-- `labor_contract`: hợp đồng lao động.
-- `hr_decision`: quyết định nhân sự.
-- `leave_request`: đơn xin nghỉ phép.
-- `degree_certificate`: bằng cấp hoặc chứng chỉ.
-- `other_document`: tài liệu khác, dùng schema chung thay vì từ chối xử lý.
-
-Trên giao diện web, IDP được bật mặc định với chế độ `auto`. Người dùng có thể
-bỏ dấu tích IDP khi chỉ muốn OCR và chuyển đổi tài liệu.
-
-Chỉ xử lý trang đầu tiên:
+### Chỉ xử lý một số trang đầu
 
 ```bash
 vsf \
@@ -209,10 +316,10 @@ vsf \
   -o output \
   -b pipeline \
   --start 0 \
-  --end 0
+  --end 5
 ```
 
-Buộc sử dụng CUDA:
+### Buộc dùng CUDA
 
 ```bash
 VSF_MODEL_SOURCE=local \
@@ -223,9 +330,11 @@ vsf \
   -b pipeline
 ```
 
-## Chạy REST API
+---
 
-Khởi động FastAPI:
+## API REST
+
+Khởi động service:
 
 ```bash
 VSF_MODEL_SOURCE=local \
@@ -236,7 +345,7 @@ vsf-api \
   --port 8000
 ```
 
-Tài liệu Swagger:
+Swagger UI:
 
 ```text
 http://127.0.0.1:8000/docs
@@ -244,15 +353,13 @@ http://127.0.0.1:8000/docs
 
 Các endpoint chính:
 
-| Method | Endpoint | Chức năng |
-|---|---|---|
-| `GET` | `/health` | Kiểm tra trạng thái service |
-| `POST` | `/tasks` | Gửi tác vụ bất đồng bộ |
-| `GET` | `/tasks/{task_id}` | Kiểm tra trạng thái tác vụ |
-| `GET` | `/tasks/{task_id}/result` | Lấy kết quả tác vụ |
-| `POST` | `/file_parse` | Phân tích đồng bộ |
+- `GET /health`
+- `POST /tasks`
+- `GET /tasks/{task_id}`
+- `GET /tasks/{task_id}/result`
+- `POST /file_parse`
 
-Ví dụ gửi tài liệu:
+Ví dụ gửi tác vụ:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/tasks \
@@ -263,23 +370,11 @@ curl -X POST http://127.0.0.1:8000/tasks \
   -F "return_md=true"
 ```
 
-## Cấu trúc kết quả
+---
 
-Tùy backend và tham số, thư mục kết quả có thể chứa:
+## Cấu trúc output
 
-| Tệp | Nội dung |
-|---|---|
-| `document.md` | Nội dung Markdown cuối cùng |
-| `document_middle.json` | Cấu trúc trung gian chi tiết theo trang và block |
-| `document_content_list.json` | Danh sách nội dung theo thứ tự đọc |
-| `document_content_list_v2.json` | Định dạng danh sách nội dung phiên bản mới |
-| `document_model.json` | Kết quả suy luận thô của model |
-| `document_idp.json` | Phân loại, trường HCNS, bằng chứng và kết quả validation |
-| `document_layout.pdf` | PDF trực quan hóa vùng bố cục |
-| `document_span.pdf` | PDF trực quan hóa text span |
-| `images/` | Hình ảnh và vùng nội dung được trích xuất |
-
-Ví dụ cấu trúc:
+Khi xử lý xong, thường sẽ có cấu trúc như sau:
 
 ```text
 output/
@@ -296,148 +391,137 @@ output/
         └── images/
 ```
 
-## IDP tài liệu
+### Ý nghĩa các file:
 
-IDP được thực thi sau khi Pipeline, VLM hoặc Hybrid đã tạo `middle_json`:
+- `document.md`: nội dung Markdown cuối cùng
+- `document_middle.json`: dữ liệu trung gian theo trang và block
+- `document_content_list.json`: danh sách nội dung theo thứ tự đọc
+- `document_content_list_v2.json`: định dạng nội dung mới hơn
+- `document_model.json`: output gốc từ model
+- `document_idp.json`: kết quả phân loại/trích xuất dữ liệu
+- `document_layout.pdf`: minh họa bbox layout
+- `document_span.pdf`: minh họa bbox text span
+- `images/`: hình ảnh và vùng trích xuất
 
-```text
-Tài liệu đầu vào
-→ VSF OCR
-→ Content list có page/bbox
-→ Phân loại theo mẫu chuyên sâu hoặc schema tài liệu chung
-→ Trích xuất và chuẩn hóa trường
-→ Validation
-→ document_idp.json
-```
+---
 
-IDP có thể tự phân loại hoặc nhận loại tài liệu do người dùng chỉ định. Mỗi
-trường giữ cả giá trị, confidence, trang, bounding box và đoạn văn bản nguồn
-để phục vụ kiểm tra thủ công.
+## Dòng xử lý OCR thực tế trong dự án
 
-Ví dụ kết quả rút gọn:
-
-```json
-{
-  "classification": {
-    "document_type": "labor_contract",
-    "confidence": 0.97
-  },
-  "fields": {
-    "employee_name": {
-      "value": "Nguyễn Văn A",
-      "confidence": 0.94,
-      "evidence": {
-        "page": 1,
-        "bbox": [100, 220, 780, 270],
-        "source_text": "Người lao động: Nguyễn Văn A"
-      }
-    }
-  },
-  "validation": {
-    "status": "valid",
-    "requires_review": false,
-    "issues": []
-  }
-}
-```
-
-Phiên bản hiện tại dùng luật và regex xác định, không gọi dịch vụ LLM bên
-ngoài. Kết quả `needs_review` không nên được tự động ghi vào hệ thống HRM
-trước khi có người dùng xác nhận.
-
-## Khắc phục lỗi thường gặp
-
-### `Local path for repo_mode 'vlm' is not configured`
-
-Tác vụ đang sử dụng `hybrid-engine` hoặc `vlm-engine`, nhưng model VLM chưa
-được tải.
-
-Với GPU 4 GB, đổi backend thành:
+Mô hình OCR của hệ thống được triển khai theo hướng pipeline document understanding, gồm các bước sau:
 
 ```text
-pipeline
+input document
+    ↓
+PDF/image loading
+    ↓
+OCR enable detection
+    ↓
+page rendering
+    ↓
+layout detection
+    ↓
+text / table / formula region extraction
+    ↓
+OCR on region
+    ↓
+block ordering and cleanup
+    ↓
+Markdown & structured JSON generation
 ```
 
-Nếu máy có đủ VRAM và thực sự cần VLM:
+Đặc điểm quan trọng:
 
-```bash
-vsf-models-download \
-  --source huggingface \
-  --model_type vlm
-```
+- OCR không chạy trên toàn bộ trang một cách bừa bãi; nó chạy trên từng vùng cần nhận dạng.
+- Layout detection giúp phân tách các vùng độc lập hơn, tránh nhầm text với header, footer, figure, table.
+- Table và formula có xử lý riêng, vì chúng cần logic khác với đoạn văn thơng thường.
+- Output cuối cùng là dữ liệu đã được sắp xếp theo nghĩa đọc, không phải là raw OCR dump thô.
 
-### CUDA không khả dụng
+---
 
-Kiểm tra:
+## IDP (tùy chọn)
 
-```bash
-nvidia-smi
-```
+Sau khi pipeline OCR + cấu trúc hóa xong, hệ thống có thể tiếp tục phân tích dữ liệu theo schema công việc.
 
-```bash
-python -c "import torch; print(torch.cuda.is_available())"
-```
+Ví dụ:
 
-Nếu kết quả là `False`, kiểm tra lại NVIDIA driver và phiên bản PyTorch CUDA.
+- hợp đồng lao động
+- thẻ căn cước
+- CV
+- quyết định nhân sự
+- bảng lương
+- bảng chấm công
+- tài liệu khác
 
-### CUDA out of memory
+IDP ở đây tập trung vào:
 
-- Chuyển sang backend `pipeline`.
-- Giới hạn số request đồng thời:
+- phân loại tài liệu
+- trích xuất trường dữ liệu
+- chuẩn hóa định dạng
+- xác định điểm cần review
+- đánh giá độ tin cậy
 
-  ```bash
-  export VSF_API_MAX_CONCURRENT_REQUESTS=1
-  ```
+Lưu ý: IDP là lớp bổ trợ; phần cốt lõi của dự án vẫn là OCR và biến tài liệu thành cấu trúc.
 
-- Tắt nhận diện công thức hoặc bảng nếu không cần.
-- Chỉ xử lý một khoảng trang trong mỗi tác vụ.
-
-### Lần chạy đầu tiên chậm
-
-Lần đầu VSF cần tải và khởi tạo model. Sử dụng
-`vsf-models-download` trước khi khởi động service để tránh tải model trong
-lúc xử lý tài liệu.
+---
 
 ## Cấu trúc mã nguồn
 
 ```text
 vsf/
 ├── backend/
-│   ├── pipeline/    # Pipeline OCR, layout, bảng và công thức
-│   ├── vlm/         # Vision-Language Model
-│   ├── hybrid/      # Kết hợp pipeline và VLM
-│   └── office/      # PPTX và XLSX
-├── cli/             # CLI, FastAPI, Gradio và router
-├── data/            # Lớp đọc/ghi dữ liệu
-├── idp/             # Phân loại, trích xuất và validation HCNS
-├── model/           # Model và inference adapter
-├── resources/       # Tài nguyên giao diện và ngôn ngữ
-└── utils/           # Hàm tiện ích dùng chung
+│   ├── pipeline/     # OCR, layout, table, formula
+│   ├── vlm/          # Vision-language model
+│   ├── hybrid/       # Kết hợp pipeline + VLM
+│   └── office/       # PPTX / XLSX processing
+├── cli/              # CLI, API, Gradio, router
+├── data/             # Reader/writer cho dữ liệu
+├── idp/              # Classification + field extraction + validation
+├── model/            # models and adapter
+├── resources/        # UI resources, language data
+├── utils/            # shared helpers
+└── __init__.py
 ```
 
-## Kiểm thử
+---
 
-Chạy test:
+## Kiểm thử
 
 ```bash
 pytest
 ```
 
-Chạy bài test end-to-end:
+Test end-to-end:
 
 ```bash
 pytest tests/unittest/test_e2e.py
 ```
 
-Chạy riêng kiểm thử IDP HCNS:
+Test IDP riêng:
 
 ```bash
 pytest tests/unittest/idp/test_hr_idp.py
 ```
 
+---
+
+## Lưu ý vận hành
+
+- Với GPU 4GB, nên ưu tiên backend `pipeline`.
+- Với PDF lớn, hãy dùng `VSF_PROCESSING_WINDOW_SIZE` hợp lý.
+- Nếu tài liệu scan và chữ mờ, nên dùng OCR mode hoặc `auto`.
+- Nếu gặp OOM, giảm số request đồng thời và xử lý theo từng batch.
+- Lần đầu chạy thường chậm vì cần tải model và setup môi trường.
+
+---
+
 ## Người duy trì
 
 **Tran Van Huynh**
 
-Bản fork này được duy trì và tùy chỉnh cho mục đích học tập, nghiên cứu và xây
-dựng các hệ thống xử lý tài liệu thông minh.
+Dự án này được phát triển cho mục đích nghiên cứu, học tập và xây dựng hệ thống xử lý tài liệu văn bản có cấu trúc.
+
+---
+
+## Tóm tắt ngắn
+
+VSF OCR là một hệ thống OCR + document understanding tập trung vào việc đọc, hiểu và chuẩn hóa tài liệu. Nó không chỉ chụp chữ, mà còn phát hiện bố cục, tách bảng, phân tách công thức, sắp xếp nội dung theo thứ tự đọc, và sinh ra Markdown/JSON để phục vụ các workflow xử lý tài liệu thực tế.

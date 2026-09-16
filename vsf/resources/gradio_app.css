@@ -274,24 +274,33 @@ body.vsf-hide-hybrid-effort .gradio-container .contain .vsf-hybrid-effort-option
 }
 .vsf-markdown-text,
 .vsf-content-list-json,
+.vsf-idp-result-json,
 .vsf-markdown-text .wrap,
 .vsf-content-list-json .wrap,
+.vsf-idp-result-json .wrap,
 .vsf-markdown-text .codemirror-wrapper,
-.vsf-content-list-json .codemirror-wrapper {
+.vsf-content-list-json .codemirror-wrapper,
+.vsf-idp-result-json .codemirror-wrapper {
     height: var(--vsf-markdown-text-content-height) !important;
     min-height: var(--vsf-markdown-text-content-height) !important;
+    max-height: var(--vsf-markdown-text-content-height) !important;
+    overflow: hidden !important;
 }
 .vsf-markdown-text .cm-editor,
 .vsf-content-list-json .cm-editor,
+.vsf-idp-result-json .cm-editor,
 .vsf-markdown-text .cm-scroller,
-.vsf-content-list-json .cm-scroller {
+.vsf-content-list-json .cm-scroller,
+.vsf-idp-result-json .cm-scroller {
     height: 100% !important;
     max-height: 100% !important;
     min-height: 0 !important;
 }
 .vsf-markdown-text .cm-scroller,
-.vsf-content-list-json .cm-scroller {
+.vsf-content-list-json .cm-scroller,
+.vsf-idp-result-json .cm-scroller {
     overflow: auto !important;
+    overscroll-behavior: contain;
 }
 .status-steps-panel {
     border: 1px solid var(--vsf-panel-border);
